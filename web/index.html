@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>环境试验箱链路测试</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d29;
+      --panel-2: #111521;
+      --line: #293142;
+      --text: #f8fafc;
+      --muted: #9ca3af;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    header {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 { font-size: 20px; letter-spacing: 0; }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .device-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .device-card {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 14px;
+      cursor: pointer;
+    }
+
+    .device-card.active {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, .35);
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .row strong { color: var(--text); }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(34, 197, 94, .12);
+    }
+
+    .detail {
+      display: grid;
+      gap: 20px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      min-height: 105px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      background: var(--blue);
+      cursor: pointer;
+      font: inherit;
+      font-weight: 650;
+    }
+
+    button.secondary { background: #374151; }
+    button.danger { background: var(--red); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .event-log {
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+      margin-top: 14px;
+    }
+
+    .event {
+      border-left: 3px solid var(--blue);
+      background: var(--panel-2);
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: #d1d5db;
+      font-size: 13px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 260px;
+      display: block;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 620px) {
+      .metrics { grid-template-columns: 1fr; }
+      header { height: auto; padding: 16px; align-items: flex-start; gap: 8px; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>环境试验箱控制链路测试</h1>
+    <div class="status"><span class="dot"></span><span id="connectionStatus">连接中</span></div>
+  </header>
+
+  <main class="shell">
+    <aside class="panel">
+      <h2>试验箱列表</h2>
+      <div class="device-list" id="deviceList"></div>
+    </aside>
+
+    <section class="detail">
+      <div class="panel">
+        <h2 id="deviceTitle">请选择一台试验箱</h2>
+        <div class="metrics">
+          <div class="metric"><div class="label">运行状态</div><div class="value" id="runState">--</div></div>
+          <div class="metric"><div class="label">当前温度</div><div class="value" id="temperature">--</div></div>
+          <div class="metric"><div class="label">当前湿度</div><div class="value" id="humidity">--</div></div>
+          <div class="metric"><div class="label">当前步骤</div><div class="value" id="step">--</div></div>
+        </div>
+        <div class="actions">
+          <button id="startButton">启动试验</button>
+          <button class="danger" id="stopButton">停止</button>
+          <button class="secondary" id="refreshButton">刷新快照</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>实时趋势</h3>
+        <canvas id="trend" width="900" height="260"></canvas>
+      </div>
+
+      <div class="panel">
+        <h3>命令与设备事件</h3>
+        <div class="event-log" id="eventLog"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let selectedDeviceId = "CH-001";
+    let overviewSocket = null;
+    let deviceSocket = null;
+    let currentState = null;
+    const trendPoints = [];
+
+    const els = {
+      connectionStatus: document.getElementById("connectionStatus"),
+      deviceList: document.getElementById("deviceList"),
+      deviceTitle: document.getElementById("deviceTitle"),
+      runState: document.getElementById("runState"),
+      temperature: document.getElementById("temperature"),
+      humidity: document.getElementById("humidity"),
+      step: document.getElementById("step"),
+      startButton: document.getElementById("startButton"),
+      stopButton: document.getElementById("stopButton"),
+      refreshButton: document.getElementById("refreshButton"),
+      eventLog: document.getElementById("eventLog"),
+      trend: document.getElementById("trend")
+    };
+
+    function wsUrl(path) {
+      const protocol = location.protocol === "https:" ? "wss" : "ws";
+      return `${protocol}://${location.host}${path}`;
+    }
+
+    function stateText(state) {
+      const map = {
+        IDLE: "空闲",
+        READY: "就绪",
+        WAIT_LOCAL_CONFIRM: "等待本机确认",
+        RUNNING: "运行中",
+        PAUSED: "已暂停",
+        COMPLETED: "已完成",
+        STOPPED: "已停止",
+        STOPPING: "停止中",
+        ABORTING: "中止中",
+        ALARM: "报警",
+        MAINTENANCE: "维护中",
+        OFFLINE: "离线"
+      };
+      return map[state] || state;
+    }
+
+    function connectOverview() {
+      overviewSocket = new WebSocket(wsUrl("/ws/overview"));
+      overviewSocket.onopen = () => els.connectionStatus.textContent = "总览通道已连接";
+      overviewSocket.onmessage = event => {
+        const message = JSON.parse(event.data);
+        renderDeviceList(message.devices);
+      };
+      overviewSocket.onclose = () => {
+        els.connectionStatus.textContent = "总览通道重连中";
+        setTimeout(connectOverview, 1200);
+      };
+    }
+
+    function connectDevice(deviceId) {
+      if (deviceSocket) deviceSocket.close();
+      trendPoints.length = 0;
+      selectedDeviceId = deviceId;
+      deviceSocket = new WebSocket(wsUrl(`/ws/devices/${deviceId}`));
+      deviceSocket.onopen = () => addEvent("详情通道已连接");
+      deviceSocket.onmessage = event => {
+        const message = JSON.parse(event.data);
+        const state = message.state || message.state;
+        if (state) updateDetail(state);
+        if (message.type && message.type !== "telemetry") {
+          addEvent(`${message.type}: ${JSON.stringify(message.payload || {})}`);
+        }
+      };
+      deviceSocket.onclose = () => addEvent("详情通道已关闭");
+    }
+
+    function renderDeviceList(devices) {
+      els.deviceList.innerHTML = devices.map(device => `
+        <button class="device-card ${device.device_id === selectedDeviceId ? "active" : ""}" data-id="${device.device_id}">
+          <strong>${device.device_id}</strong>
+          <div class="row"><span>${device.name}</span></div>
+          <div class="row"><span>状态</span><strong>${stateText(device.run_state)}</strong></div>
+          <div class="row"><span>温度 / 湿度</span><strong>${device.current_temperature.toFixed(1)}C / ${device.current_humidity.toFixed(1)}%</strong></div>
+        </button>
+      `).join("");
+      document.querySelectorAll(".device-card").forEach(card => {
+        card.addEventListener("click", () => connectDevice(card.dataset.id));
+      });
+    }
+
+    function updateDetail(state) {
+      currentState = state;
+      els.deviceTitle.textContent = `${state.device_id} - ${state.name}`;
+      els.runState.textContent = stateText(state.run_state);
+      els.temperature.textContent = `${state.current_temperature.toFixed(1)} C`;
+      els.humidity.textContent = `${state.current_humidity.toFixed(1)} %`;
+      els.step.textContent = state.total_steps ? `${state.current_step}/${state.total_steps}` : "--";
+      els.startButton.disabled = !["IDLE", "COMPLETED", "STOPPED"].includes(state.run_state);
+      els.stopButton.disabled = !["RUNNING", "WAIT_LOCAL_CONFIRM"].includes(state.run_state);
+
+      trendPoints.push({
+        temp: state.current_temperature,
+        hum: state.current_humidity,
+        targetTemp: state.target_temperature,
+        targetHum: state.target_humidity
+      });
+      if (trendPoints.length > 80) trendPoints.shift();
+      drawTrend();
+    }
+
+    async function startTest() {
+      const response = await fetch(`/api/devices/${selectedDeviceId}/test-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          operator_id: "web-admin",
+          recipe_name: "Web 提交的温湿度循环试验"
+        })
+      });
+      addEvent(`启动申请：${JSON.stringify(await response.json())}`);
+    }
+
+    async function stopTest() {
+      const response = await fetch(`/api/devices/${selectedDeviceId}/stop-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operator_id: "web-admin", reason: "manual stop" })
+      });
+      addEvent(`停止申请：${JSON.stringify(await response.json())}`);
+    }
+
+    async function refreshSnapshot() {
+      const response = await fetch(`/api/devices/${selectedDeviceId}`);
+      updateDetail(await response.json());
+      addEvent("已通过 HTTP 路由刷新快照");
+    }
+
+    function addEvent(text) {
+      const item = document.createElement("div");
+      item.className = "event";
+      item.textContent = `${new Date().toLocaleTimeString()} ${text}`;
+      els.eventLog.prepend(item);
+      while (els.eventLog.children.length > 80) {
+        els.eventLog.lastElementChild.remove();
+      }
+    }
+
+    function drawTrend() {
+      const canvas = els.trend;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      const pad = 36;
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = "#293142";
+      ctx.lineWidth = 1;
+      ctx.font = "12px Segoe UI";
+      ctx.fillStyle = "#9ca3af";
+
+      for (let i = 0; i < 5; i++) {
+        const y = pad + i * ((h - pad * 2) / 4);
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.moveTo(pad, y);
+        ctx.lineTo(w - pad, y);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([]);
+      drawSeries(ctx, trendPoints.map(p => p.temp), "#3b82f6", -40, 100, w, h, pad);
+      drawSeries(ctx, trendPoints.map(p => p.hum), "#22c55e", 0, 100, w, h, pad);
+      ctx.fillStyle = "#9ca3af";
+      ctx.fillText("蓝色：温度 C", pad, 18);
+      ctx.fillText("绿色：湿度 %", pad + 150, 18);
+    }
+
+    function drawSeries(ctx, values, color, min, max, w, h, pad) {
+      if (values.length < 2) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      values.forEach((value, index) => {
+        const x = pad + index * ((w - pad * 2) / Math.max(values.length - 1, 1));
+        const y = h - pad - ((value - min) / (max - min)) * (h - pad * 2);
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    els.startButton.addEventListener("click", startTest);
+    els.stopButton.addEventListener("click", stopTest);
+    els.refreshButton.addEventListener("click", refreshSnapshot);
+
+    connectOverview();
+    connectDevice(selectedDeviceId);
+  </script>
+</body>
+</html>

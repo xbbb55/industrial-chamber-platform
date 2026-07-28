@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工控机上传数据看板</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d29;
+      --panel-2: #111521;
+      --line: #293142;
+      --text: #f8fafc;
+      --muted: #9ca3af;
+      --green: #22c55e;
+      --blue: #3b82f6;
+      --red: #ef4444;
+      --yellow: #eab308;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    header {
+      min-height: 66px;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 20px; letter-spacing: 0; }
+    a { color: #93c5fd; text-decoration: none; }
+
+    main {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: right;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(34, 197, 94, .12);
+      flex: 0 0 auto;
+    }
+
+    .dot.empty { background: var(--yellow); box-shadow: 0 0 0 5px rgba(234, 179, 8, .12); }
+    .dot.error { background: var(--red); box-shadow: 0 0 0 5px rgba(239, 68, 68, .12); }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .panel, .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .metric { background: var(--panel-2); }
+    .label { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+    .value { font-size: 26px; font-weight: 750; word-break: break-all; }
+
+    .edges {
+      display: grid;
+      gap: 16px;
+    }
+
+    .edge-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .edge-head h2 { font-size: 18px; }
+    .edge-head small { display: block; margin-top: 5px; color: var(--muted); }
+
+    .devices {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .device {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .device h3 {
+      font-size: 16px;
+      line-height: 1.25;
+      margin-bottom: 4px;
+    }
+
+    .device small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    .row strong { color: var(--text); }
+
+    .pill {
+      display: inline-flex;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(34, 197, 94, .14);
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .pill.alarm {
+      background: rgba(239, 68, 68, .14);
+      color: var(--red);
+    }
+
+    .pill.idle {
+      background: rgba(156, 163, 175, .14);
+      color: var(--muted);
+    }
+
+    .empty {
+      min-height: 220px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    pre {
+      margin: 14px 0 0;
+      max-height: 300px;
+      overflow: auto;
+      background: #090b10;
+      color: #d1d5db;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1100px) {
+      .summary, .devices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      header { align-items: flex-start; flex-direction: column; }
+      .summary, .devices { grid-template-columns: 1fr; }
+      .edge-head { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>工控机上传数据看板</h1>
+      <p style="margin-top:6px;color:var(--muted);font-size:13px;">显示工控机通过 /api/device-ingest/snapshots 上传到总服务端的数据</p>
+    </div>
+    <div class="status">
+      <span class="dot empty" id="statusDot"></span>
+      <span id="status">等待上传数据...</span>
+      <span>｜</span>
+      <a href="/api/device-ingest/latest" target="_blank">查看 JSON</a>
+      <span>｜</span>
+      <a href="/memory">本机共享内存看板</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="summary">
+      <div class="metric"><div class="label">已接入工控机</div><div class="value" id="edgeCount">0</div></div>
+      <div class="metric"><div class="label">设备总数</div><div class="value" id="deviceCount">0</div></div>
+      <div class="metric"><div class="label">最新序号</div><div class="value" id="latestSequence">--</div></div>
+      <div class="metric"><div class="label">刷新频率</div><div class="value">1s</div></div>
+    </section>
+
+    <section class="edges" id="edges">
+      <div class="panel empty">
+        <div>
+          <h2>还没有收到工控机上传数据</h2>
+          <p style="margin-top:10px;">请在工控机手动输入页面写入温湿度，或确认工控机配置的 server_url 指向本机 IP。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const statusDot = document.getElementById("statusDot");
+    const edgeCountEl = document.getElementById("edgeCount");
+    const deviceCountEl = document.getElementById("deviceCount");
+    const latestSequenceEl = document.getElementById("latestSequence");
+    const edgesEl = document.getElementById("edges");
+
+    function stateText(state) {
+      const map = {
+        OFFLINE: "离线",
+        IDLE: "空闲",
+        READY: "就绪",
+        WAIT_LOCAL_CONFIRM: "等待本机确认",
+        RUNNING: "运行中",
+        PAUSED: "暂停",
+        COMPLETED: "已完成",
+        STOPPED: "已停止",
+        STOPPING: "停止中",
+        ABORTING: "中止中",
+        ALARM: "告警",
+        MAINTENANCE: "维护"
+      };
+      return map[state] || state || "--";
+    }
+
+    function pillClass(device) {
+      if (device.run_state === "ALARM" || device.alarm) return "alarm";
+      if (device.run_state === "IDLE") return "idle";
+      return "";
+    }
+
+    function formatTime(seconds) {
+      if (!seconds) return "--";
+      return new Date(seconds * 1000).toLocaleString();
+    }
+
+    function formatNumber(value, digits = 1) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number.toFixed(digits) : "--";
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/device-ingest/latest", { cache: "no-store" });
+        if (!response.ok) throw new Error(await response.text());
+        const data = await response.json();
+        render(data);
+      } catch (error) {
+        statusDot.className = "dot error";
+        statusEl.textContent = `读取失败：${error.message}`;
+      }
+    }
+
+    function render(data) {
+      const edges = Object.values(data.edges || {});
+      const allDevices = edges.flatMap(edge => edge.snapshot?.devices || []);
+      const latestSequence = edges
+        .map(edge => edge.snapshot?.sequence)
+        .filter(value => value !== undefined && value !== null)
+        .sort((a, b) => Number(b) - Number(a))[0];
+
+      edgeCountEl.textContent = data.edge_count || edges.length;
+      deviceCountEl.textContent = allDevices.length;
+      latestSequenceEl.textContent = latestSequence ?? "--";
+
+      if (!edges.length) {
+        statusDot.className = "dot empty";
+        statusEl.textContent = "等待上传数据...";
+        edgesEl.innerHTML = `
+          <div class="panel empty">
+            <div>
+              <h2>还没有收到工控机上传数据</h2>
+              <p style="margin-top:10px;">请在工控机手动输入页面写入温湿度，或确认工控机配置的 server_url 指向本机 IP。</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      statusDot.className = "dot";
+      statusEl.textContent = `已更新 ${new Date().toLocaleTimeString()}`;
+      edgesEl.innerHTML = edges.map(renderEdge).join("");
+    }
+
+    function renderEdge(edge) {
+      const snapshot = edge.snapshot || {};
+      const devices = snapshot.devices || [];
+      return `
+        <section class="panel">
+          <div class="edge-head">
+            <div>
+              <h2>${edge.edge_id}</h2>
+              <small>agent=${edge.agent_version || "--"} ｜ sequence=${snapshot.sequence ?? "--"} ｜ received=${formatTime(edge.received_at)}</small>
+            </div>
+            <span class="pill">${devices.length} 台设备</span>
+          </div>
+          <div class="devices">
+            ${devices.map(renderDevice).join("")}
+          </div>
+          <pre>${JSON.stringify(snapshot, null, 2)}</pre>
+        </section>
+      `;
+    }
+
+    function renderDevice(device) {
+      return `
+        <article class="device">
+          <h3>${device.device_id || "--"}</h3>
+          <small>${device.name || ""}</small>
+          <div class="row"><span>状态</span><strong><span class="pill ${pillClass(device)}">${stateText(device.run_state)}</span></strong></div>
+          <div class="row"><span>当前温度</span><strong>${formatNumber(device.current_temperature)} °C</strong></div>
+          <div class="row"><span>当前湿度</span><strong>${formatNumber(device.current_humidity)} %</strong></div>
+          <div class="row"><span>目标温度</span><strong>${formatNumber(device.target_temperature)} °C</strong></div>
+          <div class="row"><span>目标湿度</span><strong>${formatNumber(device.target_humidity)} %</strong></div>
+          <div class="row"><span>告警</span><strong>${device.alarm || "无"}</strong></div>
+          <div class="row"><span>更新时间</span><strong>${formatTime(device.updated_at)}</strong></div>
+        </article>
+      `;
+    }
+
+    refresh();
+    setInterval(refresh, 1000);
+  </script>
+</body>
+</html>

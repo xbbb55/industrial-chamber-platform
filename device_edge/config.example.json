@@ -1,0 +1,12 @@
+{
+  "edge_id": "EDGE-CHAMBER-001",
+  "agent_version": "0.1.0",
+  "server_url": "http://127.0.0.1:8010",
+  "upload_interval_seconds": 0.5,
+  "stream_interval_seconds": 0.5,
+  "shared_memory_name": "industrial_chamber_realtime_v1",
+  "shared_memory_size": 262144,
+  "auth": {
+    "token": ""
+  }
+}

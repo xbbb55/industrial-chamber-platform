@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>共享内存检查器</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d29;
+      --panel-2: #111521;
+      --line: #293142;
+      --text: #f8fafc;
+      --muted: #9ca3af;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    header {
+      height: 66px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    a {
+      color: #93c5fd;
+      text-decoration: none;
+    }
+
+    main {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 20px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin-bottom: 14px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .panel, .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .metric {
+      background: var(--panel-2);
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-size: 26px;
+      font-weight: 750;
+      word-break: break-all;
+    }
+
+    .bar {
+      height: 12px;
+      background: #30384b;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--green);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 840px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 12px;
+      text-align: left;
+      color: #d1d5db;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    pre {
+      margin: 0;
+      max-height: 460px;
+      overflow: auto;
+      background: #090b10;
+      color: #d1d5db;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .topline {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      header { height: auto; align-items: flex-start; flex-direction: column; gap: 8px; padding: 16px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>共享内存检查器</h1>
+    <div class="topline">
+      <span id="status">加载中</span>
+      <a href="/">返回看板</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="grid">
+      <div class="metric"><div class="label">共享内存名称</div><div class="value" id="name">--</div></div>
+      <div class="metric"><div class="label">总容量</div><div class="value" id="total">--</div></div>
+      <div class="metric"><div class="label">数据长度</div><div class="value" id="payload">--</div></div>
+      <div class="metric"><div class="label">占用率</div><div class="value" id="usage">--</div><div class="bar"><span id="usageBar"></span></div></div>
+    </section>
+
+    <section class="grid">
+      <div class="metric"><div class="label">版本号</div><div class="value" id="version">--</div></div>
+      <div class="metric"><div class="label">写入状态</div><div class="value" id="writeState">--</div></div>
+      <div class="metric"><div class="label">写入序号</div><div class="value" id="sequence">--</div></div>
+      <div class="metric"><div class="label">设备数量</div><div class="value" id="deviceCount">--</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>内存中的设备字段</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>设备</th>
+              <th>状态</th>
+              <th>温度</th>
+              <th>湿度</th>
+              <th>目标值</th>
+              <th>步骤</th>
+              <th>报警</th>
+              <th>更新时间</th>
+            </tr>
+          </thead>
+          <tbody id="deviceRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>共享内存头部与数据预览</h2>
+      <pre id="memoryInfo">加载中...</pre>
+    </section>
+
+    <section class="panel">
+      <h2>完整解析后的快照 JSON</h2>
+      <pre id="snapshotJson">加载中...</pre>
+    </section>
+  </main>
+
+  <script>
+    const ids = {
+      status: document.getElementById("status"),
+      name: document.getElementById("name"),
+      total: document.getElementById("total"),
+      payload: document.getElementById("payload"),
+      usage: document.getElementById("usage"),
+      usageBar: document.getElementById("usageBar"),
+      version: document.getElementById("version"),
+      writeState: document.getElementById("writeState"),
+      sequence: document.getElementById("sequence"),
+      deviceCount: document.getElementById("deviceCount"),
+      deviceRows: document.getElementById("deviceRows"),
+      memoryInfo: document.getElementById("memoryInfo"),
+      snapshotJson: document.getElementById("snapshotJson")
+    };
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+    }
+
+    function stateText(state) {
+      const map = {
+        IDLE: "空闲",
+        RUNNING: "运行中",
+        ALARM: "报警",
+        OFFLINE: "离线"
+      };
+      return map[state] || state;
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/memory/debug", { cache: "no-store" });
+        if (!response.ok) throw new Error(await response.text());
+        const data = await response.json();
+        render(data);
+        ids.status.textContent = `已更新 ${new Date().toLocaleTimeString()}`;
+      } catch (error) {
+        ids.status.textContent = `错误：${error.message}`;
+      }
+    }
+
+    function render(data) {
+      const memory = data.memory;
+      const summary = data.snapshot_summary;
+      const snapshot = data.snapshot;
+
+      ids.name.textContent = memory.name;
+      ids.total.textContent = formatBytes(memory.total_size_bytes);
+      ids.payload.textContent = formatBytes(memory.payload_length_bytes);
+      ids.usage.textContent = `${memory.payload_usage_percent}%`;
+      ids.usageBar.style.width = `${Math.min(memory.payload_usage_percent, 100)}%`;
+      ids.version.textContent = memory.version;
+      ids.writeState.textContent = memory.is_write_in_progress ? "写入中" : "稳定可读";
+      ids.sequence.textContent = summary.sequence;
+      ids.deviceCount.textContent = summary.device_count;
+
+      ids.deviceRows.innerHTML = (snapshot.devices || []).map(device => `
+        <tr>
+          <td>${device.device_id}</td>
+          <td>${stateText(device.run_state)}</td>
+          <td>${device.current_temperature} C</td>
+          <td>${device.current_humidity} %</td>
+          <td>${device.target_temperature} C / ${device.target_humidity} %</td>
+          <td>${device.total_steps ? `${device.current_step}/${device.total_steps}` : "--"}</td>
+          <td>${device.alarm || "无"}</td>
+          <td>${new Date(device.updated_at * 1000).toLocaleTimeString()}</td>
+        </tr>
+      `).join("");
+
+      ids.memoryInfo.textContent = JSON.stringify(memory, null, 2);
+      ids.snapshotJson.textContent = JSON.stringify(snapshot, null, 2);
+    }
+
+    refresh();
+    setInterval(refresh, 1000);
+  </script>
+</body>
+</html>

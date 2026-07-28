@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>共享内存试验箱看板</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d29;
+      --panel-2: #111521;
+      --line: #293142;
+      --text: #f8fafc;
+      --muted: #9ca3af;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    header {
+      height: 66px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 20px; letter-spacing: 0; }
+
+    main {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(34, 197, 94, .12);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-size: 26px;
+      font-weight: 750;
+    }
+
+    .devices {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .device {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .device-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .device h3 {
+      font-size: 16px;
+      line-height: 1.25;
+    }
+
+    .device small {
+      display: block;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .pill {
+      height: fit-content;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(34, 197, 94, .14);
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .pill.alarm {
+      background: rgba(239, 68, 68, .14);
+      color: var(--red);
+    }
+
+    .pill.idle {
+      background: rgba(156, 163, 175, .14);
+      color: var(--muted);
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    .row strong {
+      color: var(--text);
+    }
+
+    canvas {
+      width: 100%;
+      height: 270px;
+      display: block;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin-top: 16px;
+    }
+
+    pre {
+      margin: 14px 0 0;
+      max-height: 220px;
+      overflow: auto;
+      background: #090b10;
+      color: #d1d5db;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1100px) {
+      .summary, .devices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      header { height: auto; padding: 16px; align-items: flex-start; flex-direction: column; gap: 8px; }
+      .summary, .devices { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>共享内存试验箱看板</h1>
+    <div class="status"><span class="dot"></span><span id="status">连接中</span></div>
+  </header>
+
+  <main>
+    <section class="summary">
+      <div class="metric"><div class="label">写入序号</div><div class="value" id="sequence">--</div></div>
+      <div class="metric"><div class="label">设备数量</div><div class="value" id="deviceCount">--</div></div>
+      <div class="metric"><div class="label">读取延迟</div><div class="value" id="latency">--</div></div>
+      <div class="metric"><div class="label">刷新频率</div><div class="value">250ms</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>从共享内存读取到的设备</h2>
+      <div class="devices" id="devices"></div>
+    </section>
+
+    <section class="panel">
+      <h2>实时温湿度趋势</h2>
+      <canvas id="trend" width="1100" height="270"></canvas>
+    </section>
+
+    <section class="panel">
+      <h2>最新原始快照</h2>
+      <pre id="raw">等待数据...</pre>
+    </section>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const devicesEl = document.getElementById("devices");
+    const sequenceEl = document.getElementById("sequence");
+    const deviceCountEl = document.getElementById("deviceCount");
+    const latencyEl = document.getElementById("latency");
+    const rawEl = document.getElementById("raw");
+    const trendCanvas = document.getElementById("trend");
+    const trend = [];
+
+    function wsUrl(path) {
+      return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${path}`;
+    }
+
+    function stateText(state) {
+      const map = {
+        IDLE: "空闲",
+        RUNNING: "运行中",
+        ALARM: "报警",
+        OFFLINE: "离线"
+      };
+      return map[state] || state;
+    }
+
+    function connect() {
+      const socket = new WebSocket(wsUrl("/ws/memory"));
+      socket.onopen = () => statusEl.textContent = "路由 WebSocket 已连接";
+      socket.onmessage = event => {
+        const message = JSON.parse(event.data);
+        if (message.type === "memory_not_ready") {
+          statusEl.textContent = message.message;
+          return;
+        }
+        render(message.snapshot, message.router_read_at);
+      };
+      socket.onclose = () => {
+        statusEl.textContent = "重连中";
+        setTimeout(connect, 1000);
+      };
+    }
+
+    function render(snapshot, routerReadAt) {
+      const devices = snapshot.devices || [];
+      statusEl.textContent = "正在读取共享内存";
+      sequenceEl.textContent = snapshot.sequence;
+      deviceCountEl.textContent = devices.length;
+      latencyEl.textContent = `${Math.max(0, (routerReadAt - snapshot.written_at) * 1000).toFixed(0)}ms`;
+      rawEl.textContent = JSON.stringify(snapshot, null, 2);
+
+      devicesEl.innerHTML = devices.map(device => {
+        const cls = device.run_state === "ALARM" ? "alarm" : device.run_state === "IDLE" ? "idle" : "";
+        return `
+          <article class="device">
+            <div class="device-head">
+              <div><h3>${device.device_id}</h3><small>${device.name}</small></div>
+              <span class="pill ${cls}">${stateText(device.run_state)}</span>
+            </div>
+            <div class="row"><span>温度</span><strong>${device.current_temperature.toFixed(1)} C / ${device.target_temperature} C</strong></div>
+            <div class="row"><span>湿度</span><strong>${device.current_humidity.toFixed(1)} % / ${device.target_humidity} %</strong></div>
+            <div class="row"><span>步骤</span><strong>${device.total_steps ? `${device.current_step}/${device.total_steps}` : "--"}</strong></div>
+            <div class="row"><span>报警</span><strong>${device.alarm || "无"}</strong></div>
+          </article>
+        `;
+      }).join("");
+
+      const first = devices[0];
+      if (first) {
+        trend.push({ temp: first.current_temperature, hum: first.current_humidity });
+        if (trend.length > 120) trend.shift();
+        drawTrend();
+      }
+    }
+
+    function drawTrend() {
+      const ctx = trendCanvas.getContext("2d");
+      const w = trendCanvas.width;
+      const h = trendCanvas.height;
+      const pad = 34;
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = "#293142";
+      ctx.font = "12px Segoe UI";
+      ctx.fillStyle = "#9ca3af";
+
+      for (let i = 0; i < 5; i++) {
+        const y = pad + i * ((h - pad * 2) / 4);
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.moveTo(pad, y);
+        ctx.lineTo(w - pad, y);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      drawSeries(ctx, trend.map(p => p.temp), "#3b82f6", -30, 90, w, h, pad);
+      drawSeries(ctx, trend.map(p => p.hum), "#22c55e", 0, 100, w, h, pad);
+      ctx.fillStyle = "#9ca3af";
+      ctx.fillText("蓝色：温度 C", pad, 18);
+      ctx.fillText("绿色：湿度 %", pad + 160, 18);
+    }
+
+    function drawSeries(ctx, values, color, min, max, w, h, pad) {
+      if (values.length < 2) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      values.forEach((value, index) => {
+        const x = pad + index * ((w - pad * 2) / Math.max(values.length - 1, 1));
+        const y = h - pad - ((value - min) / (max - min)) * (h - pad * 2);
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    connect();
+  </script>
+</body>
+</html>
