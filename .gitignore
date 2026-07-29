@@ -30,6 +30,7 @@ pnpm-debug.log*
 .vscode/
 .codex-temp/
 .codex-docx-render/
+device-edge.config.json
 
 # OS files
 .DS_Store

@@ -156,8 +156,10 @@ const gauges = computed(() => [
 
 function statusTone(status) {
   const text = String(status || "");
-  const redKeywords = ["\u505c\u6b62", "\u79bb\u7ebf", "\u5f02\u5e38", "\u62a5\u8b66", "\u6545\u969c", "\u5931\u8d25"];
+  const orangeKeywords = ["\u505c\u6b62", "\u4e2d\u6b62", "\u4fdd\u6301", "\u6682\u505c"];
+  const redKeywords = ["\u79bb\u7ebf", "\u5f02\u5e38", "\u62a5\u8b66", "\u6545\u969c", "\u5931\u8d25"];
   const greenKeywords = ["\u8fd0\u884c", "\u6b63\u5e38", "\u5728\u7ebf", "\u5df2\u8fde\u63a5"];
+  if (orangeKeywords.some((keyword) => text.includes(keyword))) return "orange";
   if (redKeywords.some((keyword) => text.includes(keyword))) return "red";
   if (greenKeywords.some((keyword) => text.includes(keyword))) return "green";
   return "";
@@ -316,7 +318,7 @@ const statusItems = computed(() => [
 .seven-digit .e { bottom: 5%; left: 0; }
 .seven-digit .f { top: 5%; left: 0; }
 .seven-dot { width: clamp(5px, 1.5cqw, 8px); height: clamp(5px, 1.5cqw, 8px); margin: 0 1px clamp(3px, .8cqw, 5px) 0; border-radius: 50%; background: #f8fbff; box-shadow: 0 0 8px rgba(248, 251, 255, .62), 0 0 14px color-mix(in srgb, var(--accent) 24%, transparent); }
-.seven-minus { width: clamp(16px, 4cqw, 24px); height: clamp(4px, 1cqw, 6px); margin: 0 1px 48%; background: #f8fbff; box-shadow: 0 0 8px rgba(248, 251, 255, .62), 0 0 14px color-mix(in srgb, var(--accent) 24%, transparent); clip-path: polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%); }
+.seven-minus { align-self: center; width: clamp(16px, 4cqw, 24px); height: clamp(4px, 1cqw, 6px); margin: 0 1px; background: #f8fbff; box-shadow: 0 0 8px rgba(248, 251, 255, .62), 0 0 14px color-mix(in srgb, var(--accent) 24%, transparent); clip-path: polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%); }
 
 .status-bar { min-width: 0; margin: 0 22px 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid rgba(91, 143, 181, .35); border-radius: 10px; background: linear-gradient(100deg, rgba(10, 25, 40, .84), rgba(7, 19, 31, .64)); }
 .status-item { position: relative; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 14px; }
@@ -327,6 +329,7 @@ const statusItems = computed(() => [
 .status-copy strong { display: block; overflow: hidden; margin-top: 3px; color: #f2f6fb; font-family: "Rajdhani", "Segoe UI", sans-serif; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .status-copy strong.green { color: var(--hmi-green); }
 .status-copy strong.red { color: var(--hmi-red); }
+.status-copy strong.orange { color: #ffb12b; }
 .status-copy strong.blue { color: #2caeff; }
 .status-copy strong i { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 7px currentColor; opacity: .9; }
 

@@ -564,10 +564,10 @@ textarea:focus-visible {
 .state-dot { width: 9px; height: 9px; box-shadow: 0 0 0 3px rgba(82,196,26,.10); }
 .state-dot.idle { box-shadow: 0 0 0 3px rgba(141,160,184,.10); }
 .state-dot.alarm { box-shadow: 0 0 0 3px rgba(245,34,45,.12); }
-.state-dot.stopped { box-shadow: 0 0 0 3px rgba(245,34,45,.12); }
+.state-dot.stopped { box-shadow: 0 0 0 3px rgba(245,158,11,.14); }
 .running { color: var(--green) !important; }
 .alarm { color: var(--red) !important; }
-.stopped { color: var(--red) !important; }
+.stopped { color: var(--orange) !important; }
 
 .live-pill, .link-button {
   border-color: var(--line);

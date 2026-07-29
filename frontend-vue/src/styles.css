@@ -9,6 +9,7 @@
   --blue: #3b82f6;
   --green: #22c55e;
   --red: #ef4444;
+  --orange: #f59e0b;
   --yellow: #eab308;
   --purple: #8b5cf6;
 }
@@ -960,11 +961,11 @@ canvas {
 .running { color: var(--green) !important; }
 .idle { color: var(--muted) !important; }
 .alarm { color: var(--red) !important; }
-.stopped { color: var(--red) !important; }
+.stopped { color: var(--orange) !important; }
 .state-dot.running { background: var(--green); }
 .state-dot.idle { background: var(--muted); }
 .state-dot.alarm { background: var(--red); }
-.state-dot.stopped { background: var(--red); }
+.state-dot.stopped { background: var(--orange); }
 
 .table-wrap {
   overflow-x: auto;
