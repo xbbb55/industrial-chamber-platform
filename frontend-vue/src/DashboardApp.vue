@@ -1129,10 +1129,11 @@ async function stopSelectedDevice() {
   addOperationLog({ title: "停止运行", message: `${deviceName} 正在下发停止命令`, tone: "warning", deviceId });
 
   try {
-    const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/stop-requests`, {
+    const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        command: "Stop",
         operator_id: "web-admin",
         reason: "stop requested from Vue dashboard"
       })
@@ -1160,14 +1161,17 @@ async function startSelectedDevice() {
   addOperationLog({ title: "启动运行", message: `${deviceName} 正在下发启动命令`, tone: "warning", deviceId });
 
   try {
-    const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/start-requests`, {
+    const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        command: "Run",
         operator_id: "web-admin",
         reason: "start requested from Vue dashboard",
-        target_temperature: Number(selectedDevice.value.target_temperature ?? selectedDevice.value.current_temperature ?? 25),
-        target_humidity: Number(selectedDevice.value.target_humidity ?? selectedDevice.value.current_humidity ?? 60)
+        payload: {
+          target_temperature: Number(selectedDevice.value.target_temperature ?? selectedDevice.value.current_temperature ?? 25),
+          target_humidity: Number(selectedDevice.value.target_humidity ?? selectedDevice.value.current_humidity ?? 60)
+        }
       })
     });
     const result = await response.json();
@@ -1193,10 +1197,11 @@ async function holdSelectedDevice() {
   addOperationLog({ title: "保持", message: `${deviceName} 正在下发保持命令`, tone: "warning", deviceId });
 
   try {
-    const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/hold-requests`, {
+    const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        command: "Hold",
         operator_id: "web-admin",
         reason: "hold requested from Vue dashboard"
       })
@@ -1224,10 +1229,11 @@ async function skipSelectedDeviceStep() {
   addOperationLog({ title: "跳步", message: `${deviceName} 正在下发跳步命令`, tone: "warning", deviceId });
 
   try {
-    const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/skip-step-requests`, {
+    const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        command: "Jnmp",
         operator_id: "web-admin",
         reason: "step skip requested from Vue dashboard"
       })

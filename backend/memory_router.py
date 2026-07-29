@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from device_edge.control_protocol import build_be_r, build_fe_w, normalize_command, protocol_time
 from .shared_memory_store import SharedMemoryNotReady, attach_existing, inspect_memory, read_snapshot
 from .snapshot_normalizer import normalize_snapshot
 
@@ -53,12 +54,22 @@ class StartCommandRequest(BaseModel):
 
 
 class CommandResultUpload(BaseModel):
-    edge_id: str
-    command_id: str
-    device_id: str
-    status: str
+    edge_id: str = ""
+    command_id: str = ""
+    device_id: str = ""
+    status: str = "EXECUTED"
     message: str = ""
     reported_at: float = Field(default_factory=time.time)
+    payload: dict[str, Any] = Field(default_factory=dict)
+    successMessage: str = ""
+    time: str = ""
+
+
+class ControllerCommandRequest(BaseModel):
+    command: str
+    time: str | None = None
+    operator_id: str = "web-admin"
+    reason: str = "command from Vue dashboard"
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -121,6 +132,39 @@ def queue_edge_command(edge_id: str, command: dict[str, Any]) -> None:
     pending_edge_commands.setdefault(edge_id, []).append(command)
 
 
+def make_edge_command(
+    device_id: str,
+    command: str,
+    *,
+    operator_id: str = "web-admin",
+    reason: str = "command from Vue dashboard",
+    payload: Optional[dict[str, Any]] = None,
+    when: Optional[str] = None,
+) -> dict[str, Any]:
+    edge_id = find_edge_id_for_device(device_id)
+    if not edge_id:
+        raise HTTPException(status_code=404, detail=f"No uploaded edge found for device: {device_id}")
+    try:
+        fe_w = build_fe_w(command, when)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _, command_type = normalize_command(command)
+    item = {
+        "command_id": f"CMD-{uuid.uuid4().hex[:10].upper()}",
+        "device_id": device_id,
+        "edge_id": edge_id,
+        "command_type": command_type,
+        "operator_id": operator_id,
+        "reason": reason,
+        "created_at": time.time(),
+        "status": "PENDING",
+        "payload": payload or {},
+        "fe_w": fe_w,
+    }
+    queue_edge_command(edge_id, item)
+    return item
+
+
 @app.get("/")
 async def index() -> FileResponse:
     return FileResponse(WEB_INDEX)
@@ -181,6 +225,26 @@ async def latest_uploaded_snapshots() -> dict[str, Any]:
     }
 
 
+@app.post("/api/devices/{device_id}/commands")
+async def controller_command(device_id: str, request: ControllerCommandRequest) -> dict[str, Any]:
+    item = make_edge_command(
+        device_id,
+        request.command,
+        operator_id=request.operator_id,
+        reason=request.reason,
+        payload=request.payload,
+        when=request.time,
+    )
+    return {
+        "status": "QUEUED",
+        "command_id": item["command_id"],
+        "device_id": device_id,
+        "edge_id": item["edge_id"],
+        "command": item["fe_w"]["command"],
+        "time": item["fe_w"]["time"],
+    }
+
+
 @app.post("/api/devices/{device_id}/stop-requests")
 async def stop_device(device_id: str, request: StopCommandRequest) -> dict[str, Any]:
     edge_id = find_edge_id_for_device(device_id)
@@ -199,6 +263,7 @@ async def stop_device(device_id: str, request: StopCommandRequest) -> dict[str, 
         "payload": {
             "reason": request.reason,
         },
+        "fe_w": build_fe_w("Stop"),
     }
     queue_edge_command(edge_id, command)
     return {
@@ -230,6 +295,7 @@ async def start_device(device_id: str, request: StartCommandRequest) -> dict[str
             "target_humidity": request.target_humidity,
             "reason": request.reason,
         },
+        "fe_w": build_fe_w("Run"),
     }
     queue_edge_command(edge_id, command)
     return {
@@ -259,6 +325,7 @@ async def hold_device(device_id: str, request: HoldCommandRequest) -> dict[str, 
         "payload": {
             "reason": request.reason,
         },
+        "fe_w": build_fe_w("Hold"),
     }
     queue_edge_command(edge_id, command)
     return {
@@ -288,6 +355,7 @@ async def skip_step_device(device_id: str, request: SkipStepCommandRequest) -> d
         "payload": {
             "reason": request.reason,
         },
+        "fe_w": build_fe_w("Jnmp"),
     }
     queue_edge_command(edge_id, command)
     return {
@@ -311,8 +379,20 @@ async def pending_commands(edge_id: str) -> dict[str, Any]:
     }
 
 
+@app.get("/api/device-commands/fe-w")
+async def fe_w_commands(edge_id: str) -> dict[str, Any]:
+    """Expose the exact FE_W payload consumed by the edge controller."""
+    commands = pending_edge_commands.pop(edge_id, [])
+    for command in commands:
+        command["status"] = "DELIVERED"
+        command["delivered_at"] = time.time()
+    return {"edge_id": edge_id, "commands": [command["fe_w"] for command in commands]}
+
+
 @app.post("/api/device-commands/results")
 async def upload_command_result(result: CommandResultUpload) -> dict[str, Any]:
+    success_message = result.successMessage or result.message
+    result_time = result.time or protocol_time()
     command_results[result.command_id] = {
         "edge_id": result.edge_id,
         "command_id": result.command_id,
@@ -321,8 +401,30 @@ async def upload_command_result(result: CommandResultUpload) -> dict[str, Any]:
         "message": result.message,
         "reported_at": result.reported_at,
         "payload": result.payload,
+        "be_r": {"successMessage": success_message, "time": result_time},
         "received_at": time.time(),
     }
+
+
+@app.post("/api/device-commands/be-r")
+async def receive_be_r(result: dict[str, Any], edge_id: str = "") -> dict[str, Any]:
+    """Receive the exact BE_R payload returned by a device controller."""
+    success_message = str(result.get("successMessage", "")).strip()
+    if not success_message:
+        raise HTTPException(status_code=400, detail="BE_R requires successMessage")
+    wire = build_be_r(success_message, str(result.get("time") or protocol_time()))
+    result_id = f"BE-R-{uuid.uuid4().hex[:10].upper()}"
+    command_results[result_id] = {
+        "edge_id": edge_id,
+        "command_id": result_id,
+        "status": "EXECUTED",
+        "message": success_message,
+        "reported_at": time.time(),
+        "payload": {},
+        "be_r": wire,
+        "received_at": time.time(),
+    }
+    return wire
     return {
         "status": "accepted",
         "command_id": result.command_id,

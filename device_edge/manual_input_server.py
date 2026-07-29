@@ -10,6 +10,7 @@ from .production_payload import build_production_payload
 
 from .command_client import CommandClient
 from .config import EdgeConfig
+from .control_protocol import normalize_command, protocol_time
 from .shared_memory_store import create_or_attach, read_snapshot, write_snapshot
 from .uploader import SnapshotUploader
 
@@ -91,16 +92,24 @@ class ManualInputState:
         self.last_write_error = None
         return snapshot
 
+    def _record_command_result(self, command: dict[str, Any], result: dict[str, Any], now: float) -> dict[str, Any]:
+        result.setdefault("successMessage", command.get("command", ""))
+        result.setdefault("time", protocol_time())
+        self.command_results.insert(0, {**result, "reported_at": now})
+        self.command_results = self.command_results[:20]
+        return result
+
     def handle_command(self, command: dict[str, Any]) -> dict[str, Any]:
         with self.lock:
             now = time.time()
             self.received_commands.insert(0, {**command, "received_at": now})
             self.received_commands = self.received_commands[:20]
 
-            command_type = command.get("command_type")
+            wire_command, protocol_command_type = normalize_command(command.get("command"))
+            command_type = command.get("command_type") or protocol_command_type
+            device_id = command.get("device_id") or self.stream_device_id
             if command_type == "START_TEST":
                 snapshot = self._read_snapshot_unlocked()
-                device_id = command.get("device_id")
                 device = self._find_device(snapshot, device_id)
                 if not device:
                     result = {
@@ -123,9 +132,15 @@ class ManualInputState:
                         "message": "START_TEST received and realtime stream resumed",
                         "payload": {"run_state": "RUNNING"},
                     }
-                self.command_results.insert(0, {**result, "command_id": command.get("command_id"), "reported_at": now})
-                self.command_results = self.command_results[:20]
-                return result
+                return self._record_command_result({**command, "command": wire_command}, result, now)
+
+            if command_type in {"KEEP_TEST", "BUZZER_ON", "BUZZER_OFF", "RESET_ALARM", "SET_RUN_MODE", "DOWNLOAD_PROGRAM", "FIXED_VALUE", "OPERATION_SETTING", "BASIC_INFO", "CORRECTION", "PID_SET", "FACTORY_PARAMS"}:
+                result = {
+                    "status": "EXECUTED",
+                    "message": f"{wire_command} received",
+                    "payload": {},
+                }
+                return self._record_command_result({**command, "command": wire_command}, result, now)
 
             if command_type not in {"STOP_TEST", "HOLD_TEST", "SKIP_STEP"}:
                 result = {
@@ -133,11 +148,9 @@ class ManualInputState:
                     "message": f"unsupported command type: {command.get('command_type')}",
                     "payload": {},
                 }
-                self.command_results.insert(0, {**result, "command_id": command.get("command_id"), "reported_at": now})
-                return result
+                return self._record_command_result({**command, "command": wire_command}, result, now)
 
             snapshot = self._read_snapshot_unlocked()
-            device_id = command.get("device_id")
             matched = False
             device = self._find_device(snapshot, device_id)
             if device:
@@ -182,9 +195,7 @@ class ManualInputState:
                     "payload": result_payload,
                 }
 
-            self.command_results.insert(0, {**result, "command_id": command.get("command_id"), "reported_at": now})
-            self.command_results = self.command_results[:20]
-            return result
+            return self._record_command_result({**command, "command": wire_command}, result, now)
 
     def should_upload(self) -> bool:
         with self.lock:
