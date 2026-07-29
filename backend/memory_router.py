@@ -67,7 +67,7 @@ class CommandResultUpload(BaseModel):
 
 class ControllerCommandRequest(BaseModel):
     command: str
-    time: str | None = None
+    time: Optional[str] = None
     operator_id: str = "web-admin"
     reason: str = "command from Vue dashboard"
     payload: dict[str, Any] = Field(default_factory=dict)
@@ -404,6 +404,11 @@ async def upload_command_result(result: CommandResultUpload) -> dict[str, Any]:
         "be_r": {"successMessage": success_message, "time": result_time},
         "received_at": time.time(),
     }
+    return {
+        "status": "accepted",
+        "command_id": result.command_id,
+        "received_at": command_results[result.command_id]["received_at"],
+    }
 
 
 @app.post("/api/device-commands/be-r")
@@ -425,11 +430,6 @@ async def receive_be_r(result: dict[str, Any], edge_id: str = "") -> dict[str, A
         "received_at": time.time(),
     }
     return wire
-    return {
-        "status": "accepted",
-        "command_id": result.command_id,
-        "received_at": command_results[result.command_id]["received_at"],
-    }
 
 
 @app.get("/api/device-commands/results")
