@@ -14,7 +14,6 @@ class EdgeConfig:
     stream_interval_seconds: float
     shared_memory_name: str
     shared_memory_size: int
-    device_ip: str = ""
     auth_token: str = ""
 
     @property
@@ -34,7 +33,6 @@ def load_config(path: Union[str, Path]) -> EdgeConfig:
         stream_interval_seconds=float(data.get("stream_interval_seconds", data.get("upload_interval_seconds", 0.5))),
         shared_memory_name=data.get("shared_memory_name", "industrial_chamber_realtime_v1"),
         shared_memory_size=int(data.get("shared_memory_size", 1024 * 256)),
-        device_ip=str(data.get("device_ip", "")).strip(),
         auth_token=auth.get("token", ""),
     )
 
