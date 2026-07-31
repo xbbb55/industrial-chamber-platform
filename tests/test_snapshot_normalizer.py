@@ -11,6 +11,7 @@ class SnapshotNormalizerTests(unittest.TestCase):
             "DUT": {"DUT0": -200, "DUT_SEL": 2},
             "compressor": {"A1_Cool": 1},
             "device_id": "SIM-TEST-DEVICE-001",
+            "device_ip": "192.168.1.101",
             "event": {"event0": "\u7528\u6237\u4e8b\u4ef61=OFF"},
             "mainData": {
                 "HUMI_PV": 48.5,
@@ -45,6 +46,7 @@ class SnapshotNormalizerTests(unittest.TestCase):
         self.assertEqual(len(snapshot["devices"]), 1)
         device = snapshot["devices"][0]
         self.assertEqual(device["device_id"], "SIM-TEST-DEVICE-001")
+        self.assertEqual(device["device_ip"], "192.168.1.101")
         self.assertEqual(device["run_state"], "RUNNING")
         self.assertTrue(device["online"])
         self.assertEqual(device["current_temperature"], -19.8)
@@ -95,13 +97,14 @@ class SnapshotNormalizerTests(unittest.TestCase):
             target_humidity=60,
             running=1,
             step=1,
+            device_ip="192.168.1.102",
         )
 
         self.assertEqual(payload["device_id"], "SIM-TEST-001")
         self.assertNotIn("devices", payload)
         self.assertEqual(
             set(payload),
-            {"DUT", "compressor", "device_id", "event", "mainData", "other", "program", "status", "time", "timeData"},
+            {"DUT", "compressor", "device_id", "device_ip", "event", "mainData", "other", "program", "status", "time", "timeData"},
         )
         self.assertEqual(payload["mainData"]["TEMP_PV"], 25)
         self.assertEqual(payload["program"]["run"], 1)

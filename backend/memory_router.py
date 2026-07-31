@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 import uuid
 from pathlib import Path
@@ -22,6 +23,7 @@ WEB_DEBUG = ROOT_DIR / "web" / "memory-debug.html"
 uploaded_edge_snapshots: dict[str, dict[str, Any]] = {}
 pending_edge_commands: dict[str, list[dict[str, Any]]] = {}
 command_results: dict[str, dict[str, Any]] = {}
+EDGE_SNAPSHOT_TTL_SECONDS = max(float(os.getenv("EDGE_SNAPSHOT_TTL_SECONDS", "5")), 0.5)
 
 
 class EdgeSnapshotUpload(BaseModel):
@@ -89,8 +91,11 @@ def get_uploaded_snapshot() -> dict[str, Any]:
     devices: list[dict[str, Any]] = []
     latest_written_at = 0.0
     latest_sequence = 0
+    now = time.time()
     for edge in edges:
         snapshot = edge.get("snapshot", {})
+        stale_seconds = edge_stale_seconds(edge, now)
+        is_stale = stale_seconds >= EDGE_SNAPSHOT_TTL_SECONDS
         latest_written_at = max(latest_written_at, float(snapshot.get("written_at") or edge.get("received_at") or 0))
         try:
             latest_sequence = max(latest_sequence, int(snapshot.get("sequence") or 0))
@@ -100,9 +105,20 @@ def get_uploaded_snapshot() -> dict[str, Any]:
             merged = dict(device)
             merged.setdefault("edge_id", edge.get("edge_id"))
             merged.setdefault("edge_ip", edge.get("edge_ip"))
-            merged.setdefault("ip_address", edge.get("edge_ip"))
-            merged.setdefault("ip", edge.get("edge_ip"))
+            configured_ip = merged.get("device_ip") or merged.get("ip_address") or merged.get("ip")
+            merged.setdefault("ip_address", configured_ip or edge.get("edge_ip"))
+            merged.setdefault("ip", configured_ip or edge.get("edge_ip"))
             merged.setdefault("edge_received_at", edge.get("received_at"))
+            merged["edge_stale"] = is_stale
+            merged["stale_seconds"] = round(stale_seconds, 1)
+            if is_stale:
+                merged.update({
+                    "online": False,
+                    "run_state": "OFFLINE",
+                    "status_text": "设备超时未上传",
+                    "alarm": None,
+                    "alarms": [],
+                })
             devices.append(merged)
 
     return {
@@ -110,6 +126,9 @@ def get_uploaded_snapshot() -> dict[str, Any]:
         "sequence": latest_sequence,
         "written_at": latest_written_at or time.time(),
         "edge_count": len(edges),
+        "stale_edge_count": sum(
+            edge_stale_seconds(edge, now) >= EDGE_SNAPSHOT_TTL_SECONDS for edge in edges
+        ),
         "devices": devices,
     }
 
@@ -122,10 +141,21 @@ def get_realtime_snapshot() -> dict[str, Any]:
 
 def find_edge_id_for_device(device_id: str) -> Optional[str]:
     for edge_id, edge in uploaded_edge_snapshots.items():
+        if edge_stale_seconds(edge) >= EDGE_SNAPSHOT_TTL_SECONDS:
+            continue
         devices = edge.get("snapshot", {}).get("devices", [])
         if any(device.get("device_id") == device_id for device in devices):
             return edge_id
     return None
+
+
+def edge_stale_seconds(edge: dict[str, Any], now: Optional[float] = None) -> float:
+    """Return how long an edge has been silent since its last accepted upload."""
+    received_at = edge.get("received_at")
+    try:
+        return max(0.0, (now or time.time()) - float(received_at))
+    except (TypeError, ValueError):
+        return float("inf")
 
 
 def queue_edge_command(edge_id: str, command: dict[str, Any]) -> None:

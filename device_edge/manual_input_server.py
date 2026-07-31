@@ -77,6 +77,7 @@ class ManualInputState:
         humidity = self.stream_humidity + math.cos(elapsed / 7.0) * 0.8
         snapshot = build_production_payload(
             device_id=self.stream_device_id,
+            device_ip=self.config.device_ip,
             current_temperature=temperature,
             current_humidity=humidity,
             target_temperature=self.stream_temperature,

@@ -18,6 +18,7 @@ def build_device(
     tick: int,
     device_id: str = "SIM-PY-CN-001",
     *,
+    device_ip: str = "",
     running: int = 1,
     state: str = "运行中",
     step: int = 1,
@@ -29,6 +30,7 @@ def build_device(
     humidity = target_humidity + math.cos(tick / 14) * 1.8 + random.uniform(-0.2, 0.2)
     return build_production_payload(
         device_id=device_id,
+        device_ip=device_ip,
         current_temperature=temperature,
         current_humidity=humidity,
         target_temperature=target_temperature,
@@ -44,8 +46,9 @@ def build_device(
 class DeviceRuntime:
     """Own the simulated controller state and apply commands between writes."""
 
-    def __init__(self, device_id: str) -> None:
+    def __init__(self, device_id: str, device_ip: str = "") -> None:
         self._device_id = device_id
+        self._device_ip = device_ip
         self._mode = "RUNNING"
         self._step_offset = 0
         self._lock = threading.Lock()
@@ -53,14 +56,15 @@ class DeviceRuntime:
     def snapshot(self, tick: int) -> dict[str, Any]:
         with self._lock:
             if self._mode == "STOPPED":
-                return build_device(tick, self._device_id, running=0, state="停止", step=0)
+                return build_device(tick, self._device_id, device_ip=self._device_ip, running=0, state="停止", step=0)
             if self._mode == "HOLDING":
-                return build_device(tick, self._device_id, running=0, state="保持", step=1 + self._step_offset)
+                return build_device(tick, self._device_id, device_ip=self._device_ip, running=0, state="保持", step=1 + self._step_offset)
 
             alarmed = tick % 70 > 55
             return build_device(
                 tick,
                 self._device_id,
+                device_ip=self._device_ip,
                 running=0 if alarmed else 1,
                 state="超温保护" if alarmed else "运行中",
                 step=0 if alarmed else 1 + (tick // 40) % 3 + self._step_offset,
@@ -109,7 +113,8 @@ def main() -> None:
 
     shm = create_or_attach()
     device_id = os.getenv("CHAMBER_DEVICE_ID", "SIM-PY-CN-001")
-    runtime = DeviceRuntime(device_id)
+    edge_config = load_config(args.config) if Path(args.config).is_file() else None
+    runtime = DeviceRuntime(device_id, edge_config.device_ip if edge_config else "")
     print(f"shared memory writer started: {SHM_NAME}, device_id={device_id}")
     if not args.without_command_client:
         start_command_client(args.config, runtime)

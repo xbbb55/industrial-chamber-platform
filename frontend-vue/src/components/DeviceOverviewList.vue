@@ -17,7 +17,7 @@
 
       <div class="overview-cell">
         <span>IP 地址</span>
-        <strong>{{ device.ip_address || device.ip || "--" }}</strong>
+        <strong>{{ device.device_ip || device.ip_address || device.ip || "--" }}</strong>
       </div>
 
       <div class="overview-cell">

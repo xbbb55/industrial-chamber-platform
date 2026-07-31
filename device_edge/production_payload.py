@@ -20,6 +20,7 @@ def build_production_payload(
     alarms: Iterable[str] = (),
     elapsed_seconds: float = 0.0,
     sequence: int = 0,
+    device_ip: str = "",
 ) -> dict[str, Any]:
     """Build the single-device JSON object written by a production controller."""
     now = datetime.now(tz=CHINA_STANDARD_TIME)
@@ -33,6 +34,7 @@ def build_production_payload(
             "C1_Cool", "C1_DP", "C1_DT", "C1_RP", "C2_Cool", "C2_DP", "C2_DT", "C2_RP", "C_Water",
         )},
         "device_id": str(device_id),
+        "device_ip": str(device_ip).strip(),
         "event": {f"event{index}": "---=OFF" for index in range(16)},
         "mainData": {
             "HUMI_Cool": 0, "HUMI_Hot": 0, "HUMI_HotG": 0, "HUMI_HotW": 0,

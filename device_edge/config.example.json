@@ -6,6 +6,7 @@
   "stream_interval_seconds": 0.5,
   "shared_memory_name": "industrial_chamber_realtime_v1",
   "shared_memory_size": 262144,
+  "device_ip": "",
   "auth": {
     "token": ""
   }

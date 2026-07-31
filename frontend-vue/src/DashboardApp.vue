@@ -358,7 +358,7 @@
                 </section>
                 <section v-if="visibleMonitorCards.includes('communication')" class="monitor-card info-monitor-card">
                   <div class="monitor-card-title"><AppIcon name="chart" :size="17" /><h3>通讯信息</h3></div>
-                  <div class="monitor-data-row"><span>设备 IP</span><strong>{{ selectedDevice.ip_address || selectedDevice.ip || "--" }}</strong></div>
+                  <div class="monitor-data-row"><span>设备 IP</span><strong>{{ selectedDevice.device_ip || selectedDevice.ip_address || selectedDevice.ip || "--" }}</strong></div>
                   <div class="monitor-data-row"><span>连接状态</span><strong>{{ selectedDevice.online ? "在线" : "离线" }}</strong></div>
                 </section>
                 <section v-if="visibleMonitorCards.includes('updated')" class="monitor-card info-monitor-card">
