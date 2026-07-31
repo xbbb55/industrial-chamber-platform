@@ -168,7 +168,7 @@ function statusTone(status) {
 const statusItems = computed(() => [
   { icon: ServerCog, label: "设备状态", value: props.deviceStatus, tone: "green" },
   { icon: Clock3, label: "更新时间", value: props.updatedAt, tone: "" },
-  { icon: Network, label: "通讯状态", value: props.communicationStatus, tone: props.communicationStatus === "正常" ? "green" : "" },
+  { icon: Network, label: "通讯状态", value: props.communicationStatus, tone: props.communicationStatus === "在线" ? "green" : "" },
   { icon: Database, label: "数据来源", value: props.dataSource, tone: "blue" }
 ]);
 </script>

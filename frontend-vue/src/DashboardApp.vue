@@ -60,12 +60,18 @@
               <h2>{{ selectedDevice?.name || selectedDeviceId }}</h2>
               <div class="device-title-meta">
                 <span>{{ selectedDeviceId }}</span>
-                <span>{{ selectedDevice?.ip_address || selectedDevice?.ip || "暂无 IP" }}</span>
+                <span>{{ selectedDevice?.device_ip || selectedDevice?.ip_address || selectedDevice?.ip || "暂无 IP" }}</span>
                 <strong
                   v-if="selectedDevice"
                   :class="stateClass(selectedDevice)"
                 >
-                  {{ stateLabel(selectedDevice.run_state) }}
+                  {{ runStateLabel(selectedDevice.run_state) }}
+                </strong>
+                <strong
+                  v-if="selectedDevice"
+                  :class="communicationClass(selectedDevice.online)"
+                >
+                  {{ communicationLabel(selectedDevice.online) }}
                 </strong>
               </div>
             </div>
@@ -317,9 +323,9 @@
                 v-if="visibleMonitorCards.length === 0"
                 :temperature="Number(selectedDevice.current_temperature ?? 0)"
                 :humidity="Number(selectedDevice.current_humidity ?? 0)"
-                :device-status="stateLabel(selectedDevice.run_state)"
+                :device-status="runStateLabel(selectedDevice.run_state)"
                 :updated-at="formatSnapshotTime(selectedDevice.updated_at || snapshot?.written_at)"
-                :communication-status="selectedDevice.online ? '正常' : '离线'"
+                :communication-status="communicationLabel(selectedDevice.online)"
                 :data-source="sourceName"
               />
               <div v-else class="custom-monitor-grid" :class="{ 'single-card': visibleMonitorCards.length === 1 }">
@@ -353,7 +359,7 @@
 
                 <section v-if="visibleMonitorCards.includes('status')" class="monitor-card info-monitor-card">
                   <div class="monitor-card-title"><AppIcon name="activity" :size="17" /><h3>运行状态</h3></div>
-                  <strong class="monitor-status-value" :class="stateClass(selectedDevice)">{{ stateLabel(selectedDevice.run_state) }}</strong>
+                  <strong class="monitor-status-value" :class="stateClass(selectedDevice)">{{ runStateLabel(selectedDevice.run_state) }}</strong>
                   <span>当前设备运行状态</span>
                 </section>
                 <section v-if="visibleMonitorCards.includes('communication')" class="monitor-card info-monitor-card">
@@ -498,14 +504,54 @@
                   <div class="program-summary"><span>选中程序</span><strong>{{ selectedProgram.name }}</strong><small>执行前请确认保护设定与目标定值</small></div>
                 </div>
 
-                <div v-else class="settings-form-grid">
-                  <div class="setting-section-title"><span>运行偏好</span><small>设备提示与执行行为</small></div>
-                  <label class="setting-toggle-row"><span><strong>运行完成提示音</strong><small>程序结束时播放提示音</small></span><input v-model="operationForm.soundEnabled" type="checkbox"><i></i></label>
-                  <label class="setting-toggle-row"><span><strong>自动锁定箱门</strong><small>运行期间禁止打开箱门</small></span><input v-model="operationForm.doorLock" type="checkbox"><i></i></label>
-                  <label class="setting-toggle-row"><span><strong>保存运行数据</strong><small>自动保存每次试验的过程数据</small></span><input v-model="operationForm.autoSave" type="checkbox"><i></i></label>
-                  <div class="setting-section-title"><span>界面显示</span><small>当前设备本地显示偏好</small></div>
-                  <label class="field-control"><span>温度显示精度</span><select v-model="operationForm.precision"><option value="0.1">0.1 °C</option><option value="1">1 °C</option></select></label>
-                  <label class="field-control"><span>待机亮度</span><div><span class="hmi-number-control"><input v-model="operationForm.brightness" type="number" min="10" max="100"><span class="hmi-number-steps"><button type="button" title="提高待机亮度" aria-label="提高待机亮度" @click.stop.prevent="stepOperationNumber('brightness', 1, 10, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低待机亮度" aria-label="降低待机亮度" @click.stop.prevent="stepOperationNumber('brightness', -1, 10, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%</b></div></label>
+                <div v-else class="other-settings-grid">
+                  <section class="other-settings-card">
+                    <header>断电后启动方式</header>
+                    <div class="other-radio-list">
+                      <label><input v-model="operationForm.powerOnMode" type="radio" value="stop"><span>停机</span></label>
+                      <label><input v-model="operationForm.powerOnMode" type="radio" value="cold"><span>冷启动</span></label>
+                      <label><input v-model="operationForm.powerOnMode" type="radio" value="warm"><span>热启动</span></label>
+                    </div>
+                  </section>
+
+                  <section class="other-settings-card">
+                    <header>停机后启动方式</header>
+                    <div class="other-radio-list">
+                      <label><input v-model="operationForm.stopResumeMode" type="radio" value="reset"><span>清零复位启动</span></label>
+                      <label><input v-model="operationForm.stopResumeMode" type="radio" value="continue"><span>继续启动</span></label>
+                    </div>
+                  </section>
+
+                  <section class="other-settings-card">
+                    <header>温度控制方式</header>
+                    <div class="other-radio-list other-temperature-options">
+                      <label><input v-model="operationForm.temperatureControlMode" type="radio" value="air"><span>空气控温</span></label>
+                      <label><input v-model="operationForm.temperatureControlMode" type="radio" value="dut"><span>试品控温</span><select v-model="operationForm.dutTemperatureSource" :disabled="operationForm.temperatureControlMode !== 'dut'" aria-label="试品温度来源"><option value="dut1">试品温度1</option><option value="dut2">试品温度2</option><option value="dut3">试品温度3</option></select></label>
+                    </div>
+                  </section>
+
+                  <section class="other-settings-card">
+                    <header>运行等待设定</header>
+                    <div class="other-value-list">
+                      <label><span>温度等待区域</span><b>=</b><input v-model.number="operationForm.waitTemperatureUpper" type="number" step="0.1" aria-label="温度等待区域上限"></label>
+                      <label><span>湿度等待区域</span><b>=</b><input v-model.number="operationForm.waitHumidityUpper" type="number" step="0.1" aria-label="湿度等待区域上限"></label>
+                    </div>
+                  </section>
+
+                  <section class="other-settings-card">
+                    <header>事件</header>
+                    <div class="other-value-list single-value">
+                      <label><span>事件</span><b>=</b><input v-model="operationForm.eventCode" type="text" maxlength="16" aria-label="事件代码"></label>
+                    </div>
+                  </section>
+
+                  <section class="other-settings-card">
+                    <header>预约启动设定</header>
+                    <div class="schedule-list">
+                      <label class="schedule-row"><input v-model="operationForm.scheduledStartEnabled" type="checkbox"><span>启动</span><b>=</b><input v-model="operationForm.scheduledStartDate" type="date" aria-label="预约启动日期"><input v-model="operationForm.scheduledStartTime" type="time" aria-label="预约启动时间"></label>
+                      <label class="schedule-row"><input v-model="operationForm.scheduledStopEnabled" type="checkbox"><span>停机</span><b>=</b><input v-model="operationForm.scheduledStopDate" type="date" aria-label="预约停机日期"><input v-model="operationForm.scheduledStopTime" type="time" aria-label="预约停机时间"></label>
+                    </div>
+                  </section>
                 </div>
 
                 <div class="operation-editor-footer"><span>最后保存：{{ operationLastSaved }}</span><div><button class="ghost-action" type="button" @click="resetOperationForm">恢复默认</button><button class="primary-action" type="button" @click="saveOperationSettings">保存设定</button></div></div>
@@ -594,6 +640,7 @@ import LiveDeviceDetailCard from "./components/LiveDeviceDetailCard.vue";
 import DeviceOverviewList from "./components/DeviceOverviewList.vue";
 import AppIcon from "./components/AppIcon.vue";
 import HmiDashboard from "./components/HmiDashboard.vue";
+import { communicationClass, communicationLabel, runStateLabel } from "./utils/state";
 
 const TREND_PAST_MS = 5 * 60 * 1000;
 const TREND_FUTURE_MS = 5 * 60 * 1000;
@@ -643,7 +690,20 @@ const operationForm = ref({
   doorLock: true,
   autoSave: true,
   precision: "0.1",
-  brightness: 80
+  brightness: 80,
+  powerOnMode: "stop",
+  stopResumeMode: "reset",
+  temperatureControlMode: "air",
+  dutTemperatureSource: "dut1",
+  waitTemperatureUpper: 0,
+  waitHumidityUpper: 0,
+  eventCode: "0000000000000000",
+  scheduledStartEnabled: false,
+  scheduledStartDate: "2026-07-31",
+  scheduledStartTime: "16:34",
+  scheduledStopEnabled: false,
+  scheduledStopDate: "2026-07-31",
+  scheduledStopTime: "16:34"
 });
 const deviceDisplayMode = ref("list");
 const selectedTrendCanvas = ref(null);
@@ -854,8 +914,9 @@ function stateLabel(state) {
 
 function stateClass(device) {
   if (device.run_state === "ALARM" || device.alarm) return "alarm";
-  if (["STOPPED", "STOPPING", "ABORTING", "OFFLINE"].includes(device.run_state)) return "stopped";
+  if (["STOPPED", "STOPPING", "ABORTING"].includes(device.run_state)) return "stopped";
   if (device.run_state === "IDLE") return "idle";
+  if (device.online === false) return "idle";
   return "running";
 }
 
@@ -1096,7 +1157,11 @@ function resetOperationForm() {
     overTempEnabled: true, overHumEnabled: true, powerMemory: true,
     tempLimit: 85, humLimit: 95, airTempUpper: 0, airTempLower: 0, airTempProtectionEnabled: true, dutTempUpper: 0, dutTempLower: 0, dutTempProtectionEnabled: true, dutControlAirUpper: 0, dutControlAirLower: 0, dutControlAirProtectionEnabled: true, targetTemp: 25, targetHum: 50,
     tempRamp: 1.5, humRamp: 2, runtimeHours: 0, runtimeMinutes: 30, runtimeSeconds: 0, controlMode: "balanced", programId: "P-01",
-    soundEnabled: true, doorLock: true, autoSave: true, precision: "0.1", brightness: 80
+    soundEnabled: true, doorLock: true, autoSave: true, precision: "0.1", brightness: 80,
+    powerOnMode: "stop", stopResumeMode: "reset", temperatureControlMode: "air", dutTemperatureSource: "dut1",
+    waitTemperatureUpper: 0, waitHumidityUpper: 0, eventCode: "0000000000000000",
+    scheduledStartEnabled: false, scheduledStartDate: "2026-07-31", scheduledStartTime: "16:34",
+    scheduledStopEnabled: false, scheduledStopDate: "2026-07-31", scheduledStopTime: "16:34"
   };
   operationFeedback.value = "已恢复默认值";
   window.setTimeout(() => { operationFeedback.value = ""; }, 2200);

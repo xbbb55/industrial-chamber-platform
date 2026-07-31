@@ -16,3 +16,14 @@ export function stateLabel(state) {
   return map[state] || state;
 }
 
+export function runStateLabel(state) {
+  return state === "OFFLINE" ? "未知" : stateLabel(state);
+}
+
+export function communicationLabel(online) {
+  return online ? "在线" : "离线";
+}
+
+export function communicationClass(online) {
+  return online ? "online" : "offline";
+}

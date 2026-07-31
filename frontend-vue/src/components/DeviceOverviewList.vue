@@ -21,6 +21,11 @@
       </div>
 
       <div class="overview-cell">
+        <span>通讯状态</span>
+        <strong :class="communicationClass(device.online)">{{ communicationLabel(device.online) }}</strong>
+      </div>
+
+      <div class="overview-cell">
         <span>当前温度</span>
         <strong>{{ formatNumber(device.current_temperature) }} C</strong>
       </div>
@@ -32,7 +37,7 @@
 
       <div class="overview-cell">
         <span>运行状态</span>
-        <strong :class="stateClass(device)">{{ stateLabel(device.run_state) }}</strong>
+        <strong :class="stateClass(device)">{{ runStateLabel(device.run_state) }}</strong>
       </div>
 
       <div class="overview-cell">
@@ -49,6 +54,8 @@
 </template>
 
 <script setup>
+import { communicationClass, communicationLabel, runStateLabel } from "../utils/state";
+
 defineProps({
   devices: { type: Array, required: true }
 });
@@ -76,7 +83,7 @@ function stateLabel(state) {
 
 function stateClass(device) {
   if (device.run_state === "ALARM" || device.alarm) return "alarm";
-  if (["STOPPED", "STOPPING", "ABORTING", "OFFLINE"].includes(device.run_state)) return "stopped";
+  if (["STOPPED", "STOPPING", "ABORTING"].includes(device.run_state)) return "stopped";
   if (device.run_state === "IDLE") return "idle";
   if (device.online === false) return "idle";
   return "running";

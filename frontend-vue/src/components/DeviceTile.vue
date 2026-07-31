@@ -6,8 +6,12 @@
     </div>
     <p>{{ device.name }}</p>
     <div class="tile-row">
-      <span>状态</span>
+      <span>运行状态</span>
       <b :class="stateClass">{{ stateText }}</b>
+    </div>
+    <div class="tile-row">
+      <span>通讯状态</span>
+      <b :class="communicationClass(device.online)">{{ communicationLabel(device.online) }}</b>
     </div>
     <div class="tile-row">
       <span>温湿度</span>
@@ -22,7 +26,7 @@
 
 <script setup>
 import { computed } from "vue";
-import { stateLabel } from "../utils/state";
+import { communicationClass, communicationLabel, runStateLabel } from "../utils/state";
 
 const props = defineProps({
   device: { type: Object, required: true },
@@ -31,11 +35,12 @@ const props = defineProps({
 
 defineEmits(["select"]);
 
-const stateText = computed(() => stateLabel(props.device.run_state));
+const stateText = computed(() => runStateLabel(props.device.run_state));
 const stateClass = computed(() => {
   if (props.device.run_state === "ALARM" || props.device.alarm) return "alarm";
-  if (["STOPPED", "STOPPING", "ABORTING", "OFFLINE"].includes(props.device.run_state)) return "stopped";
+  if (["STOPPED", "STOPPING", "ABORTING"].includes(props.device.run_state)) return "stopped";
   if (props.device.run_state === "IDLE") return "idle";
+  if (props.device.online === false) return "idle";
   return "running";
 });
 </script>

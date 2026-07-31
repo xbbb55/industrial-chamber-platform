@@ -5,10 +5,13 @@
         <div class="detail-icon">箱</div>
         <div>
           <h3>{{ device.device_id }}</h3>
-          <p :class="stateClass">{{ stateLabel(device.run_state) }}</p>
+          <p :class="stateClass">{{ runStateLabel(device.run_state) }}</p>
         </div>
       </div>
-      <span :class="['state-dot', stateClass]"></span>
+      <div class="detail-communication" :class="communicationClass(device.online)">
+        <span class="status-dot"></span>
+        <span>{{ communicationLabel(device.online) }}</span>
+      </div>
     </div>
 
     <div class="detail-grid">
@@ -39,7 +42,7 @@
 
 <script setup>
 import { computed } from "vue";
-import { stateLabel } from "../utils/state";
+import { communicationClass, communicationLabel, runStateLabel } from "../utils/state";
 
 const props = defineProps({
   device: { type: Object, required: true }
@@ -47,8 +50,9 @@ const props = defineProps({
 
 const stateClass = computed(() => {
   if (props.device.run_state === "ALARM" || props.device.alarm) return "alarm";
-  if (["STOPPED", "STOPPING", "ABORTING", "OFFLINE"].includes(props.device.run_state)) return "stopped";
+  if (["STOPPED", "STOPPING", "ABORTING"].includes(props.device.run_state)) return "stopped";
   if (props.device.run_state === "IDLE") return "idle";
+  if (props.device.online === false) return "idle";
   return "running";
 });
 </script>
