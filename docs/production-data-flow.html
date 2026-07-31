@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>生产环境数据与控制流程图</title>
+  <style>
+    :root { --ink:#172033; --muted:#62708a; --line:#b8c2d1; --edge:#eaf4ff; --core:#eefbf4; --store:#fff7e6; --user:#f5efff; --warn:#fff0ef; --blue:#1976d2; --green:#1d8b5a; --orange:#bd6c00; --purple:#7546bd; --red:#c84e4e; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f7f9fc; color:var(--ink); font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+    main { max-width:1440px; margin:0 auto; padding:34px 24px 44px; }
+    h1 { margin:0; font-size:28px; }
+    .subtitle { margin:8px 0 26px; color:var(--muted); }
+    .legend { display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:18px; color:var(--muted); font-size:14px; }
+    .legend i { display:inline-block; width:26px; margin-right:6px; vertical-align:middle; border-top:3px solid var(--blue); }
+    .legend .cmd { border-color:var(--red); border-top-style:dashed; }
+    .diagram { overflow-x:auto; background:#fff; border:1px solid #e1e7ef; border-radius:16px; padding:22px; box-shadow:0 8px 24px rgba(32,51,79,.06); }
+    svg { display:block; min-width:1180px; width:100%; height:auto; }
+    .zone { stroke-width:1.5; stroke-dasharray:6 6; }
+    .zone-title { font-size:17px; font-weight:700; fill:var(--ink); }
+    .node rect { stroke-width:1.5; rx:12; ry:12; }
+    .node-title { font-size:16px; font-weight:700; fill:var(--ink); text-anchor:middle; }
+    .node-text { font-size:13px; fill:#43516a; text-anchor:middle; }
+    .store-title { font-size:15px; font-weight:700; fill:var(--ink); text-anchor:middle; }
+    .store-text { font-size:12px; fill:#43516a; text-anchor:middle; }
+    .label { font-size:12px; fill:var(--muted); text-anchor:middle; }
+    .flow { fill:none; stroke:var(--blue); stroke-width:3; marker-end:url(#arrow-blue); }
+    .flow-store { fill:none; stroke:var(--orange); stroke-width:2.5; marker-end:url(#arrow-orange); }
+    .command { fill:none; stroke:var(--red); stroke-width:2.5; stroke-dasharray:8 6; marker-end:url(#arrow-red); }
+    .result { fill:none; stroke:var(--green); stroke-width:2.5; stroke-dasharray:4 5; marker-end:url(#arrow-green); }
+    .note { margin:20px 0 0; padding:14px 16px; border-left:4px solid var(--orange); border-radius:4px; background:#fff9ee; color:#4f422d; line-height:1.7; }
+    .notes { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px; }
+    .notes section { padding:14px 16px; border:1px solid #e1e7ef; border-radius:12px; background:#fff; }
+    h2 { margin:0 0 7px; font-size:16px; }
+    p { margin:0; color:var(--muted); font-size:14px; line-height:1.65; }
+    @media (max-width:720px) { main { padding:22px 14px 30px; } h1 { font-size:23px; } .notes { grid-template-columns:1fr; } .diagram { padding:12px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>工业试验箱平台：生产环境数据与控制流程</h1>
+  <p class="subtitle">蓝色为设备数据上行，红色虚线为控制指令下行，绿色虚线为执行结果回传。每台工控机保留本地数据库；服务端数据库用于统一管理、长期归档和跨设备查询。</p>
+  <div class="legend"><span><i></i>实时数据上行</span><span><i class="cmd"></i>控制指令下行</span><span><i style="border-color:var(--green);border-top-style:dashed"></i>执行结果回传</span><span><i style="border-color:var(--orange)"></i>写入存储</span></div>
+  <div class="diagram" role="img" aria-label="从控制器、C++采集、工控机共享内存、设备边缘服务、总控平台存储到用户界面的生产环境数据与指令流程图">
+    <svg viewBox="0 0 1320 770" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1976d2"/></marker>
+        <marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#bd6c00"/></marker>
+        <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#c84e4e"/></marker>
+        <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1d8b5a"/></marker>
+      </defs>
+
+      <rect class="zone" x="20" y="40" width="600" height="570" rx="18" fill="#f4f9ff" stroke="#9cc5ee"/>
+      <text class="zone-title" x="44" y="73">单台工控机 / 设备边缘端（现场）</text>
+      <rect class="zone" x="650" y="40" width="650" height="570" rx="18" fill="#f4fcf7" stroke="#a6d6bc"/>
+      <text class="zone-title" x="674" y="73">总控平台与用户访问端（服务端）</text>
+
+      <g class="node"><rect x="48" y="170" width="135" height="94" fill="var(--edge)" stroke="#1976d2"/><text class="node-title" x="115" y="205">控制器 / PLC</text><text class="node-text" x="115" y="229">传感器、执行器</text><text class="node-text" x="115" y="248">温湿度、状态、告警</text></g>
+      <g class="node"><rect x="230" y="170" width="145" height="94" fill="var(--edge)" stroke="#1976d2"/><text class="node-title" x="302" y="205">C++ 采集与控制</text><text class="node-text" x="302" y="229">读取底层协议</text><text class="node-text" x="302" y="248">执行下发命令</text></g>
+      <g class="node"><rect x="423" y="170" width="155" height="94" fill="#fff7e6" stroke="#bd6c00"/><text class="node-title" x="500" y="205">Windows 共享内存</text><text class="node-text" x="500" y="229">最新完整数据快照</text><text class="node-text" x="500" y="248">仅本机跨进程共享</text></g>
+      <g class="node"><rect x="214" y="390" width="175" height="95" fill="var(--edge)" stroke="#1976d2"/><text class="node-title" x="301" y="425">设备边缘服务</text><text class="node-text" x="301" y="449">读取共享内存</text><text class="node-text" x="301" y="468">上传、接收指令、重试</text></g>
+      <g class="node"><rect x="438" y="382" width="150" height="111" fill="#fff7e6" stroke="#bd6c00"/><text class="store-title" x="513" y="414">工控机本地数据库</text><text class="store-text" x="513" y="437">SQLite / PostgreSQL</text><text class="store-text" x="513" y="456">本地历史与查询</text><text class="store-text" x="513" y="475">待上传 Outbox 队列</text></g>
+
+      <g class="node"><rect x="685" y="170" width="155" height="94" fill="var(--core)" stroke="#1d8b5a"/><text class="node-title" x="762" y="205">总控接收 API</text><text class="node-text" x="762" y="229">设备认证、校验</text><text class="node-text" x="762" y="248">快照 / 回执接入</text></g>
+      <g class="node"><rect x="905" y="130" width="145" height="94" fill="#fff7e6" stroke="#bd6c00"/><text class="store-title" x="977" y="165">Redis</text><text class="store-text" x="977" y="189">最新实时状态</text><text class="store-text" x="977" y="208">在线状态、指令队列</text></g>
+      <g class="node"><rect x="895" y="286" width="165" height="112" fill="#fff7e6" stroke="#bd6c00"/><text class="store-title" x="977" y="318">服务端关系型数据库</text><text class="store-text" x="977" y="341">全局历史、告警、报表</text><text class="store-text" x="977" y="360">设备、用户、权限、任务</text><text class="store-text" x="977" y="379">指令与审计永久留存</text></g>
+      <g class="node"><rect x="1102" y="170" width="155" height="94" fill="var(--core)" stroke="#1d8b5a"/><text class="node-title" x="1179" y="205">业务 API / 推送服务</text><text class="node-text" x="1179" y="229">鉴权、告警、调度</text><text class="node-text" x="1179" y="248">HTTP / WebSocket</text></g>
+      <g class="node"><rect x="1102" y="410" width="155" height="94" fill="var(--user)" stroke="#7546bd"/><text class="node-title" x="1179" y="445">用户界面</text><text class="node-text" x="1179" y="469">浏览器 / 大屏 / 客户端</text><text class="node-text" x="1179" y="488">实时监控、操作入口</text></g>
+
+      <path class="flow" d="M183 217 H230"/><text class="label" x="206" y="158">设备协议数据</text>
+      <path class="flow" d="M375 217 H423"/><text class="label" x="399" y="158">标准快照</text>
+      <path class="flow" d="M500 264 V330 H301 V390"/><text class="label" x="410" y="322">本机读取</text>
+      <path class="flow-store" d="M389 437 H438"/><text class="label" x="413" y="370">先本地落库</text>
+      <path class="flow" d="M588 437 H625 V217 H685"/><text class="label" x="607" y="428">按 Outbox 可靠上传</text>
+      <path class="flow-store" d="M840 197 H905"/><text class="label" x="872" y="120">写最新状态</text>
+      <path class="flow-store" d="M762 264 V342 H895"/><text class="label" x="828" y="333">幂等去重后写历史、告警、审计</text>
+      <path class="flow" d="M1050 177 H1102"/><text class="label" x="1076" y="154">实时状态</text>
+      <path class="flow" d="M1179 264 V410"/><text class="label" x="1224" y="336">WebSocket / HTTP</text>
+
+      <path class="command" d="M1102 458 H1075 V285 H860 V217 H840"/><text class="label" x="970" y="278" fill="#c84e4e">用户操作 → 鉴权、审计、生成指令</text>
+      <path class="command" d="M685 238 H625 V437 H588"/><text class="label" x="628" y="302" fill="#c84e4e">边缘服务拉取 / 长连接接收</text>
+      <path class="command" d="M214 438 H170 V315 H302 V264"/><text class="label" x="190" y="305" fill="#c84e4e">本机转交</text>
+      <path class="command" d="M230 205 H183"/><text class="label" x="206" y="292" fill="#c84e4e">启动 / 停止 / 设定值</text>
+      <path class="result" d="M302 264 V340 H120 V560 H685"/><text class="label" x="402" y="588" fill="#1d8b5a">执行结果 / 错误码回传至总控，并写入指令审计</text>
+
+      <rect x="20" y="640" width="1280" height="94" rx="12" fill="#fff0ef" stroke="#e4aaa4"/>
+      <text x="44" y="672" style="font-size:15px;font-weight:700;fill:#7c302b">生产环境边界与一致性</text>
+      <text x="44" y="699" style="font-size:14px;fill:#573b38">共享内存是工控机本地实时交换区，不能跨工控机、不能被总控平台直接读取；边缘服务先落本地库，再按 Outbox 队列上传。</text>
+      <text x="44" y="721" style="font-size:14px;fill:#573b38">服务端使用 edge_id + device_id + sequence（或采集时间）幂等去重；Redis 只存最新状态，关系型数据库保存权威历史与审计。</text>
+    </svg>
+  </div>
+  <div class="notes">
+    <section><h2>工控机本地数据库：该设备的采集源</h2><p>边缘服务从共享内存读到稳定快照后，先写本地库。它支持现场历史查询、断网持续采集、待上传数据排队与网络恢复后的补传。</p></section>
+    <section><h2>服务端数据库：全局权威查询库</h2><p>保存多台工控机汇总后的历史、告警、试验任务、用户权限与完整指令审计。Redis 仅用于最新状态、在线心跳和短期队列，不能作为唯一存储。</p></section>
+    <section><h2>用户可见路径</h2><p>用户界面始终只访问总控 API 和 WebSocket；现场维护工具可在授权网络内查询该工控机本地数据库，但不能绕过总控执行远程调度。</p></section>
+  </div>
+  <div class="notes" style="grid-template-columns:repeat(2,1fr)">
+    <section><h2>本地库建议表</h2><p><strong>telemetry_snapshot</strong>（实时/历史快照）、<strong>alarm_event</strong>（本地告警）、<strong>command_execution</strong>（命令执行结果）、<strong>sync_outbox</strong>（待上传事件及重试次数）。保留策略可按现场容量设置，例如原始数据保留 30–90 天。</p></section>
+    <section><h2>服务端库建议表</h2><p><strong>edge</strong>、<strong>device</strong>、<strong>telemetry_history</strong>、<strong>alarm</strong>、<strong>command</strong>、<strong>command_result</strong>、<strong>user</strong>、<strong>audit_log</strong>。历史采样数据建议按日期或月份分区，便于归档与报表查询。</p></section>
+    <section><h2>同步规则</h2><p>本地入库成功后才生成 Outbox 记录；上传成功才标记完成。服务端按唯一键幂等写入，重复上传只更新接收状态，不重复生成历史或告警。</p></section>
+    <section><h2>指令规则</h2><p>服务端先记录指令，再推送/供边缘服务拉取；工控机执行后本地记录结果并回传。指令必须带 command_id、目标设备、操作人、时间和执行状态。</p></section>
+  </div>
+  <p class="note"><strong>说明：</strong>本图为生产目标架构。当前 Demo 的服务端 Python 内存字典不能作为生产唯一存储；在部署数据库前，至少应保留本地落库、可靠上传、服务端幂等写入这三项能力。</p>
+</main>
+</body>
+</html>
