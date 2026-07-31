@@ -14,6 +14,11 @@ from .control_protocol import normalize_command, protocol_time
 from .shared_memory_store import create_or_attach, read_snapshot, write_snapshot
 from .uploader import SnapshotUploader
 
+SIM_TEMPERATURE_MIN = -200.0
+SIM_TEMPERATURE_MAX = 500.0
+SIM_HUMIDITY_MIN = 0.0
+SIM_HUMIDITY_MAX = 100.0
+
 
 class ManualInputState:
     def __init__(self, config: EdgeConfig) -> None:
@@ -71,8 +76,8 @@ class ManualInputState:
             time.sleep(self.config.stream_interval_seconds)
 
     def _write_stream_snapshot_unlocked(self, elapsed: float) -> dict[str, Any]:
-        temperature = self.stream_temperature + math.sin(elapsed / 5.0) * 0.35
-        humidity = self.stream_humidity + math.cos(elapsed / 7.0) * 0.8
+        temperature = _clamp(self.stream_temperature + math.sin(elapsed / 5.0) * 5.0, SIM_TEMPERATURE_MIN, SIM_TEMPERATURE_MAX)
+        humidity = _clamp(self.stream_humidity + math.cos(elapsed / 7.0) * 8.0, SIM_HUMIDITY_MIN, SIM_HUMIDITY_MAX)
         snapshot = build_production_payload(
             device_id=self.stream_device_id,
             device_ip=self.config.device_ip,
@@ -328,11 +333,15 @@ def _parse_temperature_humidity(payload: dict[str, Any]) -> tuple[float, float]:
 
     temperature = float(payload["temperature"])
     humidity = float(payload["humidity"])
-    if not -100 <= temperature <= 200:
-        raise ValueError("temperature must be between -100 and 200")
-    if not 0 <= humidity <= 100:
-        raise ValueError("humidity must be between 0 and 100")
+    if not SIM_TEMPERATURE_MIN <= temperature <= SIM_TEMPERATURE_MAX:
+        raise ValueError(f"temperature must be between {SIM_TEMPERATURE_MIN:g} and {SIM_TEMPERATURE_MAX:g}")
+    if not SIM_HUMIDITY_MIN <= humidity <= SIM_HUMIDITY_MAX:
+        raise ValueError(f"humidity must be between {SIM_HUMIDITY_MIN:g} and {SIM_HUMIDITY_MAX:g}")
     return temperature, humidity
+
+
+def _clamp(value: float, minimum: float, maximum: float) -> float:
+    return max(minimum, min(maximum, value))
 
 
 def _parse_raw_input(raw: str) -> dict[str, float]:
@@ -513,11 +522,31 @@ _HTML = r"""<!doctype html>
       font-size: 12px;
       line-height: 1.6;
     }
-    .command-log {
+    .command-list {
+      display: grid;
+      gap: 8px;
       min-height: 140px;
-      max-height: 240px;
+      max-height: 300px;
       margin-top: 12px;
+      overflow: auto;
     }
+    .command-item {
+      display: grid;
+      grid-template-columns: minmax(108px, .7fr) minmax(90px, .7fr) minmax(120px, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-left: 3px solid #2563eb;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+    .command-item.result-failed { border-left-color: #dc2626; }
+    .command-item.result-executed { border-left-color: #16a34a; }
+    .command-item strong { color: #0f172a; font-size: 14px; }
+    .command-item span, .command-item small { display: block; color: #64748b; font-size: 12px; }
+    .command-item small { margin-top: 3px; }
+    .command-empty { padding: 22px 12px; border: 1px dashed #cbd5e1; border-radius: 6px; color: #64748b; text-align: center; }
     .meta {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -566,12 +595,12 @@ _HTML = r"""<!doctype html>
       <label for="deviceName">设备名称</label>
       <input id="deviceName" value="Manual Input Chamber" />
       <label for="temperature">温度</label>
-      <input id="temperature" type="number" step="0.1" value="25.0" />
+      <input id="temperature" type="number" min="-200" max="500" step="0.1" value="25.0" />
       <label for="humidity">湿度</label>
-      <input id="humidity" type="number" step="0.1" value="60.0" />
+      <input id="humidity" type="number" min="0" max="100" step="0.1" value="60.0" />
       <label for="raw">串数据输入</label>
       <textarea id="raw" placeholder="支持：25,60 或 温度=25,湿度=60 或 JSON"></textarea>
-      <div class="hint">如果填写了串数据，会优先按串数据解析；空着则使用上面的温度、湿度输入框。</div>
+      <div class="hint">温度范围 -200～500°C；湿度范围 0～100%RH。模拟流会在设定值附近产生更明显的动态波动。</div>
       <button id="writeBtn" type="button">启动实时数据流</button>
       <div id="message" class="status"></div>
     </section>
@@ -583,8 +612,8 @@ _HTML = r"""<!doctype html>
         <div><span>总服务端</span><strong id="serverUrl">-</strong></div>
       </div>
       <pre id="snapshot">{}</pre>
-      <h2 style="margin-top:16px;">收到的总控命令</h2>
-      <pre id="commands" class="command-log">[]</pre>
+      <h2 style="margin-top:16px;">总控命令监视</h2>
+      <div id="commands" class="command-list" aria-live="polite"><div class="command-empty">暂无收到的命令</div></div>
     </section>
   </main>
   <script>
@@ -609,11 +638,49 @@ _HTML = r"""<!doctype html>
       document.querySelector("#edgeId").textContent = data.edge_id || "-";
       document.querySelector("#serverUrl").textContent = data.server_url || "-";
       snapshot.textContent = JSON.stringify(data.memory_snapshot || data.last_snapshot || data, null, 2);
-      commands.textContent = JSON.stringify({
-        received_commands: data.received_commands || [],
-        command_results: data.command_results || []
-      }, null, 2);
+      renderCommands(data.received_commands || [], data.command_results || []);
       updateStreamBanner(data);
+    }
+
+    function renderCommands(receivedCommands, commandResults) {
+      commands.replaceChildren();
+      if (!receivedCommands.length) {
+        const empty = document.createElement("div");
+        empty.className = "command-empty";
+        empty.textContent = "暂无收到的命令";
+        commands.append(empty);
+        return;
+      }
+      receivedCommands.forEach((command, index) => {
+        const result = commandResults[index] || {};
+        const item = document.createElement("article");
+        item.className = `command-item result-${String(result.status || "pending").toLowerCase()}`;
+        const commandCell = document.createElement("div");
+        const commandName = document.createElement("strong");
+        commandName.textContent = command.command || command.command_type || "未知命令";
+        commandCell.append(commandName);
+        const type = document.createElement("small");
+        type.textContent = command.command_type || "未分类";
+        commandCell.append(type);
+        const timeCell = document.createElement("div");
+        const time = document.createElement("span");
+        time.textContent = command.time || formatTimestamp(command.received_at);
+        timeCell.append(time);
+        const resultCell = document.createElement("div");
+        const resultText = document.createElement("strong");
+        resultText.textContent = result.status || "已接收";
+        resultCell.append(resultText);
+        const messageText = document.createElement("small");
+        messageText.textContent = result.message || "等待执行结果";
+        resultCell.append(messageText);
+        item.append(commandCell, timeCell, resultCell);
+        commands.append(item);
+      });
+    }
+
+    function formatTimestamp(value) {
+      if (!value) return "时间未知";
+      return new Date(Number(value) * 1000).toLocaleString("zh-CN", { hour12: false });
     }
 
     function updateStreamBanner(data) {
