@@ -7,6 +7,7 @@ from typing import Union
 @dataclass(frozen=True)
 class EdgeConfig:
     edge_id: str
+    device_ip: str
     agent_version: str
     server_url: str
     upload_interval_seconds: float
@@ -26,6 +27,7 @@ def load_config(path: Union[str, Path]) -> EdgeConfig:
     auth = data.get("auth", {})
     return EdgeConfig(
         edge_id=data["edge_id"],
+        device_ip=str(data.get("device_ip", "")).strip(),
         agent_version=data.get("agent_version", "0.1.0"),
         server_url=data["server_url"],
         upload_interval_seconds=float(data.get("upload_interval_seconds", 0.5)),

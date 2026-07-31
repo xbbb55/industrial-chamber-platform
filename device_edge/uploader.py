@@ -51,6 +51,7 @@ class SnapshotUploader:
     def _post_snapshot(self, snapshot: dict[str, Any]) -> dict[str, Any]:
         payload = {
             "edge_id": self._config.edge_id,
+            "device_ip": self._config.device_ip,
             "agent_version": self._config.agent_version,
             "uploaded_at": time.time(),
             "snapshot": snapshot,
