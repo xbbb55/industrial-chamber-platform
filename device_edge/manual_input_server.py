@@ -25,7 +25,6 @@ class ManualInputState:
         self.command_results: list[dict[str, Any]] = []
         self.stream_active = False
         self.upload_enabled = False
-        self.stop_upload_pending = False
         self.stream_thread: Optional[threading.Thread] = None
         self.stream_device_id = "SIM-MANUAL-001"
         self.stream_device_name = "Manual Input Chamber"
@@ -56,7 +55,6 @@ class ManualInputState:
         self.stream_started_at = time.time()
         self.stream_active = True
         self.upload_enabled = True
-        self.stop_upload_pending = False
         snapshot = self._write_stream_snapshot_unlocked(0.0)
         if not self.stream_thread or not self.stream_thread.is_alive():
             self.stream_thread = threading.Thread(target=self._stream_loop, daemon=True)
@@ -185,7 +183,9 @@ class ManualInputState:
                 self.last_snapshot = snapshot
                 if command_type == "STOP_TEST":
                     self.stream_active = False
-                    self.stop_upload_pending = True
+                    # Stop ends the test stream, but the edge must keep uploading
+                    # the stopped snapshot so the server can distinguish STOPPED
+                    # from a lost connection.
                 self.upload_enabled = True
                 result_payload = {
                     "run_state": "STOPPED" if command_type == "STOP_TEST" else "HOLDING" if command_type == "HOLD_TEST" else "RUNNING",
@@ -203,15 +203,9 @@ class ManualInputState:
             return self.upload_enabled
 
     def on_uploaded(self, snapshot: dict[str, Any]) -> None:
-        with self.lock:
-            device = self._find_device(snapshot, self.stream_device_id)
-            stopped = bool(device and (
-                device.get("run_state") == "STOPPED"
-                or device.get("status", {}).get("state") == "\u505c\u6b62"
-            ))
-            if self.stop_upload_pending and stopped:
-                    self.stop_upload_pending = False
-                    self.upload_enabled = False
+        # Uploading is also the device heartbeat.  A STOP_TEST command changes
+        # the test state only; it must not disable heartbeat uploads.
+        return
 
     def get_status(self) -> dict[str, Any]:
         with self.lock:
@@ -625,8 +619,13 @@ _HTML = r"""<!doctype html>
     function updateStreamBanner(data) {
       const latestCommand = (data.received_commands || [])[0];
       const latestResult = (data.command_results || [])[0];
-      const isRunning = Boolean(data.stream_active && data.upload_enabled);
-      const isStopped = latestCommand && latestCommand.command_type === "STOP_TEST" && !data.upload_enabled;
+      const snapshot = data.memory_snapshot || data.last_snapshot || {};
+      const isRunning = Boolean(data.stream_active);
+      const isStopped = !isRunning && Boolean(
+        latestCommand?.command_type === "STOP_TEST" ||
+        snapshot?.status?.state === "停止" ||
+        snapshot?.run_state === "STOPPED"
+      );
       if (isRunning) {
         streamBanner.className = "stream-banner running";
         streamTitle.textContent = "实时数据流运行中";
