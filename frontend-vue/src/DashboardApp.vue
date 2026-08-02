@@ -251,10 +251,10 @@
                   <button
                     class="start-command-button"
                     type="button"
-                    :disabled="!selectedDevice || startingDeviceIds[selectedDeviceId]"
+                    :disabled="isStartCommandDisabled"
                     @click="startSelectedDevice"
                   >
-                    {{ startingDeviceIds[selectedDeviceId] ? "启动下发中" : "启动运行" }}
+                    {{ startingDeviceIds[selectedDeviceId] ? "启动下发中" : isStartCommandDisabled ? "已启动" : "启动运行" }}
                   </button>
                   <button
                     class="hold-command-button"
@@ -326,7 +326,7 @@
                 :device-status="runStateLabel(selectedDevice.run_state)"
                 :updated-at="formatSnapshotTime(selectedDevice.updated_at || snapshot?.written_at)"
                 :communication-status="communicationLabel(selectedDevice.online)"
-                :data-source="sourceName"
+                :start-time="selectedDeviceStartTime"
               />
               <div v-else class="custom-monitor-grid" :class="{ 'single-card': visibleMonitorCards.length === 1 }">
                 <section v-if="visibleMonitorCards.includes('trend')" class="monitor-card trend-panel monitor-card-wide">
@@ -546,7 +546,7 @@
                   </section>
                 </div>
 
-                <div class="operation-editor-footer"><span>最后保存：{{ operationLastSaved }}</span><div><button class="ghost-action" type="button" @click="resetOperationForm">恢复默认</button><button class="primary-action" type="button" @click="saveOperationSettings">保存设定</button></div></div>
+                <div class="operation-editor-footer"><span>最后保存：{{ operationLastSaved }}</span><div><button class="ghost-action" type="button" @click="resetOperationForm">恢复默认</button><button class="primary-action" type="button" @click="openSaveConfirm('operation')">保存设定</button></div></div>
               </section>
             </div>
           </section>
@@ -559,15 +559,13 @@
                 <AppIcon name="chevronRight" :size="14" />
               </button>
             </nav>
-            <div class="system-parameters-grid">
-              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
-                <header><span>基础信息</span><small>DEVICE / BASE</small></header>
+            <div class="system-parameters-grid" :class="{ 'basic-parameter-grid': parameterTab === 'basic' }">
+              <section v-if="parameterTab === 'basic'" class="system-parameter-card product-info-card">
+                <header><span>产品信息</span><small>PRODUCT / INFO</small></header>
                 <div class="parameter-fields">
-                  <label><span>设备编号</span><input :value="selectedDevice.device_id" type="text" disabled></label>
-                  <label><span>设备名称</span><input v-model="parameterForm.deviceName" type="text"></label>
-                  <label><span>设备型号</span><input v-model="parameterForm.model" type="text"></label>
+                  <label><span>产品编号</span><input :value="selectedDevice.device_id" type="text" disabled></label>
+                  <label><span>产品型号</span><input v-model="parameterForm.model" type="text"></label>
                   <label><span>配置 IP</span><input :value="selectedDevice.device_ip || selectedDevice.ip_address || selectedDevice.ip || '--'" type="text" disabled></label>
-                  <label><span>固件版本</span><input v-model="parameterForm.firmwareVersion" type="text"></label>
                 </div>
               </section>
 
@@ -604,8 +602,49 @@
                   <label><span>频率上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.frequencyLimit" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高频率上限" aria-label="提高频率上限" @click.stop.prevent="stepParameterNumber('frequencyLimit', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低频率上限" aria-label="降低频率上限" @click.stop.prevent="stepParameterNumber('frequencyLimit', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
                 </div>
               </section>
+
+              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
+                <header><span>历史记录</span><small>HISTORY / RECORD</small></header>
+                <div class="parameter-fields">
+                  <label><span>记录周期</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.historyRecordInterval" type="number" min="1" step="1"><span class="hmi-number-steps"><button type="button" title="增加记录周期" aria-label="增加记录周期" @click.stop.prevent="stepParameterNumber('historyRecordInterval', 1, 1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少记录周期" aria-label="减少记录周期" @click.stop.prevent="stepParameterNumber('historyRecordInterval', -1, 1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>秒</b></div></label>
+                  <label><span>导出保存路径</span><input v-model="parameterForm.exportSavePath" type="text" placeholder="请输入保存路径"></label>
+                </div>
+              </section>
+
+              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
+                <header><span>温度操作范围</span><small>TEMPERATURE / RANGE</small></header>
+                <div class="parameter-fields">
+                  <label><span>操作下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureRangeMin" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度操作下限" aria-label="增加温度操作下限" @click.stop.prevent="stepParameterNumber('temperatureRangeMin', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作下限" aria-label="减少温度操作下限" @click.stop.prevent="stepParameterNumber('temperatureRangeMin', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
+                  <label><span>操作上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureRangeMax" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度操作上限" aria-label="增加温度操作上限" @click.stop.prevent="stepParameterNumber('temperatureRangeMax', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作上限" aria-label="减少温度操作上限" @click.stop.prevent="stepParameterNumber('temperatureRangeMax', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
+                </div>
+              </section>
+
+              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
+                <header><span>湿度操作范围</span><small>HUMIDITY / RANGE</small></header>
+                <div class="parameter-fields">
+                  <label><span>操作下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMin" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度操作下限" aria-label="增加湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作下限" aria-label="减少湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                  <label><span>操作上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMax" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度操作上限" aria-label="增加湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作上限" aria-label="减少湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                </div>
+              </section>
+
+              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
+                <header><span>再传送范围</span><small>RETRANSMISSION / RANGE</small></header>
+                <div class="parameter-fields">
+                  <label><span>温度传送下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMin" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度传送下限" aria-label="增加温度传送下限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度传送下限" aria-label="减少温度传送下限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
+                  <label><span>温度传送上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMax" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度传送上限" aria-label="增加温度传送上限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度传送上限" aria-label="减少温度传送上限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
+                  <label><span>湿度传送下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityTransmissionMin" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度传送下限" aria-label="增加湿度传送下限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMin', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度传送下限" aria-label="减少湿度传送下限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMin', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                  <label><span>湿度传送上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityTransmissionMax" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度传送上限" aria-label="增加湿度传送上限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMax', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度传送上限" aria-label="减少湿度传送上限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMax', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                </div>
+              </section>
+
+              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
+                <header><span>背光持续时间</span><small>DISPLAY / BACKLIGHT</small></header>
+                <div class="parameter-fields">
+                  <label><span>背光持续时间</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.backlightDuration" type="number" min="0" max="3600" step="1"><span class="hmi-number-steps"><button type="button" title="增加背光持续时间" aria-label="增加背光持续时间" @click.stop.prevent="stepParameterNumber('backlightDuration', 1, 0, 3600)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少背光持续时间" aria-label="减少背光持续时间" @click.stop.prevent="stepParameterNumber('backlightDuration', -1, 0, 3600)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>秒</b></div></label>
+                </div>
+              </section>
             </div>
-            <div class="system-parameters-footer"><span>参数修改仅作用于当前设备</span><div><button class="ghost-action" type="button" @click="resetParameterForm">恢复默认</button><button class="primary-action" type="button" @click="saveParameterSettings">保存参数</button></div></div>
+            <div class="system-parameters-footer"><span>参数修改仅作用于当前设备</span><div><button class="ghost-action" type="button" @click="resetParameterForm">恢复默认</button><button class="primary-action" type="button" @click="openSaveConfirm('parameters')">保存参数</button></div></div>
           </section>
 
           <section v-else-if="selectedDevice" class="panel empty-panel">
@@ -651,6 +690,21 @@
         </section>
       </main>
     </section>
+
+    <div v-if="isSaveConfirmOpen" class="save-confirm-backdrop" @click.self="closeSaveConfirm">
+      <section class="save-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="save-confirm-title">
+        <div class="save-confirm-header">
+          <div>
+            <h3 id="save-confirm-title">确认修改设置</h3>
+            <span>保存后将更新当前设备的设定，是否继续？</span>
+          </div>
+        </div>
+        <div class="save-confirm-footer">
+          <button class="ghost-action" type="button" @click="closeSaveConfirm">取消</button>
+          <button class="primary-action" type="button" @click="confirmSaveSettings">确认修改</button>
+        </div>
+      </section>
+    </div>
 
     <div v-if="isNotificationOpen" class="notification-modal-backdrop" @click.self="isNotificationOpen = false">
       <section class="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
@@ -772,7 +826,18 @@ const parameterForm = ref({
   compressorFrequency: 50,
   circulationFanFrequency: 50,
   humidifierFrequency: 50,
-  frequencyLimit: 60
+  frequencyLimit: 60,
+  historyRecordInterval: 60,
+  exportSavePath: "./exports",
+  temperatureRangeMin: -40,
+  temperatureRangeMax: 100,
+  humidityRangeMin: 0,
+  humidityRangeMax: 100,
+  temperatureTransmissionMin: -40,
+  temperatureTransmissionMax: 100,
+  humidityTransmissionMin: 0,
+  humidityTransmissionMax: 100,
+  backlightDuration: 60
 });
 const deviceDisplayMode = ref("list");
 const selectedTrendCanvas = ref(null);
@@ -782,6 +847,7 @@ const commandStatusText = ref("等待操作");
 const profileActionText = ref("");
 const stoppingDeviceIds = ref({});
 const startingDeviceIds = ref({});
+const startCommandLockedIds = ref({});
 const holdingDeviceIds = ref({});
 const skippingDeviceIds = ref({});
 const trendClockMs = ref(Date.now());
@@ -793,6 +859,9 @@ const isTrendDragging = ref(false);
 const isSidebarCollapsed = ref(false);
 const isLayoutEditorOpen = ref(false);
 const isNotificationOpen = ref(false);
+const isSaveConfirmOpen = ref(false);
+const pendingSaveTarget = ref(null);
+const deviceStartTimes = ref({});
 const visibleMonitorCards = ref(["trend"]);
 const deviceNotifications = ref([]);
 const operationLogs = ref([]);
@@ -917,7 +986,6 @@ const onlineCount = computed(() => devices.value.filter(device => device.online)
 const runningCount = computed(() => devices.value.filter(device => device.run_state === "RUNNING").length);
 const alarmCount = computed(() => devices.value.filter(device => device.run_state === "ALARM" || device.alarm).length);
 const sequence = computed(() => snapshot.value?.sequence ?? "--");
-const sourceName = computed(() => snapshot.value?.source ?? "--");
 const readLatency = computed(() => {
   if (!snapshot.value || !routerReadAt.value || !snapshot.value.written_at) return "--";
   return `${Math.max(0, (routerReadAt.value - snapshot.value.written_at) * 1000).toFixed(0)}ms`;
@@ -956,12 +1024,27 @@ const runtimeDisplay = computed(() => {
     total: formatDurationValue(firstDefined(timeData.totalTime, device.total_running_time, device.total_run_time, device.total_time, device.total_seconds))
   };
 });
+const selectedDeviceStartTime = computed(() => {
+  return formatStartTimeMinute(deviceStartTimes.value[selectedDeviceId.value] || selectedDevice.value?.timeData?.startTime || "--");
+});
+const isStartCommandDisabled = computed(() => {
+  const device = selectedDevice.value;
+  if (!device) return true;
+  const locked = startCommandLockedIds.value[device.device_id];
+  const activeState = ["RUNNING", "HOLDING", "PAUSED", "STOPPING", "ABORTING"].includes(device.run_state);
+  return Boolean(startingDeviceIds.value[device.device_id] || locked || activeState);
+});
 const activeNotifications = computed(() => {
   if (activeView.value === "device-detail") {
     return operationLogs.value.filter(item => !selectedDeviceId.value || item.deviceId === selectedDeviceId.value);
   }
   return deviceNotifications.value;
 });
+
+watch(() => selectedDevice.value?.timeData?.startTime, startTime => {
+  if (!selectedDeviceId.value || !startTime || deviceStartTimes.value[selectedDeviceId.value]) return;
+  deviceStartTimes.value = { ...deviceStartTimes.value, [selectedDeviceId.value]: startTime };
+}, { immediate: true });
 const notificationCount = computed(() => activeNotifications.value.length);
 const notificationCountText = computed(() => notificationCount.value > 99 ? "99+" : String(notificationCount.value));
 const notificationTitle = computed(() => activeView.value === "device-detail" ? "操作日志" : "设备运行通知");
@@ -1061,6 +1144,16 @@ function formatDurationSeconds(value) {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return [hours, minutes, seconds].map(part => String(part).padStart(2, "0")).join(":");
+}
+
+function formatStartTime(value = new Date()) {
+  const pad = number => String(number).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+}
+
+function formatStartTimeMinute(value) {
+  const text = String(value || "--");
+  return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text) ? text.slice(0, 16) : text;
 }
 
 function makeLogItem({ title, message, tone = "info", deviceId = selectedDeviceId.value }) {
@@ -1191,6 +1284,23 @@ function openProfile() {
   isSidebarCollapsed.value = false;
 }
 
+function openSaveConfirm(target) {
+  pendingSaveTarget.value = target;
+  isSaveConfirmOpen.value = true;
+}
+
+function closeSaveConfirm() {
+  isSaveConfirmOpen.value = false;
+  pendingSaveTarget.value = null;
+}
+
+function confirmSaveSettings() {
+  const target = pendingSaveTarget.value;
+  closeSaveConfirm();
+  if (target === "operation") saveOperationSettings();
+  if (target === "parameters") saveParameterSettings();
+}
+
 function handleSidebarSelect(item) {
   if (item.scope === "device") {
     selectedDeviceSection.value = item.key;
@@ -1258,7 +1368,18 @@ function resetParameterForm() {
     compressorFrequency: 50,
     circulationFanFrequency: 50,
     humidifierFrequency: 50,
-    frequencyLimit: 60
+    frequencyLimit: 60,
+    historyRecordInterval: 60,
+    exportSavePath: "./exports",
+    temperatureRangeMin: -40,
+    temperatureRangeMax: 100,
+    humidityRangeMin: 0,
+    humidityRangeMax: 100,
+    temperatureTransmissionMin: -40,
+    temperatureTransmissionMax: 100,
+    humidityTransmissionMin: 0,
+    humidityTransmissionMax: 100,
+    backlightDuration: 60
   };
   operationLastSaved.value = "已恢复默认";
 }
@@ -1318,6 +1439,8 @@ async function stopSelectedDevice() {
       throw new Error(result.detail || result.message || "停止命令下发失败");
     }
     commandStatusText.value = "停止命令已下发";
+    delete startCommandLockedIds.value[deviceId];
+    startCommandLockedIds.value = { ...startCommandLockedIds.value };
     addOperationLog({ title: "停止运行", message: `${deviceName} 停止命令已下发`, tone: "danger", deviceId });
   } catch (error) {
     commandStatusText.value = error.message || "停止命令下发失败";
@@ -1328,7 +1451,7 @@ async function stopSelectedDevice() {
 }
 
 async function startSelectedDevice() {
-  if (!selectedDevice.value) return;
+  if (!selectedDevice.value || isStartCommandDisabled.value) return;
   const deviceId = selectedDevice.value.device_id;
   const deviceName = selectedDevice.value.name || deviceId;
   startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: true };
@@ -1354,6 +1477,8 @@ async function startSelectedDevice() {
       throw new Error(result.detail || result.message || "启动命令下发失败");
     }
     commandStatusText.value = "启动命令已下发";
+    startCommandLockedIds.value = { ...startCommandLockedIds.value, [deviceId]: true };
+    deviceStartTimes.value = { ...deviceStartTimes.value, [deviceId]: formatStartTime() };
     addOperationLog({ title: "启动运行", message: `${deviceName} 启动命令已下发`, tone: "success", deviceId });
   } catch (error) {
     commandStatusText.value = error.message || "启动命令下发失败";

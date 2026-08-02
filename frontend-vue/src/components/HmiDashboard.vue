@@ -42,19 +42,7 @@
             <div class="gauge-label">{{ gauge.label }}</div>
             <div class="gauge-subtitle">{{ gauge.subtitle }}</div>
             <div class="digital-value" :class="gauge.kind">
-              <strong :aria-label="gauge.displayValue">
-                <template v-for="(character, index) in gauge.characters" :key="`${character}-${index}`">
-                  <span v-if="character === '.'" class="seven-dot" aria-hidden="true"></span>
-                  <span v-else-if="character === '-'" class="seven-minus" aria-hidden="true"></span>
-                  <span v-else class="seven-digit" aria-hidden="true">
-                    <i
-                      v-for="segment in segments"
-                      :key="segment"
-                      :class="[segment, { on: activeSegments[character]?.includes(segment) }]"
-                    ></i>
-                  </span>
-                </template>
-              </strong>
+              <strong :aria-label="gauge.displayValue">{{ gauge.displayValue }}</strong>
               <span>{{ gauge.unit }}</span>
             </div>
           </div>
@@ -76,7 +64,7 @@
 
 <script setup>
 import { computed } from "vue";
-import { Clock3, Database, Network, ServerCog } from "lucide-vue-next";
+import { Clock3, Network, ServerCog, Timer } from "lucide-vue-next";
 
 const props = defineProps({
   temperature: { type: Number, default: 0 },
@@ -84,22 +72,8 @@ const props = defineProps({
   deviceStatus: { type: String, default: "未知" },
   updatedAt: { type: String, default: "--" },
   communicationStatus: { type: String, default: "未知" },
-  dataSource: { type: String, default: "--" }
+  startTime: { type: String, default: "--" }
 });
-
-const segments = ["a", "b", "c", "d", "e", "f", "g"];
-const activeSegments = {
-  0: ["a", "b", "c", "d", "e", "f"],
-  1: ["b", "c"],
-  2: ["a", "b", "g", "e", "d"],
-  3: ["a", "b", "c", "d", "g"],
-  4: ["f", "g", "b", "c"],
-  5: ["a", "f", "g", "c", "d"],
-  6: ["a", "f", "g", "e", "c", "d"],
-  7: ["a", "b", "c"],
-  8: ["a", "b", "c", "d", "e", "f", "g"],
-  9: ["a", "b", "c", "d", "f", "g"]
-};
 
 const dialTicks = Array.from({ length: 61 }, (_, index) => ({
   index,
@@ -137,7 +111,6 @@ const gauges = computed(() => [
     label: "温度",
     subtitle: "TEMPERATURE",
     displayValue: displayValue(props.temperature),
-    characters: [...displayValue(props.temperature)],
     unit: "°C",
     readings: ["-40", "-20", "0", "20", "40", "60", "80", "100"],
     pointerAngle: pointerAngle(props.temperature, -40, 100)
@@ -147,7 +120,6 @@ const gauges = computed(() => [
     label: "湿度",
     subtitle: "HUMIDITY",
     displayValue: displayValue(props.humidity),
-    characters: [...displayValue(props.humidity)],
     unit: "%RH",
     readings: ["0", "20", "40", "60", "80", "100"],
     pointerAngle: pointerAngle(props.humidity, 0, 100)
@@ -169,7 +141,7 @@ const statusItems = computed(() => [
   { icon: ServerCog, label: "设备状态", value: props.deviceStatus, tone: "green" },
   { icon: Clock3, label: "更新时间", value: props.updatedAt, tone: "" },
   { icon: Network, label: "通讯状态", value: props.communicationStatus, tone: props.communicationStatus === "在线" ? "green" : "" },
-  { icon: Database, label: "数据来源", value: props.dataSource, tone: "blue" }
+  { icon: Timer, label: "启动时间", value: props.startTime, tone: "" }
 ]);
 </script>
 
@@ -303,22 +275,18 @@ const statusItems = computed(() => [
 .gauge-subtitle { margin-top: clamp(2px, .6cqw, 4px); color: #91a4bc; font-family: "Rajdhani", "Segoe UI", sans-serif; font-size: clamp(8px, 2.5cqw, 14px); font-weight: 600; letter-spacing: .04em; }
 
 .digital-value { margin-top: clamp(6px, 3cqw, 16px); display: flex; flex-direction: column; align-items: center; transform: translateY(-4%); }
-.digital-value strong { display: flex; align-items: flex-end; gap: clamp(2px, .55cqw, 4px); height: clamp(42px, 17cqw, 94px); }
-.digital-value > span { margin-top: clamp(3px, 1.5cqw, 8px); color: #f8fbff; font-family: "Rajdhani", "Segoe UI", sans-serif; font-size: clamp(12px, 4.6cqw, 25px); font-weight: 700; line-height: 1; text-shadow: 0 0 8px rgba(248, 251, 255, .42); }
-.seven-digit { position: relative; display: inline-block; width: clamp(23px, 9.6cqw, 54px); height: clamp(41px, 17cqw, 94px); filter: drop-shadow(0 0 clamp(5px, 1.5cqw, 9px) rgba(248, 251, 255, .28)); }
-.seven-digit i { position: absolute; display: block; background: color-mix(in srgb, var(--accent) 18%, transparent); opacity: .28; clip-path: polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%); }
-.seven-digit i.on { opacity: 1; background: #f8fbff; box-shadow: 0 0 8px rgba(248, 251, 255, .62), 0 0 14px color-mix(in srgb, var(--accent) 24%, transparent); }
-.seven-digit .a, .seven-digit .g, .seven-digit .d { left: 14%; width: 72%; height: 7%; }
-.seven-digit .a { top: 0; }
-.seven-digit .g { top: 46.5%; }
-.seven-digit .d { bottom: 0; }
-.seven-digit .b, .seven-digit .c, .seven-digit .e, .seven-digit .f { width: 10%; height: 41%; }
-.seven-digit .b { top: 5%; right: 0; }
-.seven-digit .c { right: 0; bottom: 5%; }
-.seven-digit .e { bottom: 5%; left: 0; }
-.seven-digit .f { top: 5%; left: 0; }
-.seven-dot { width: clamp(5px, 1.5cqw, 8px); height: clamp(5px, 1.5cqw, 8px); margin: 0 1px clamp(3px, .8cqw, 5px) 0; border-radius: 50%; background: #f8fbff; box-shadow: 0 0 8px rgba(248, 251, 255, .62), 0 0 14px color-mix(in srgb, var(--accent) 24%, transparent); }
-.seven-minus { align-self: center; width: clamp(16px, 4cqw, 24px); height: clamp(4px, 1cqw, 6px); margin: 0 1px; background: #f8fbff; box-shadow: 0 0 8px rgba(248, 251, 255, .62), 0 0 14px color-mix(in srgb, var(--accent) 24%, transparent); clip-path: polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%); }
+.digital-value strong {
+  display: block;
+  color: #f8fbff;
+  font-family: "Inter", "Noto Sans", "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: clamp(38px, 15cqw, 82px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: .035em;
+  line-height: .95;
+  text-shadow: 0 0 8px rgba(248, 251, 255, .42);
+}
+.digital-value > span { margin-top: clamp(5px, 1.5cqw, 8px); color: #f8fbff; font-family: "Inter", "Noto Sans", "Segoe UI", "Microsoft YaHei", sans-serif; font-size: clamp(12px, 4.6cqw, 25px); font-weight: 700; line-height: 1; text-shadow: 0 0 8px rgba(248, 251, 255, .42); }
 
 .status-bar { min-width: 0; margin: 0 22px 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid rgba(91, 143, 181, .35); border-radius: 10px; background: linear-gradient(100deg, rgba(10, 25, 40, .84), rgba(7, 19, 31, .64)); }
 .status-item { position: relative; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 14px; }

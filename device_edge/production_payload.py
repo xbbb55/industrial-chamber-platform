@@ -19,12 +19,14 @@ def build_production_payload(
     state: str = "\u8fd0\u884c\u4e2d",
     alarms: Iterable[str] = (),
     elapsed_seconds: float = 0.0,
+    start_time: str | None = None,
     sequence: int = 0,
     device_ip: str = "",
 ) -> dict[str, Any]:
     """Build the single-device JSON object written by a production controller."""
     now = datetime.now(tz=CHINA_STANDARD_TIME)
     now_text = now.strftime("%Y-%m-%d %H:%M:%S")
+    start_time_text = start_time or now_text
     alarms = [str(alarm) for alarm in alarms if str(alarm).strip()]
     return {
         "DUT": {**{f"DUT{index}": 0 for index in range(24)}, "DUT0": round(current_temperature, 2), "DUT_SEL": 0},
@@ -53,7 +55,7 @@ def build_production_payload(
         "time": now_text,
         "timeData": {
             "endTime": "", "runTime": _format_duration(elapsed_seconds),
-            "setTime": "00:00:00", "startTime": now_text, "totalTime": "00:00:00",
+            "setTime": "00:00:00", "startTime": start_time_text, "totalTime": "00:00:00",
         },
     }
 

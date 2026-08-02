@@ -2,11 +2,12 @@ import json
 import math
 import threading
 import time
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
-from .production_payload import build_production_payload
+from .production_payload import CHINA_STANDARD_TIME, build_production_payload
 
 from .command_client import CommandClient
 from .config import EdgeConfig
@@ -36,6 +37,7 @@ class ManualInputState:
         self.stream_temperature = 25.0
         self.stream_humidity = 60.0
         self.stream_started_at = 0.0
+        self.stream_start_time = ""
         self.lock = threading.Lock()
         self.shm = create_or_attach(config.shared_memory_name, config.shared_memory_size)
 
@@ -58,6 +60,7 @@ class ManualInputState:
         self.stream_temperature = temperature
         self.stream_humidity = humidity
         self.stream_started_at = time.time()
+        self.stream_start_time = datetime.now(tz=CHINA_STANDARD_TIME).strftime("%Y-%m-%d %H:%M:%S")
         self.stream_active = True
         self.upload_enabled = True
         snapshot = self._write_stream_snapshot_unlocked(0.0)
@@ -88,6 +91,7 @@ class ManualInputState:
             step=1,
             running=1,
             elapsed_seconds=elapsed,
+            start_time=self.stream_start_time,
             sequence=self.sequence,
         )
         write_snapshot(self.shm, snapshot, self.config.shared_memory_size)

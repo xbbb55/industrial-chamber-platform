@@ -204,7 +204,7 @@ textarea:focus-visible {
   position: relative;
 }
 
-.notify:hover { color: var(--text); background: var(--blue-soft); border-color: var(--line-strong); }
+.notify:hover { color: var(--text); background: transparent; border-color: transparent; }
 .notify::after { display: none; }
 .notify span {
   position: absolute;
@@ -283,6 +283,55 @@ textarea:focus-visible {
   border-color: var(--blue);
   color: var(--text);
   background: var(--blue-soft);
+}
+
+.save-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 26;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 10, 20, .62);
+}
+
+.save-confirm-modal {
+  width: min(440px, 100%);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 18px 56px rgba(0, 0, 0, .36);
+  overflow: hidden;
+}
+
+.save-confirm-header,
+.save-confirm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.save-confirm-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.save-confirm-header h3 {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.save-confirm-header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.save-confirm-footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+  background: rgba(13, 23, 40, .45);
 }
 
 .notification-list {
@@ -1477,10 +1526,12 @@ textarea:focus-visible {
 .device-status-badge.stopped, .device-status-badge.idle { color: #ffb12b !important; background: rgba(193, 112, 20, .14); }
 .device-status-badge.alarm, .device-status-badge.offline { color: #ff5964 !important; background: rgba(210, 42, 54, .14); }
 .notify {
+  border: 0;
   border-color: rgba(31, 161, 248, .45);
   border-radius: 4px;
+  background: transparent;
   color: #b7dfff;
-  box-shadow: inset 0 0 10px rgba(0, 130, 255, .08);
+  box-shadow: none;
 }
 
 .content {
@@ -2059,8 +2110,12 @@ textarea:focus-visible {
 .program-summary small { margin-left: auto; }
 .operation-editor-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(40, 137, 193, .29); color: #6f8fa3; font-size: 10px; }
 .operation-editor-footer div { display: flex; gap: 8px; }
-.system-parameters { display: flex; flex-direction: column; gap: 12px; min-height: 100%; }
-.system-parameters-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; flex: 1 1 auto; min-height: 0; }
+.content:has(.system-parameters) { overflow-x: hidden; overflow-y: auto; }
+.content:has(.system-parameters) .page-stack { flex: 0 0 auto; min-height: max-content; padding-bottom: 18px; }
+.system-parameters { display: flex; flex-direction: column; gap: 12px; min-height: auto; }
+.system-parameters-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; flex: 0 0 auto; min-height: min-content; }
+.system-parameters-grid.basic-parameter-grid { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+.basic-parameter-grid .product-info-card { grid-column: 1 / -1; }
 .system-parameter-nav { flex: 0 0 auto; }
 .system-parameter-card { position: relative; min-width: 0; overflow: hidden; border: 1px solid rgba(39, 151, 228, .54); background: linear-gradient(135deg, rgba(7, 37, 60, .96), rgba(3, 19, 34, .98)); color: #dceff8; clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); box-shadow: inset 0 0 18px rgba(0, 123, 194, .08); }
 .system-parameter-card::after { content: ""; position: absolute; top: 0; left: 16px; width: 58px; height: 2px; background: #2bd0ff; box-shadow: 0 0 8px #1897d3; }
@@ -2069,6 +2124,7 @@ textarea:focus-visible {
 .system-parameter-card header small { padding: 4px 6px; border-left: 1px solid rgba(105, 222, 255, .38); color: #75cce8; font: 10px "Roboto Mono", Consolas, monospace; letter-spacing: .08em; }
 .parameter-fields { display: grid; gap: 9px; padding: 14px 18px 16px; }
 .parameter-fields label { display: grid; grid-template-columns: minmax(100px, .82fr) minmax(0, 1.18fr); align-items: center; gap: 12px; min-height: 38px; color: #a9c6d6; font-size: 13px; }
+.parameter-fields label:has(> b) { grid-template-columns: minmax(100px, .82fr) minmax(0, 1.18fr) auto; }
 .parameter-fields label > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .parameter-fields label > div .hmi-number-control { flex: 1 1 auto; width: auto; }
 .parameter-fields input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 36px; padding: 6px 9px; border: 1px solid rgba(45, 156, 213, .62); border-radius: 2px; outline: 0; background: rgba(2, 18, 31, .94); color: #e6f8ff; font: 14px "Roboto Mono", Consolas, monospace; box-shadow: inset 0 0 10px rgba(0, 106, 175, .11); }
@@ -2082,6 +2138,7 @@ textarea:focus-visible {
 .system-parameters-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(40, 137, 193, .29); color: #6f8fa3; font-size: 11px; }
 .system-parameters-footer > div { display: flex; gap: 8px; }
 @media (max-width: 760px) { .content:has(.system-parameters) { overflow-y: auto; } .system-parameters { min-height: auto; } .system-parameters-grid { grid-template-columns: 1fr; } .system-parameters-footer { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 760px) { .system-parameters-grid.basic-parameter-grid { grid-template-columns: 1fr; } .basic-parameter-grid .product-info-card { grid-column: auto; } }
 @media (max-width: 760px) { .content:has(.operation-settings) { overflow-y: auto; } .content:has(.operation-settings) .page-stack, .operation-settings, .operation-editor { height: auto; } .operation-layout { grid-template-rows: auto auto; } .operation-nav { grid-template-columns: repeat(2, 1fr); gap: 5px; } .operation-nav button { min-height: 52px; } .settings-form-grid, .choice-group, .protection-settings-grid, .setpoint-module-grid, .other-settings-grid { grid-template-columns: 1fr; } .protection-settings-grid { grid-template-rows: none; } .protection-card { min-height: 168px; } .setpoint-module-card, .setpoint-runtime-card { grid-column: auto; } .runtime-time-control { grid-template-columns: minmax(0, 1fr); gap: 10px; justify-content: stretch; } .runtime-time-control > b { display: none; } .schedule-row { grid-template-columns: 14px 34px 18px minmax(110px, 1fr) 92px; } .program-summary { align-items: flex-start; flex-wrap: wrap; } .program-summary small { width: 100%; margin-left: 0; } }
 
 /* Wallboard controls share the same cockpit framing as the dashboard itself. */
