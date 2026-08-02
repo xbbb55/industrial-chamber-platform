@@ -56,20 +56,20 @@
       <header class="topbar">
         <div class="top-title">
           <template v-if="activeView === 'device-detail'">
-            <div>
+            <div class="device-title-copy">
               <h2>{{ selectedDevice?.name || selectedDeviceId }}</h2>
               <div class="device-title-meta">
-                <span>{{ selectedDeviceId }}</span>
-                <span>{{ selectedDevice?.device_ip || selectedDevice?.ip_address || selectedDevice?.ip || "暂无 IP" }}</span>
+                <span class="device-meta-item"><small>ID</small>{{ selectedDeviceId }}</span>
+                <span class="device-meta-item"><small>IP</small>{{ selectedDevice?.device_ip || selectedDevice?.ip_address || selectedDevice?.ip || "暂无 IP" }}</span>
                 <strong
                   v-if="selectedDevice"
-                  :class="stateClass(selectedDevice)"
+                  :class="['device-status-badge', stateClass(selectedDevice)]"
                 >
                   {{ runStateLabel(selectedDevice.run_state) }}
                 </strong>
                 <strong
                   v-if="selectedDevice"
-                  :class="communicationClass(selectedDevice.online)"
+                  :class="['device-status-badge', communicationClass(selectedDevice.online)]"
                 >
                   {{ communicationLabel(selectedDevice.online) }}
                 </strong>
@@ -449,14 +449,6 @@
               </nav>
 
               <section class="operation-editor panel">
-                <div class="operation-editor-head">
-                  <div>
-                    <span class="eyebrow-label">CONFIGURATION</span>
-                    <h3>{{ activeOperationTab.label }}</h3>
-                  </div>
-                  <span class="operation-save-state"><i></i>{{ operationFeedback || '未修改' }}</span>
-                </div>
-
                 <div v-if="operationTab === 'protection'" class="protection-settings-grid">
                   <section v-for="item in protectionItems" :key="item.key" class="protection-card" :class="{ 'protection-card-empty': item.empty, 'protection-card-enabled': !item.empty && operationForm[item.enabled] }">
                     <header>
@@ -557,6 +549,63 @@
                 <div class="operation-editor-footer"><span>最后保存：{{ operationLastSaved }}</span><div><button class="ghost-action" type="button" @click="resetOperationForm">恢复默认</button><button class="primary-action" type="button" @click="saveOperationSettings">保存设定</button></div></div>
               </section>
             </div>
+          </section>
+
+          <section v-else-if="selectedDevice && selectedDeviceSection === 'parameters'" class="system-parameters">
+            <nav class="operation-nav panel system-parameter-nav" aria-label="系统参数分类">
+              <button v-for="item in parameterTabs" :key="item.key" type="button" :class="{ active: parameterTab === item.key }" @click="parameterTab = item.key">
+                <AppIcon :name="item.icon" :size="17" />
+                <span><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span>
+                <AppIcon name="chevronRight" :size="14" />
+              </button>
+            </nav>
+            <div class="system-parameters-grid">
+              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
+                <header><span>基础信息</span><small>DEVICE / BASE</small></header>
+                <div class="parameter-fields">
+                  <label><span>设备编号</span><input :value="selectedDevice.device_id" type="text" disabled></label>
+                  <label><span>设备名称</span><input v-model="parameterForm.deviceName" type="text"></label>
+                  <label><span>设备型号</span><input v-model="parameterForm.model" type="text"></label>
+                  <label><span>配置 IP</span><input :value="selectedDevice.device_ip || selectedDevice.ip_address || selectedDevice.ip || '--'" type="text" disabled></label>
+                  <label><span>固件版本</span><input v-model="parameterForm.firmwareVersion" type="text"></label>
+                </div>
+              </section>
+
+              <section v-if="parameterTab === 'calibration'" class="system-parameter-card">
+                <header><span>测量校正</span><small>MEASURE / CALIBRATION</small></header>
+                <div class="parameter-fields">
+                  <label><span>温度零点</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureOffset" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度零点" aria-label="增加温度零点" @click.stop.prevent="stepParameterNumber('temperatureOffset', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度零点" aria-label="减少温度零点" @click.stop.prevent="stepParameterNumber('temperatureOffset', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
+                  <label><span>温度增益</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureGain" type="number" step="0.001"><span class="hmi-number-steps"><button type="button" title="增加温度增益" aria-label="增加温度增益" @click.stop.prevent="stepParameterNumber('temperatureGain', 0.001)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度增益" aria-label="减少温度增益" @click.stop.prevent="stepParameterNumber('temperatureGain', -0.001)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>×</b></div></label>
+                  <label><span>湿度零点</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityOffset" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度零点" aria-label="增加湿度零点" @click.stop.prevent="stepParameterNumber('humidityOffset', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度零点" aria-label="减少湿度零点" @click.stop.prevent="stepParameterNumber('humidityOffset', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                  <label><span>湿度增益</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityGain" type="number" step="0.001"><span class="hmi-number-steps"><button type="button" title="增加湿度增益" aria-label="增加湿度增益" @click.stop.prevent="stepParameterNumber('humidityGain', 0.001)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度增益" aria-label="减少湿度增益" @click.stop.prevent="stepParameterNumber('humidityGain', -0.001)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>×</b></div></label>
+                </div>
+              </section>
+
+              <section v-if="parameterTab === 'pid'" class="system-parameter-card">
+                <header><span>PID 设定</span><small>CONTROL / PID</small></header>
+                <div class="parameter-fields parameter-fields-three">
+                  <div class="parameter-group-title">温度回路</div>
+                  <label><span>P 比例</span><input v-model.number="parameterForm.temperatureP" type="number" step="0.1"></label>
+                  <label><span>I 积分</span><input v-model.number="parameterForm.temperatureI" type="number" step="0.1"></label>
+                  <label><span>D 微分</span><input v-model.number="parameterForm.temperatureD" type="number" step="0.1"></label>
+                  <div class="parameter-group-title">湿度回路</div>
+                  <label><span>P 比例</span><input v-model.number="parameterForm.humidityP" type="number" step="0.1"></label>
+                  <label><span>I 积分</span><input v-model.number="parameterForm.humidityI" type="number" step="0.1"></label>
+                  <label><span>D 微分</span><input v-model.number="parameterForm.humidityD" type="number" step="0.1"></label>
+                </div>
+              </section>
+
+              <section v-if="parameterTab === 'frequency'" class="system-parameter-card">
+                <header><span>电机频率</span><small>OUTPUT / FREQUENCY</small></header>
+                <div class="parameter-fields">
+                  <label><span>压缩机频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.compressorFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高压缩机频率" aria-label="提高压缩机频率" @click.stop.prevent="stepParameterNumber('compressorFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低压缩机频率" aria-label="降低压缩机频率" @click.stop.prevent="stepParameterNumber('compressorFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
+                  <label><span>循环风机频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.circulationFanFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高循环风机频率" aria-label="提高循环风机频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低循环风机频率" aria-label="降低循环风机频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
+                  <label><span>加湿器频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidifierFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高加湿器频率" aria-label="提高加湿器频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低加湿器频率" aria-label="降低加湿器频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
+                  <label><span>频率上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.frequencyLimit" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高频率上限" aria-label="提高频率上限" @click.stop.prevent="stepParameterNumber('frequencyLimit', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低频率上限" aria-label="降低频率上限" @click.stop.prevent="stepParameterNumber('frequencyLimit', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
+                </div>
+              </section>
+            </div>
+            <div class="system-parameters-footer"><span>参数修改仅作用于当前设备</span><div><button class="ghost-action" type="button" @click="resetParameterForm">恢复默认</button><button class="primary-action" type="button" @click="saveParameterSettings">保存参数</button></div></div>
           </section>
 
           <section v-else-if="selectedDevice" class="panel empty-panel">
@@ -660,6 +709,7 @@ const connectionText = ref("连接中");
 const selectedDeviceId = ref(null);
 const selectedDeviceSection = ref("monitor");
 const operationTab = ref("protection");
+const parameterTab = ref("basic");
 const operationFeedback = ref("");
 const operationLastSaved = ref("尚未保存");
 const operationForm = ref({
@@ -704,6 +754,25 @@ const operationForm = ref({
   scheduledStopEnabled: false,
   scheduledStopDate: "2026-07-31",
   scheduledStopTime: "16:34"
+});
+const parameterForm = ref({
+  deviceName: "",
+  model: "IC-1000",
+  firmwareVersion: "0.1.0",
+  temperatureOffset: 0,
+  temperatureGain: 1,
+  humidityOffset: 0,
+  humidityGain: 1,
+  temperatureP: 1,
+  temperatureI: 0.1,
+  temperatureD: 0,
+  humidityP: 1,
+  humidityI: 0.1,
+  humidityD: 0,
+  compressorFrequency: 50,
+  circulationFanFrequency: 50,
+  humidifierFrequency: 50,
+  frequencyLimit: 60
 });
 const deviceDisplayMode = ref("list");
 const selectedTrendCanvas = ref(null);
@@ -768,6 +837,12 @@ const operationTabs = [
   { key: "setpoint", label: "定值模式", description: "温湿度目标控制", icon: "sliders" },
   { key: "program", label: "程序模式", description: "试验程序与步骤", icon: "play" },
   { key: "other", label: "其他设定", description: "设备偏好与显示", icon: "settings" }
+];
+const parameterTabs = [
+  { key: "basic", label: "基础信息", description: "设备身份与版本", icon: "settings" },
+  { key: "calibration", label: "测量校正", description: "温湿度测量修正", icon: "sliders" },
+  { key: "pid", label: "PID 设定", description: "温湿度控制参数", icon: "activity" },
+  { key: "frequency", label: "电机频率", description: "输出频率限制", icon: "chart" }
 ];
 const protectionItems = [
   { key: "air-temperature", label: "空气温度保护", upper: "airTempUpper", lower: "airTempLower", enabled: "airTempProtectionEnabled" },
@@ -1102,6 +1177,8 @@ function loadMonitorLayout() {
 
 function openDeviceDetail(deviceId) {
   selectedDeviceId.value = deviceId;
+  const device = devices.value.find(item => item.device_id === deviceId);
+  parameterForm.value.deviceName = device?.name || "";
   selectedDeviceSection.value = "monitor";
   activeView.value = "device-detail";
 }
@@ -1149,6 +1226,44 @@ function clampOperationNumber(field, min, max) {
     return;
   }
   operationForm.value[field] = Math.min(max, Math.max(min, currentValue));
+}
+
+function stepParameterNumber(field, delta, min = null, max = null) {
+  const currentValue = Number(parameterForm.value[field]);
+  const baseValue = Number.isFinite(currentValue) ? currentValue : 0;
+  const decimals = String(Math.abs(delta)).split(".")[1]?.length || 0;
+  let nextValue = Number((baseValue + delta).toFixed(decimals));
+  if (min !== null) nextValue = Math.max(min, nextValue);
+  if (max !== null) nextValue = Math.min(max, nextValue);
+  parameterForm.value[field] = nextValue;
+}
+
+function saveParameterSettings() {
+  operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+  addOperationLog({ title: "保存系统参数", message: `${selectedDevice.value?.name || selectedDeviceId.value} 已更新系统参数`, tone: "success" });
+}
+
+function resetParameterForm() {
+  parameterForm.value = {
+    ...parameterForm.value,
+    model: "IC-1000",
+    firmwareVersion: "0.1.0",
+    temperatureOffset: 0,
+    temperatureGain: 1,
+    humidityOffset: 0,
+    humidityGain: 1,
+    temperatureP: 1,
+    temperatureI: 0.1,
+    temperatureD: 0,
+    humidityP: 1,
+    humidityI: 0.1,
+    humidityD: 0,
+    compressorFrequency: 50,
+    circulationFanFrequency: 50,
+    humidifierFrequency: 50,
+    frequencyLimit: 60
+  };
+  operationLastSaved.value = "已恢复默认";
 }
 
 function resetOperationForm() {
