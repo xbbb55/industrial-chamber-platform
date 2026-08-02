@@ -357,17 +357,17 @@
                   <div class="trend-hint">左右拖拽平移时间轴，使用按钮缩放或复位</div>
                 </section>
 
-                <section v-if="visibleMonitorCards.includes('status')" class="monitor-card info-monitor-card">
+                <section v-if="false && visibleMonitorCards.includes('status')" class="monitor-card info-monitor-card">
                   <div class="monitor-card-title"><AppIcon name="activity" :size="17" /><h3>运行状态</h3></div>
                   <strong class="monitor-status-value" :class="stateClass(selectedDevice)">{{ runStateLabel(selectedDevice.run_state) }}</strong>
                   <span>当前设备运行状态</span>
                 </section>
-                <section v-if="visibleMonitorCards.includes('communication')" class="monitor-card info-monitor-card">
+                <section v-if="false && visibleMonitorCards.includes('communication')" class="monitor-card info-monitor-card">
                   <div class="monitor-card-title"><AppIcon name="chart" :size="17" /><h3>通讯信息</h3></div>
                   <div class="monitor-data-row"><span>设备 IP</span><strong>{{ selectedDevice.device_ip || selectedDevice.ip_address || selectedDevice.ip || "--" }}</strong></div>
                   <div class="monitor-data-row"><span>连接状态</span><strong>{{ selectedDevice.online ? "在线" : "离线" }}</strong></div>
                 </section>
-                <section v-if="visibleMonitorCards.includes('updated')" class="monitor-card info-monitor-card">
+                <section v-if="false && visibleMonitorCards.includes('updated')" class="monitor-card info-monitor-card">
                   <div class="monitor-card-title"><AppIcon name="history" :size="17" /><h3>数据更新时间</h3></div>
                   <strong class="monitor-number-value">{{ formatSnapshotTime(selectedDevice.updated_at || snapshot?.written_at) }}</strong>
                   <span>最近一次总服务端接收时间</span>
@@ -793,7 +793,7 @@ const isTrendDragging = ref(false);
 const isSidebarCollapsed = ref(false);
 const isLayoutEditorOpen = ref(false);
 const isNotificationOpen = ref(false);
-const visibleMonitorCards = ref(["trend", "status", "communication", "updated"]);
+const visibleMonitorCards = ref(["trend"]);
 const deviceNotifications = ref([]);
 const operationLogs = ref([]);
 const previousDeviceStates = ref({});
@@ -817,9 +817,6 @@ const deviceNavItems = [
 
 const optionalMonitorCards = [
   { key: "trend", label: "温湿度趋势", icon: "chart" },
-  { key: "status", label: "运行状态", icon: "activity" },
-  { key: "communication", label: "通讯信息", icon: "settings" },
-  { key: "updated", label: "数据更新时间", icon: "history" },
   { key: "dut-temperatures", label: "试品温度", icon: "temperature" },
   { key: "user-events", label: "用户事件", icon: "activity" }
 ];
@@ -831,7 +828,7 @@ const eventMonitorCards = Array.from({ length: 16 }, (_, index) => ({
   key: `event-${index + 1}`,
   number: index + 1
 }));
-const defaultMonitorCardKeys = ["trend", "status", "communication", "updated"];
+const defaultMonitorCardKeys = ["trend"];
 const operationTabs = [
   { key: "protection", label: "保护设定", description: "安全联锁与阈值", icon: "shield" },
   { key: "setpoint", label: "定值模式", description: "温湿度目标控制", icon: "sliders" },
