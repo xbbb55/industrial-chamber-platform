@@ -9,7 +9,6 @@
   "shared_memory_size": 262144,
   "command_status_memory_name": "industrial_chamber_command_status_v1",
   "command_status_memory_size": 65536,
-  "device_ip": "",
   "auth": {
     "token": ""
   }

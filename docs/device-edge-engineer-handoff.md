@@ -119,7 +119,7 @@ web/
 
 说明：
 
-- `backend/memory_router.py` 里面的 `POST /api/device-ingest/snapshots` 可以作为总控接收接口参考。
+- `backend/memory_router.py` 的 `WS /api/edge/ws` 是总控接收设备数据、下发指令和接收执行结果的唯一设备通讯接口。
 - 但它同时包含本机共享内存读取、WebSocket、页面入口，职责混杂，不应该整体交给通讯工程师维护。
 - `backend/main.py` 是端到端模拟 Demo，不是正式设备端。
 - `frontend-vue/` 和 `web/` 是用户访问端，不属于通讯工程师范围。
@@ -247,10 +247,10 @@ MAINTENANCE
 
 ## 6. 上传总控平台
 
-当前上传接口：
+当前设备通讯接口：
 
-```http
-POST /api/device-ingest/snapshots
+```text
+WS /api/edge/ws
 ```
 
 请求体：
@@ -343,17 +343,11 @@ MySQL 本地数据库
 
 当前项目还没有正式实现设备端接收总控指令，需要新增。
 
-建议先用轮询方式，稳定后再考虑 WebSocket 或 MQTT。
+当前实现使用 WebSocket 长连接，不再提供 HTTP 轮询接口。
 
 ### 8.1 拉取待执行指令
 
-建议接口：
-
-```http
-GET /api/device-commands/pending?edge_id=EDGE-CHAMBER-001
-```
-
-返回：
+总控通过 WebSocket 推送：
 
 ```json
 {
@@ -377,7 +371,7 @@ GET /api/device-commands/pending?edge_id=EDGE-CHAMBER-001
 设备端处理流程：
 
 ```text
-1. 拉取待执行指令
+1. 接收 WebSocket 推送的待执行指令
 2. 校验 command_id 是否已经处理过，避免重复执行
 3. 校验 device_id 是否属于当前工控机
 4. 将业务指令转换成 C++ 或设备控制程序可识别的本地指令
@@ -401,13 +395,7 @@ ACK_ALARM
 
 ### 8.3 回传指令结果
 
-建议接口：
-
-```http
-POST /api/device-commands/results
-```
-
-请求体：
+设备端通过 WebSocket 回传：
 
 ```json
 {

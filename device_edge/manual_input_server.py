@@ -10,12 +10,10 @@ from urllib.parse import parse_qs, urlparse
 
 from .production_payload import CHINA_STANDARD_TIME, build_production_payload
 
-from .command_client import CommandClient
-from .command_status_uploader import CommandStatusUploader
 from .config import EdgeConfig
 from .control_protocol import normalize_command, protocol_time
 from .shared_memory_store import create_or_attach, read_snapshot, write_snapshot
-from .uploader import SnapshotUploader
+from .websocket_client import WebSocketEdgeClient
 
 SIM_TEMPERATURE_MIN = -200.0
 SIM_TEMPERATURE_MAX = 500.0
@@ -310,19 +308,18 @@ class ManualInputState:
 
 def run_manual_input_server(config: EdgeConfig, host: str = "127.0.0.1", port: int = 8765) -> None:
     state = ManualInputState(config)
-    uploader = SnapshotUploader(config, should_upload=state.should_upload, on_uploaded=state.on_uploaded)
-    uploader_thread = threading.Thread(target=uploader.run_forever, daemon=True)
-    uploader_thread.start()
-    command_status_uploader = CommandStatusUploader(config)
-    command_status_thread = threading.Thread(target=command_status_uploader.run_forever, daemon=True)
-    command_status_thread.start()
-    command_thread = threading.Thread(target=CommandClient(config, state.handle_command).run_forever, daemon=True)
-    command_thread.start()
+    edge_client = WebSocketEdgeClient(
+        config,
+        command_handler=state.handle_command,
+        should_upload=state.should_upload,
+        on_uploaded=state.on_uploaded,
+    )
+    threading.Thread(target=edge_client.run_forever, daemon=True, name="edge-websocket-client").start()
 
     handler = _build_handler(state)
     server = ThreadingHTTPServer((host, port), handler)
     print(f"manual input UI started: http://{host}:{port}")
-    print(f"upload endpoint: {config.ingest_endpoint}")
+    print(f"control-center websocket: {config.websocket_endpoint}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

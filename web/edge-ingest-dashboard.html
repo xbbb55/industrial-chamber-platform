@@ -196,13 +196,13 @@
   <header>
     <div>
       <h1>工控机上传数据看板</h1>
-      <p style="margin-top:6px;color:var(--muted);font-size:13px;">显示工控机通过 /api/device-ingest/snapshots 上传到总服务端的数据</p>
+      <p style="margin-top:6px;color:var(--muted);font-size:13px;">显示工控机通过 WebSocket 上报到总服务端的数据</p>
     </div>
     <div class="status">
       <span class="dot empty" id="statusDot"></span>
       <span id="status">等待上传数据...</span>
       <span>｜</span>
-      <a href="/api/device-ingest/latest" target="_blank">查看 JSON</a>
+      <a href="/api/memory/snapshot" target="_blank">查看 JSON</a>
       <span>｜</span>
       <a href="/memory">本机共享内存看板</a>
     </div>
@@ -270,10 +270,21 @@
 
     async function refresh() {
       try {
-        const response = await fetch("/api/device-ingest/latest", { cache: "no-store" });
+        const response = await fetch("/api/memory/snapshot", { cache: "no-store" });
         if (!response.ok) throw new Error(await response.text());
-        const data = await response.json();
-        render(data);
+        const snapshot = await response.json();
+        const edges = {};
+        (snapshot.devices || []).forEach((device) => {
+          const edgeId = device.edge_id || "UNKNOWN-EDGE";
+          if (!edges[edgeId]) edges[edgeId] = {
+            edge_id: edgeId,
+            edge_ip: device.edge_ip || device.device_ip || "",
+            received_at: device.edge_received_at || snapshot.written_at,
+            snapshot: { sequence: snapshot.sequence, devices: [] }
+          };
+          edges[edgeId].snapshot.devices.push(device);
+        });
+        render({ edge_count: snapshot.edge_count, edges });
       } catch (error) {
         statusDot.className = "dot error";
         statusEl.textContent = `读取失败：${error.message}`;

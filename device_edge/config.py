@@ -19,12 +19,16 @@ class EdgeConfig:
     auth_token: str = ""
 
     @property
-    def ingest_endpoint(self) -> str:
-        return self.server_url.rstrip("/") + "/api/device-ingest/snapshots"
-
-    @property
-    def command_status_endpoint(self) -> str:
-        return self.server_url.rstrip("/") + "/api/device-commands/results"
+    def websocket_endpoint(self) -> str:
+        """Central-service endpoint used by the persistent edge connection."""
+        base = self.server_url.rstrip("/")
+        if base.startswith("https://"):
+            base = "wss://" + base[len("https://"):]
+        elif base.startswith("http://"):
+            base = "ws://" + base[len("http://"):]
+        elif not base.startswith(("ws://", "wss://")):
+            base = "ws://" + base
+        return base + "/api/edge/ws"
 
 
 def load_config(path: Union[str, Path]) -> EdgeConfig:

@@ -18,7 +18,7 @@ device_edge/
   simulator.py              模拟设备数据读取
   shared_memory_store.py    共享内存读写协议
   mysql_store.py            本地 MySQL 缓存
-  uploader.py               上传与补传
+  websocket_client.py       长连接、实时上报与指令执行
 ```
 
 ## 2. 总服务端在你电脑上启动
@@ -99,18 +99,18 @@ python -m device_edge.run_edge simulate --config device-edge.config.json
 python -m device_edge.run_edge upload --config device-edge.config.json
 ```
 
-## 8. 总服务端查看上传结果
+## 8. 总服务端查看实时数据
 
 在浏览器打开：
 
 ```text
-http://你的电脑IP:8010/api/device-ingest/latest
+http://你的电脑IP:8010/api/memory/snapshot
 ```
 
-如果能看到 `EDGE-CHAMBER-001` 和设备快照，说明链路已打通。
+如果能看到 `EDGE-CHAMBER-001` 对应的设备快照，说明 WebSocket 链路已打通。
 
 ## 9. 后续接真实设备
 
 后续通讯工程师只需要替换 `simulator.py` 的模拟读取逻辑，或用 C++ 程序按同样的共享内存格式写入数据。
 
-上传程序不用关心真实设备协议，只需要稳定读取共享内存并上传。
+Edge Agent 不关心真实设备协议，只需要稳定读取共享内存，并通过 WebSocket 与总服务端交换数据和指令。

@@ -3,12 +3,12 @@ from pathlib import Path
 
 from .config import copy_example_config, load_config
 from .manual_input_server import run_manual_input_server
-from .uploader import SnapshotUploader
+from .websocket_client import WebSocketEdgeClient
 
 
 def run_uploader(config_path: str) -> None:
     config = load_config(config_path)
-    SnapshotUploader(config).run_forever()
+    WebSocketEdgeClient(config).run_forever()
 
 
 def run_manual_ui(config_path: str, host: str, port: int) -> None:

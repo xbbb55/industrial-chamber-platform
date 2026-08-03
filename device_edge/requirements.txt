@@ -1,1 +1,2 @@
-# No third-party dependencies are required for the current upload-only edge agent.
+# Persistent edge-to-control-center communication.
+websockets>=13,<16

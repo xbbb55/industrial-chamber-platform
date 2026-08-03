@@ -9,9 +9,9 @@ from typing import Any, Optional
 
 from backend.production_payload import build_production_payload
 from backend.shared_memory_store import SHM_NAME, create_or_attach, write_snapshot
-from device_edge.command_client import CommandClient
 from device_edge.config import load_config
 from device_edge.control_protocol import normalize_command, protocol_time
+from device_edge.websocket_client import WebSocketEdgeClient
 
 
 def build_device(
@@ -90,16 +90,16 @@ class DeviceRuntime:
         return {"successMessage": wire_command, "time": protocol_time()}
 
 
-def start_command_client(config_path: str, runtime: DeviceRuntime) -> Optional[threading.Thread]:
+def start_edge_client(config_path: str, runtime: DeviceRuntime) -> Optional[threading.Thread]:
     if not Path(config_path).is_file():
-        print(f"command client disabled: config not found: {config_path}")
+        print(f"edge websocket disabled: config not found: {config_path}")
         return None
 
     config = load_config(config_path)
     thread = threading.Thread(
-        target=CommandClient(config, runtime.handle_command).run_forever,
+        target=WebSocketEdgeClient(config, command_handler=runtime.handle_command).run_forever,
         daemon=True,
-        name="device-command-client",
+        name="device-websocket-client",
     )
     thread.start()
     return thread
@@ -107,8 +107,8 @@ def start_command_client(config_path: str, runtime: DeviceRuntime) -> Optional[t
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Simulated Chinese industrial-controller shared-memory writer.")
-    parser.add_argument("--config", default="device-edge.config.json", help="Edge config used to receive controller commands.")
-    parser.add_argument("--without-command-client", action="store_true", help="Write telemetry only without polling commands.")
+    parser.add_argument("--config", default="device-edge.config.json", help="Edge config used to connect to the control center.")
+    parser.add_argument("--without-command-client", action="store_true", help="Write telemetry only without connecting to the control center.")
     args = parser.parse_args()
 
     shm = create_or_attach()
@@ -117,7 +117,7 @@ def main() -> None:
     runtime = DeviceRuntime(device_id, edge_config.device_ip if edge_config else "")
     print(f"shared memory writer started: {SHM_NAME}, device_id={device_id}")
     if not args.without_command_client:
-        start_command_client(args.config, runtime)
+        start_edge_client(args.config, runtime)
     print("press Ctrl+C to stop")
     tick = 0
     try:

@@ -172,35 +172,35 @@ cl /std:c++17 /EHsc SharedMemoryWriter.cpp
 .\SharedMemoryWriter.exe
 ```
 
-## 7. 设备端上传服务
+## 7. 设备端 WebSocket 服务
 
 示例文件：
 
 ```text
-device_memory_uploader.py
+device_edge/websocket_client.py
 ```
 
 它完成了：
 
 ```text
 1. 读取本机共享内存
-2. 将快照包装成上传请求
-3. POST 到总控 FastAPI
+2. 建立到总控 FastAPI 的 WebSocket 长连接
+3. 发送实时快照，并接收控制指令和回传执行结果
 ```
 
 启动：
 
 ```powershell
-python device_memory_uploader.py --edge-id EDGE-CHAMBER-001 --server http://127.0.0.1:8010
+python -m device_edge.run_edge upload --config device-edge.config.json
 ```
 
-上传接口：
+设备通讯入口：
 
 ```text
-POST /api/device-ingest/snapshots
+WS /api/edge/ws
 ```
 
-上传 JSON：
+实时快照消息：
 
 ```json
 {
@@ -216,38 +216,30 @@ POST /api/device-ingest/snapshots
 }
 ```
 
-总控返回：
+注册成功消息：
 
 ```json
 {
-  "status": "accepted",
+  "type": "registered",
   "edge_id": "EDGE-CHAMBER-001",
-  "received_at": 1782977408.600001,
-  "device_count": 4,
-  "sequence": 1024
+  "server_time": 1782977408.600001
 }
 ```
 
-## 8. 总控查看上传结果
+## 8. 总控查看实时结果
 
 接口：
 
 ```text
-GET /api/device-ingest/latest
+GET /api/memory/snapshot
 ```
 
-返回所有已经上传到总控的工控机快照：
+返回聚合后的设备实时快照：
 
 ```json
 {
   "edge_count": 1,
-  "edges": {
-    "EDGE-CHAMBER-001": {
-      "edge_id": "EDGE-CHAMBER-001",
-      "received_at": 1782977408.600001,
-      "snapshot": {}
-    }
-  }
+  "devices": []
 }
 ```
 
@@ -257,19 +249,19 @@ GET /api/device-ingest/latest
 
 ```text
 C++ 上位机写共享内存
-Python 设备端上传服务读取共享内存
-上传到总控 FastAPI
+Python Edge Agent 读取共享内存
+通过 WebSocket 连接总控 FastAPI
 ```
 
 第二阶段再增强：
 
 ```text
-1. 上传服务增加断线重试
+1. Edge Agent 增加断线重连
 2. 增加本地缓存，网络断开时暂存最近数据
 3. 增加设备身份认证 token
 4. 总控写入 Redis latest
 5. 总控批量写 MySQL 历史数据
-6. WebSocket 按设备订阅推送
+6. 前端 WebSocket 按设备订阅推送
 ```
 
 关键边界：
@@ -277,6 +269,6 @@ Python 设备端上传服务读取共享内存
 ```text
 C++ 负责采集和本机控制
 共享内存负责本机跨进程实时交换
-上传服务负责和总控通信
+Edge Agent 负责和总控的 WebSocket 通信
 FastAPI 总控负责统一接收、权限、路由和推送
 ```

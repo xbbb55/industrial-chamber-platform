@@ -54,7 +54,7 @@ backend/main.py
 职责说明：
 
 - `backend.main` 当前是端到端模拟，把设备模拟、指令队列、管理接口混在一起，只适合 Demo。
-- `backend.memory_router` 已经有总控接收入口 `POST /api/device-ingest/snapshots`，但它同时读取本机共享内存，后续应拆开。
+- `backend.memory_router` 通过 `WS /api/edge/ws` 接收设备端数据和执行结果；它同时读取本机共享内存的 Demo 逻辑后续应拆开。
 - 总控平台只接收设备通讯端上传的数据，不关心底层 C++ 如何采集。
 - 总控平台统一维护设备、工控机、实时状态、历史数据、告警、试验任务、用户权限。
 - 总控平台向用户访问端提供 HTTP API 和 WebSocket。
@@ -217,10 +217,10 @@ industrial-chamber-platform/
 
 ## 8. 推荐接口契约
 
-### 设备端上传快照
+### 设备端 WebSocket 连接与上传快照
 
-```http
-POST /api/device-ingest/snapshots
+```text
+WS /api/edge/ws
 ```
 
 ```json
@@ -237,15 +237,9 @@ POST /api/device-ingest/snapshots
 }
 ```
 
-### 设备端获取待执行指令
+### 总控下发待执行指令
 
-建议新增：
-
-```http
-GET /api/device-commands/pending?edge_id=EDGE-CHAMBER-001
-```
-
-返回：
+总控在同一条 WebSocket 上发送：
 
 ```json
 {
@@ -263,11 +257,7 @@ GET /api/device-commands/pending?edge_id=EDGE-CHAMBER-001
 
 ### 设备端回传指令结果
 
-建议新增：
-
-```http
-POST /api/device-commands/results
-```
+设备端在同一条 WebSocket 上发送：
 
 ```json
 {

@@ -32,10 +32,9 @@
 | PID | `pid_set` |
 | 出厂参数 | `factory_params` |
 
-HTTP 适配接口：
+总控接口与设备长连接：
 
-- `POST /api/devices/{device_id}/commands`：按 `command` 创建 FE_W 指令。
-- `GET /api/device-commands/fe-w?edge_id=...`：设备端读取精确 FE_W JSON。
-- `POST /api/device-commands/be-r?edge_id=...`：设备端提交精确 BE_R JSON。
+- `POST /api/devices/{device_id}/commands`：用户端创建 FE_W 指令。
+- `WS /api/edge/ws`：设备端接收 `{ "type": "command" }`，并通过 `{ "type": "command_result" }` 回传执行结果。
 
-旧的启动、停止、保持、跳步 REST 接口仍保留，但内部已经转换为上述协议。
+设备端不再提供 HTTP 拉取或回传接口，所有设备通讯只使用该 WebSocket 长连接。
