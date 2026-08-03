@@ -49,6 +49,8 @@ class SnapshotNormalizerTests(unittest.TestCase):
         self.assertEqual(device["device_ip"], "192.168.1.101")
         self.assertEqual(device["run_state"], "RUNNING")
         self.assertTrue(device["online"])
+        self.assertTrue(device["device_online"])
+        self.assertEqual(device["consecutive_read_failures"], 0)
         self.assertEqual(device["current_temperature"], -19.8)
         self.assertEqual(device["target_temperature"], -20.0)
         self.assertEqual(device["current_humidity"], 48.5)
@@ -68,6 +70,8 @@ class SnapshotNormalizerTests(unittest.TestCase):
         device = normalize_snapshot(self.production_json)["devices"][0]
 
         self.assertFalse(device["online"])
+        self.assertFalse(device["device_online"])
+        self.assertEqual(device["consecutive_read_failures"], 1)
         self.assertEqual(device["run_state"], "OFFLINE")
         self.assertEqual(
             device["alarm"],

@@ -22,7 +22,8 @@
 
       <div class="overview-cell">
         <span>通讯状态</span>
-        <strong :class="communicationClass(device.online)">{{ communicationLabel(device.online) }}</strong>
+        <strong :class="deviceCommunicationClass(device)">{{ deviceCommunicationLabel(device) }}</strong>
+        <small class="communication-health">{{ communicationHealthLabel(device) }}</small>
       </div>
 
       <div class="overview-cell">
@@ -54,7 +55,12 @@
 </template>
 
 <script setup>
-import { communicationClass, communicationLabel, runStateLabel } from "../utils/state";
+import {
+  communicationHealthLabel,
+  deviceCommunicationClass,
+  deviceCommunicationLabel,
+  runStateLabel
+} from "../utils/state";
 
 defineProps({
   devices: { type: Array, required: true }
@@ -85,6 +91,7 @@ function stateClass(device) {
   if (device.run_state === "ALARM" || device.alarm) return "alarm";
   if (["STOPPED", "STOPPING", "ABORTING"].includes(device.run_state)) return "stopped";
   if (device.run_state === "IDLE") return "idle";
+  if (!device.run_state || ["OFFLINE", "UNKNOWN"].includes(device.run_state)) return "unknown";
   if (device.online === false) return "idle";
   return "running";
 }

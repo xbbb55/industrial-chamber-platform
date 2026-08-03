@@ -614,9 +614,12 @@ textarea:focus-visible {
 .state-dot.idle { box-shadow: 0 0 0 3px rgba(141,160,184,.10); }
 .state-dot.alarm { box-shadow: 0 0 0 3px rgba(245,34,45,.12); }
 .state-dot.stopped { box-shadow: 0 0 0 3px rgba(245,158,11,.14); }
+.state-dot.unknown { box-shadow: 0 0 0 3px rgba(245,158,11,.14); }
 .running { color: var(--green) !important; }
 .alarm { color: var(--red) !important; }
 .stopped { color: var(--orange) !important; }
+.unknown { color: var(--orange) !important; }
+.stale { color: var(--orange) !important; }
 .online { color: var(--green) !important; }
 .offline { color: var(--red) !important; }
 
@@ -704,7 +707,7 @@ textarea:focus-visible {
 }
 .command-actions { gap: 8px; }
 .start-command-button, .hold-command-button, .skip-command-button, .danger-command-button {
-  min-width: 92px;
+  min-width: 112px;
   border: 0;
   border-radius: 6px;
   padding: 10px 14px;
@@ -715,6 +718,13 @@ textarea:focus-visible {
   cursor: pointer;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
   transition: background-color .16s ease, opacity .16s ease, transform .16s ease;
+}
+.start-command-button, .hold-command-button, .skip-command-button, .danger-command-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  white-space: nowrap;
 }
 .start-command-button:active:not(:disabled),
 .hold-command-button:active:not(:disabled),
@@ -1327,19 +1337,21 @@ textarea:focus-visible {
 
 .runtime-tags {
   width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
   align-items: center;
-  gap: 14px;
+  justify-content: space-around;
+  gap: 0;
+  padding-inline: 8px;
 }
 
 .runtime-tags > i {
-  width: 1px;
+  flex: 0 0 1px;
   height: 18px;
   background: var(--line-strong);
 }
 
 .runtime-tag {
+  flex: 1 1 0;
   min-width: 0;
   display: inline-flex;
   align-items: baseline;
@@ -1575,7 +1587,11 @@ textarea:focus-visible {
 .monitor-layout:not(.wallboard-mode) .panel > *,
 .monitor-layout:not(.wallboard-mode) .monitor-card > * { position: relative; z-index: 2; }
 
-.realtime-overview-panel { gap: 14px; padding: 8px; }
+.realtime-overview-panel {
+  gap: 14px;
+  height: 220px;
+  padding: 8px;
+}
 .realtime-tile {
   position: relative;
   min-height: 132px;
@@ -1622,7 +1638,7 @@ textarea:focus-visible {
 .current-reading > span {
   padding-left: 52px;
   color: #c8d9eb;
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 700;
 }
 .reading-value-row {
@@ -1641,7 +1657,7 @@ textarea:focus-visible {
   margin-top: 0;
   color: #dff5ff;
   font-family: "Roboto Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: clamp(38px, 3.6vw, 56px);
+  font-size: 70px;
   line-height: .94;
   letter-spacing: -.055em;
   white-space: nowrap;
@@ -1873,8 +1889,10 @@ textarea:focus-visible {
   .profile-hero { align-items: flex-start; flex-wrap: wrap; padding: 20px; }
   .profile-hero-meta { width: 100%; margin-left: 88px; text-align: left; }
   .topbar h2 { font-size: 20px; }
+  .realtime-overview-panel { height: auto; min-height: 0; }
   .realtime-tile { min-height: 124px; padding-inline: 14px; }
-  .current-reading > span { padding-left: 44px; }
+  .current-reading > span { padding-left: 44px; font-size: 17px; }
+  .realtime-tile strong { font-size: clamp(42px, 8vw, 58px); }
   .reading-value-row { gap: 6px; }
   .realtime-icon { width: 40px; height: 40px; }
   .target-value { min-width: 94px; padding-left: 14px; }
@@ -2127,6 +2145,12 @@ textarea:focus-visible {
 .parameter-fields label:has(> b) { grid-template-columns: minmax(100px, .82fr) minmax(0, 1.18fr) auto; }
 .parameter-fields label > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .parameter-fields label > div .hmi-number-control { flex: 1 1 auto; width: auto; }
+.transmission-fields,
+.stacked-limit-fields { gap: 9px; }
+.transmission-fields .transmission-range-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.transmission-fields .transmission-range-pair > div { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.transmission-fields label,
+.stacked-limit-fields label { grid-template-columns: 1fr; gap: 7px; }
 .parameter-fields input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 36px; padding: 6px 9px; border: 1px solid rgba(45, 156, 213, .62); border-radius: 2px; outline: 0; background: rgba(2, 18, 31, .94); color: #e6f8ff; font: 14px "Roboto Mono", Consolas, monospace; box-shadow: inset 0 0 10px rgba(0, 106, 175, .11); }
 .parameter-fields input:focus { border-color: #32d3ff; box-shadow: 0 0 0 2px rgba(0, 184, 238, .2), 0 0 9px rgba(0, 172, 235, .25); }
 .parameter-fields input:disabled { border-color: rgba(69, 101, 117, .5); background: rgba(4, 17, 28, .76); color: #7c96a2; cursor: not-allowed; }
@@ -2508,6 +2532,7 @@ textarea:focus-visible {
 .overview-device p { color: #88a8be; }
 .overview-cell span { color: #7795aa; }
 .overview-cell strong { margin-top: 5px; color: #dcecf7; font-family: "Roboto Mono", "SFMono-Regular", Consolas, monospace; font-size: 13px; }
+.overview-cell .communication-health { display: block; margin-top: 3px; color: #6d8da3; font-size: 10px; line-height: 1.2; white-space: nowrap; }
 .overview-row .state-dot { box-shadow: 0 0 0 4px rgba(82, 196, 26, .10), 0 0 9px currentColor; }
 
 .device-card-list {

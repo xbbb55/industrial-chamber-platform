@@ -23,8 +23,14 @@ WEB_DEBUG = ROOT_DIR / "web" / "memory-debug.html"
 uploaded_edge_snapshots: dict[str, dict[str, Any]] = {}
 pending_edge_commands: dict[str, list[dict[str, Any]]] = {}
 command_results: dict[str, dict[str, Any]] = {}
+command_records: dict[str, dict[str, Any]] = {}
 command_status_events: dict[str, dict[str, Any]] = {}
-EDGE_SNAPSHOT_TTL_SECONDS = max(float(os.getenv("EDGE_SNAPSHOT_TTL_SECONDS", "5")), 0.5)
+command_status_event_order: list[str] = []
+command_status_websockets: set[WebSocket] = set()
+# Gateway heartbeat and device telemetry age are evaluated independently.
+# Keep the old environment key as a compatible override for existing setups.
+EDGE_GATEWAY_TTL_SECONDS = max(float(os.getenv("EDGE_GATEWAY_TTL_SECONDS", os.getenv("EDGE_SNAPSHOT_TTL_SECONDS", "20"))), 1.0)
+DEVICE_DATA_STALE_SECONDS = max(float(os.getenv("DEVICE_DATA_STALE_SECONDS", "15")), 1.0)
 
 
 class EdgeSnapshotUpload(BaseModel):
@@ -81,9 +87,19 @@ class ControllerCommandRequest(BaseModel):
 def get_snapshot() -> dict[str, Any]:
     shm = attach_existing()
     try:
-        return normalize_snapshot(read_snapshot(shm))
+        snapshot = normalize_snapshot(read_snapshot(shm))
     finally:
         shm.close()
+    # Local shared-memory mode is still a gateway: its heartbeat is the latest
+    # successful writer update, while the device telemetry is evaluated below.
+    now = time.time()
+    for device in snapshot.get("devices", []):
+        if not isinstance(device, dict):
+            continue
+        device["gateway_online"] = True
+        device["gateway_last_seen_at"] = snapshot.get("written_at")
+        _apply_device_health(device, snapshot, now)
+    return snapshot
 
 
 def get_uploaded_snapshot() -> dict[str, Any]:
@@ -98,7 +114,7 @@ def get_uploaded_snapshot() -> dict[str, Any]:
     for edge in edges:
         snapshot = edge.get("snapshot", {})
         stale_seconds = edge_stale_seconds(edge, now)
-        is_stale = stale_seconds >= EDGE_SNAPSHOT_TTL_SECONDS
+        is_stale = stale_seconds >= EDGE_GATEWAY_TTL_SECONDS
         latest_written_at = max(latest_written_at, float(snapshot.get("written_at") or edge.get("received_at") or 0))
         try:
             latest_sequence = max(latest_sequence, int(snapshot.get("sequence") or 0))
@@ -119,16 +135,23 @@ def get_uploaded_snapshot() -> dict[str, Any]:
             merged.setdefault("ip_address", configured_ip)
             merged.setdefault("ip", configured_ip)
             merged.setdefault("edge_received_at", edge.get("received_at"))
+            merged["gateway_online"] = not is_stale
+            merged["gateway_last_seen_at"] = edge.get("received_at")
             merged["edge_stale"] = is_stale
             merged["stale_seconds"] = round(stale_seconds, 1)
             if is_stale:
                 merged.update({
                     "online": False,
+                    "device_online": False,
+                    "communication_state": "GATEWAY_OFFLINE",
+                    "data_quality": "UNKNOWN",
                     "run_state": "OFFLINE",
-                    "status_text": "设备超时未上传",
+                    "status_text": "网关心跳超时",
                     "alarm": None,
                     "alarms": [],
                 })
+            else:
+                _apply_device_health(merged, snapshot, now)
             devices.append(merged)
 
     return {
@@ -137,7 +160,7 @@ def get_uploaded_snapshot() -> dict[str, Any]:
         "written_at": latest_written_at or time.time(),
         "edge_count": len(edges),
         "stale_edge_count": sum(
-            edge_stale_seconds(edge, now) >= EDGE_SNAPSHOT_TTL_SECONDS for edge in edges
+            edge_stale_seconds(edge, now) >= EDGE_GATEWAY_TTL_SECONDS for edge in edges
         ),
         "devices": devices,
     }
@@ -151,7 +174,7 @@ def get_realtime_snapshot() -> dict[str, Any]:
 
 def find_edge_id_for_device(device_id: str) -> Optional[str]:
     for edge_id, edge in uploaded_edge_snapshots.items():
-        if edge_stale_seconds(edge) >= EDGE_SNAPSHOT_TTL_SECONDS:
+        if edge_stale_seconds(edge) >= EDGE_GATEWAY_TTL_SECONDS:
             continue
         devices = edge.get("snapshot", {}).get("devices", [])
         if any(device.get("device_id") == device_id for device in devices):
@@ -168,8 +191,70 @@ def edge_stale_seconds(edge: dict[str, Any], now: Optional[float] = None) -> flo
         return float("inf")
 
 
+def _apply_device_health(device: dict[str, Any], snapshot: dict[str, Any], now: float) -> None:
+    """Attach production health semantics while preserving the legacy online key."""
+    device_online = bool(device.get("device_online", device.get("online", True)))
+    data_updated_at = _as_timestamp(
+        device.get("data_updated_at") or device.get("device_last_success_at")
+        or device.get("updated_at") or snapshot.get("written_at")
+    )
+    data_age_seconds = max(0.0, now - data_updated_at) if data_updated_at else float("inf")
+    data_stale = data_age_seconds >= DEVICE_DATA_STALE_SECONDS
+
+    device["device_online"] = device_online
+    device["device_last_success_at"] = device.get("device_last_success_at") or (data_updated_at if device_online else None)
+    device["data_updated_at"] = data_updated_at or None
+    device["data_age_seconds"] = round(data_age_seconds, 1) if data_updated_at else None
+    device["data_quality"] = "STALE" if device_online and data_stale else ("FRESH" if device_online else "UNKNOWN")
+    device["communication_state"] = "DEVICE_OFFLINE" if not device_online else ("DATA_STALE" if data_stale else "ONLINE")
+    # Compatibility: old clients still receive a boolean reflecting fresh,
+    # device-level communications.
+    device["online"] = device_online and not data_stale
+    if not device_online:
+        device["run_state"] = "OFFLINE"
+        device.setdefault("communication_error", device.get("status_text") or "控制器通讯故障")
+
+
+def _as_timestamp(value: Any) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def queue_edge_command(edge_id: str, command: dict[str, Any]) -> None:
     pending_edge_commands.setdefault(edge_id, []).append(command)
+    command_records[command["command_id"]] = command
+
+
+def _command_metadata(command: dict[str, Any]) -> dict[str, Any]:
+    """Return the FE_W payload plus the server-side correlation metadata."""
+    return {
+        "command_id": command["command_id"],
+        "device_id": command["device_id"],
+        "edge_id": command["edge_id"],
+        "command_type": command["command_type"],
+        **command["fe_w"],
+    }
+
+
+def _remember_command_status_event(event_id: str, event: dict[str, Any]) -> None:
+    command_status_events[event_id] = event
+    command_status_event_order.append(event_id)
+    while len(command_status_event_order) > 20:
+        command_status_events.pop(command_status_event_order.pop(0), None)
+
+
+async def _broadcast_command_status(event: dict[str, Any]) -> None:
+    message = {"type": "command_status", **event}
+    disconnected: list[WebSocket] = []
+    for websocket in tuple(command_status_websockets):
+        try:
+            await websocket.send_json(message)
+        except Exception:
+            disconnected.append(websocket)
+    for websocket in disconnected:
+        command_status_websockets.discard(websocket)
 
 
 def make_edge_command(
@@ -418,6 +503,7 @@ async def pending_commands(edge_id: str) -> dict[str, Any]:
     for command in commands:
         command["status"] = "DELIVERED"
         command["delivered_at"] = time.time()
+        command_records[command["command_id"]].update({"status": "DELIVERED", "delivered_at": command["delivered_at"]})
     return {
         "edge_id": edge_id,
         "commands": commands,
@@ -431,28 +517,27 @@ async def fe_w_commands(edge_id: str) -> dict[str, Any]:
     for command in commands:
         command["status"] = "DELIVERED"
         command["delivered_at"] = time.time()
-    return {
-        "edge_id": edge_id,
-        "commands": [{**command, **command["fe_w"]} for command in commands],
-    }
+        command_records[command["command_id"]].update({"status": "DELIVERED", "delivered_at": command["delivered_at"]})
+    return {"edge_id": edge_id, "commands": [_command_metadata(command) for command in commands]}
 
 
 @app.post("/api/device-commands/results")
 async def upload_command_result(result: CommandResultUpload) -> dict[str, Any]:
-    if result.event_id and result.event_id in command_status_events:
+    event_id = result.event_id or f"LEGACY-{uuid.uuid4().hex[:10].upper()}"
+    if event_id in command_status_events:
+        existing = command_status_events[event_id]
         return {
-            "status": "accepted",
-            "event_id": result.event_id,
-            "command_id": result.command_id,
+            "status": "duplicate",
+            "event_id": event_id,
+            "command_id": existing.get("command_id", result.command_id),
             "duplicate": True,
-            "received_at": command_status_events[result.event_id]["received_at"],
+            "received_at": existing.get("received_at"),
         }
-
     success_message = result.successMessage or result.message
     result_time = result.time or protocol_time()
-    result_key = result.command_id or result.event_id or f"STATUS-{uuid.uuid4().hex[:10].upper()}"
-    stored_result = {
-        "event_id": result.event_id,
+    received_at = time.time()
+    status_event = {
+        "event_id": event_id,
         "edge_id": result.edge_id,
         "command_id": result.command_id,
         "device_id": result.device_id,
@@ -460,17 +545,25 @@ async def upload_command_result(result: CommandResultUpload) -> dict[str, Any]:
         "message": result.message,
         "reported_at": result.reported_at,
         "payload": result.payload,
-        "be_r": {"successMessage": success_message, "time": result_time},
-        "received_at": time.time(),
+        "successMessage": success_message,
+        "time": result_time,
+        "received_at": received_at,
     }
-    command_results[result_key] = stored_result
-    if result.event_id:
-        command_status_events[result.event_id] = stored_result
+    _remember_command_status_event(event_id, status_event)
+    result_key = result.command_id or event_id
+    command_results[result_key] = {
+        **status_event,
+        "be_r": {"successMessage": success_message, "time": result_time},
+    }
+    command_record = command_records.get(result.command_id)
+    if command_record is not None:
+        command_record.update({"status": result.status, "result": status_event})
+    await _broadcast_command_status(status_event)
     return {
         "status": "accepted",
-        "event_id": result.event_id,
+        "event_id": event_id,
         "command_id": result.command_id,
-        "received_at": stored_result["received_at"],
+        "received_at": received_at,
     }
 
 
@@ -500,6 +593,7 @@ async def latest_command_results() -> dict[str, Any]:
     return {
         "result_count": len(command_results),
         "results": command_results,
+        "events": command_status_events,
     }
 
 
@@ -533,6 +627,7 @@ async def memory_debug() -> dict[str, Any]:
 @app.websocket("/ws/memory")
 async def memory_websocket(websocket: WebSocket) -> None:
     await websocket.accept()
+    command_status_websockets.add(websocket)
     try:
         while True:
             try:
@@ -550,4 +645,6 @@ async def memory_websocket(websocket: WebSocket) -> None:
                 })
             await asyncio.sleep(0.25)
     except WebSocketDisconnect:
-        return
+        pass
+    finally:
+        command_status_websockets.discard(websocket)

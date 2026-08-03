@@ -67,6 +67,13 @@ def normalize_production_device(payload: dict[str, Any]) -> dict[str, Any]:
     device.update({
         "device_id": device_id,
         "name": str(payload.get("name") or device_id),
+        # A controller-side communication fault is a device-level result. It
+        # remains separate from the gateway heartbeat evaluated by the server.
+        "device_online": online,
+        "device_last_success_at": updated_at if online else None,
+        "consecutive_read_failures": 0 if online else 1,
+        "communication_error": None if online else (status_text or "控制器通讯故障"),
+        "data_updated_at": updated_at,
         "online": online,
         "run_state": _normalize_run_state(status_text, program.get("run"), alarms, online),
         "status_text": status_text,

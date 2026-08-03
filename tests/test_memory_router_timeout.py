@@ -5,7 +5,7 @@ from backend import memory_router
 
 def test_stale_edge_is_marked_offline_and_cannot_receive_commands(monkeypatch):
     edge_id = "EDGE-TIMEOUT-001"
-    monkeypatch.setattr(memory_router, "EDGE_SNAPSHOT_TTL_SECONDS", 5.0)
+    monkeypatch.setattr(memory_router, "EDGE_GATEWAY_TTL_SECONDS", 5.0)
     monkeypatch.setattr(
         memory_router,
         "uploaded_edge_snapshots",
@@ -43,7 +43,7 @@ def test_stale_edge_is_marked_offline_and_cannot_receive_commands(monkeypatch):
 
 def test_recent_edge_remains_online(monkeypatch):
     edge_id = "EDGE-FRESH-001"
-    monkeypatch.setattr(memory_router, "EDGE_SNAPSHOT_TTL_SECONDS", 5.0)
+    monkeypatch.setattr(memory_router, "EDGE_GATEWAY_TTL_SECONDS", 5.0)
     monkeypatch.setattr(
         memory_router,
         "uploaded_edge_snapshots",

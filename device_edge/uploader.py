@@ -37,6 +37,15 @@ class SnapshotUploader:
                 )
             except SharedMemoryNotReady as exc:
                 print(f"shared memory not ready: {exc}")
+                # The gateway process is still healthy even when its local
+                # controller data source is unavailable. Keep its heartbeat
+                # alive so the server can distinguish the two failures.
+                self._post_snapshot({
+                    "source": "edge_health",
+                    "written_at": time.time(),
+                    "devices": [],
+                    "health": {"status": "degraded", "message": str(exc)},
+                })
             except Exception as exc:
                 print(f"uploader loop failed: {exc}")
             time.sleep(self._config.upload_interval_seconds)

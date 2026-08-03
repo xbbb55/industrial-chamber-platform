@@ -254,7 +254,8 @@
                     :disabled="isStartCommandDisabled"
                     @click="startSelectedDevice"
                   >
-                    {{ startingDeviceIds[selectedDeviceId] ? "启动下发中" : isStartCommandDisabled ? "已启动" : "启动运行" }}
+                    <AppIcon name="play" :size="15" :stroke-width="2.1" />
+                    <span>{{ startingDeviceIds[selectedDeviceId] ? "启动下发中" : isStartCommandDisabled ? "已启动" : "启动运行" }}</span>
                   </button>
                   <button
                     class="hold-command-button"
@@ -262,7 +263,8 @@
                     :disabled="!selectedDevice || holdingDeviceIds[selectedDeviceId]"
                     @click="holdSelectedDevice"
                   >
-                    {{ holdingDeviceIds[selectedDeviceId] ? "保持下发中" : "保持" }}
+                    <AppIcon :name="heldDeviceIds[selectedDeviceId] ? 'play' : 'pause'" :size="15" :stroke-width="2.1" />
+                    <span>{{ holdingDeviceIds[selectedDeviceId] ? `${heldDeviceIds[selectedDeviceId] ? "继续" : "保持"}下发中` : heldDeviceIds[selectedDeviceId] ? "继续" : "保持" }}</span>
                   </button>
                   <button
                     class="skip-command-button"
@@ -270,15 +272,17 @@
                     :disabled="!selectedDevice || skippingDeviceIds[selectedDeviceId]"
                     @click="skipSelectedDeviceStep"
                   >
-                    {{ skippingDeviceIds[selectedDeviceId] ? "跳步下发中" : "跳步" }}
+                    <AppIcon name="skip" :size="15" :stroke-width="2.1" />
+                    <span>{{ skippingDeviceIds[selectedDeviceId] ? "跳步下发中" : "跳步" }}</span>
                   </button>
                   <button
                     class="danger-command-button"
                     type="button"
-                    :disabled="!selectedDevice || stoppingDeviceIds[selectedDeviceId]"
+                    :disabled="!selectedDevice || stoppingDeviceIds[selectedDeviceId] || stoppedDeviceIds[selectedDeviceId]"
                     @click="stopSelectedDevice"
                   >
-                    {{ stoppingDeviceIds[selectedDeviceId] ? "停止下发中" : "停止运行" }}
+                    <AppIcon name="stop" :size="15" :stroke-width="2.1" />
+                    <span>{{ stoppingDeviceIds[selectedDeviceId] ? "停止下发中" : stoppedDeviceIds[selectedDeviceId] ? "已停止" : "停止运行" }}</span>
                   </button>
                 </div>
                 <div class="command-status">
@@ -621,19 +625,17 @@
 
               <section v-if="parameterTab === 'basic'" class="system-parameter-card">
                 <header><span>湿度操作范围</span><small>HUMIDITY / RANGE</small></header>
-                <div class="parameter-fields">
-                  <label><span>操作下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMin" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度操作下限" aria-label="增加湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作下限" aria-label="减少湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
-                  <label><span>操作上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMax" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度操作上限" aria-label="增加湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作上限" aria-label="减少湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                <div class="parameter-fields stacked-limit-fields">
+                  <label><span>湿度操作上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMax" type="number" min="0" max="100" step="0.1" aria-label="湿度操作上限"><span class="hmi-number-steps"><button type="button" title="增加湿度操作上限" aria-label="增加湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作上限" aria-label="减少湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                  <label><span>湿度操作下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMin" type="number" min="0" max="100" step="0.1" aria-label="湿度操作下限"><span class="hmi-number-steps"><button type="button" title="增加湿度操作下限" aria-label="增加湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作下限" aria-label="减少湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
                 </div>
               </section>
 
               <section v-if="parameterTab === 'basic'" class="system-parameter-card">
                 <header><span>再传送范围</span><small>RETRANSMISSION / RANGE</small></header>
-                <div class="parameter-fields">
-                  <label><span>温度传送下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMin" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度传送下限" aria-label="增加温度传送下限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度传送下限" aria-label="减少温度传送下限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
-                  <label><span>温度传送上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMax" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度传送上限" aria-label="增加温度传送上限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度传送上限" aria-label="减少温度传送上限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
-                  <label><span>湿度传送下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityTransmissionMin" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度传送下限" aria-label="增加湿度传送下限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMin', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度传送下限" aria-label="减少湿度传送下限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMin', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
-                  <label><span>湿度传送上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityTransmissionMax" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度传送上限" aria-label="增加湿度传送上限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMax', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度传送上限" aria-label="减少湿度传送上限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMax', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                <div class="parameter-fields transmission-fields">
+                  <label><span>温度传送上下限</span><div class="transmission-range-pair"><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMin" type="number" step="0.1" aria-label="温度传送下限"><span class="hmi-number-steps"><button type="button" title="增加温度传送下限" aria-label="增加温度传送下限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度传送下限" aria-label="减少温度传送下限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMax" type="number" step="0.1" aria-label="温度传送上限"><span class="hmi-number-steps"><button type="button" title="增加温度传送上限" aria-label="增加温度传送上限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度传送上限" aria-label="减少温度传送上限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></div></label>
+                  <label><span>湿度传送上下限</span><div class="transmission-range-pair"><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityTransmissionMin" type="number" min="0" max="100" step="0.1" aria-label="湿度传送下限"><span class="hmi-number-steps"><button type="button" title="增加湿度传送下限" aria-label="增加湿度传送下限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMin', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度传送下限" aria-label="减少湿度传送下限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMin', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityTransmissionMax" type="number" min="0" max="100" step="0.1" aria-label="湿度传送上限"><span class="hmi-number-steps"><button type="button" title="增加湿度传送上限" aria-label="增加湿度传送上限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMax', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度传送上限" aria-label="减少湿度传送上限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMax', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></div></label>
                 </div>
               </section>
 
@@ -844,11 +846,15 @@ const selectedTrendCanvas = ref(null);
 const trendHistory = ref({});
 const currentTimeText = ref(new Date().toLocaleTimeString());
 const commandStatusText = ref("等待操作");
+const commandStatusById = ref({});
+const activeCommandIds = ref({});
 const profileActionText = ref("");
 const stoppingDeviceIds = ref({});
+const stoppedDeviceIds = ref({});
 const startingDeviceIds = ref({});
 const startCommandLockedIds = ref({});
 const holdingDeviceIds = ref({});
+const heldDeviceIds = ref({});
 const skippingDeviceIds = ref({});
 const trendClockMs = ref(Date.now());
 const trendWindowMs = ref(TREND_DEFAULT_WINDOW_MS);
@@ -1416,9 +1422,48 @@ function iconFor(key) {
   return icons[key] || "activity";
 }
 
+function trackQueuedCommand(result, commandLabel, deviceId) {
+  if (!result?.command_id) return;
+  const existing = commandStatusById.value[result.command_id];
+  commandStatusById.value = {
+    ...commandStatusById.value,
+    [result.command_id]: {
+      ...existing,
+      command_id: result.command_id,
+      device_id: deviceId,
+      label: commandLabel,
+      status: existing?.status || "QUEUED",
+      message: existing?.message || "等待工控机执行"
+    }
+  };
+  activeCommandIds.value = { ...activeCommandIds.value, [deviceId]: result.command_id };
+  commandStatusText.value = existing ? (existing.message || commandExecutionText(existing.status)) : "等待工控机执行";
+}
+
+function commandExecutionText(status) {
+  const normalizedStatus = String(status || "").toUpperCase();
+  if (["EXECUTED", "SUCCESS", "SUCCEEDED", "COMPLETED"].includes(normalizedStatus)) return "已完成";
+  if (["FAILED", "ERROR", "REJECTED", "TIMEOUT"].includes(normalizedStatus)) return "执行失败";
+  return "等待工控机执行";
+}
+
+function handleCommandStatus(event) {
+  if (!event?.command_id) return;
+  const current = commandStatusById.value[event.command_id] || {};
+  const nextStatus = commandExecutionText(event.status);
+  commandStatusById.value = {
+    ...commandStatusById.value,
+    [event.command_id]: { ...current, ...event, message: event.message || nextStatus }
+  };
+  if (activeCommandIds.value[event.device_id] === event.command_id) {
+    commandStatusText.value = event.message ? `${nextStatus}：${event.message}` : nextStatus;
+  }
+}
+
 async function stopSelectedDevice() {
   if (!selectedDevice.value) return;
   const deviceId = selectedDevice.value.device_id;
+  if (stoppedDeviceIds.value[deviceId] || stoppingDeviceIds.value[deviceId]) return;
   const deviceName = selectedDevice.value.name || deviceId;
   stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: true };
   commandStatusText.value = "正在下发停止命令";
@@ -1439,6 +1484,8 @@ async function stopSelectedDevice() {
       throw new Error(result.detail || result.message || "停止命令下发失败");
     }
     commandStatusText.value = "停止命令已下发";
+    trackQueuedCommand(result, "停止", deviceId);
+    stoppedDeviceIds.value = { ...stoppedDeviceIds.value, [deviceId]: true };
     delete startCommandLockedIds.value[deviceId];
     startCommandLockedIds.value = { ...startCommandLockedIds.value };
     addOperationLog({ title: "停止运行", message: `${deviceName} 停止命令已下发`, tone: "danger", deviceId });
@@ -1477,6 +1524,9 @@ async function startSelectedDevice() {
       throw new Error(result.detail || result.message || "启动命令下发失败");
     }
     commandStatusText.value = "启动命令已下发";
+    trackQueuedCommand(result, "启动", deviceId);
+    delete stoppedDeviceIds.value[deviceId];
+    stoppedDeviceIds.value = { ...stoppedDeviceIds.value };
     startCommandLockedIds.value = { ...startCommandLockedIds.value, [deviceId]: true };
     deviceStartTimes.value = { ...deviceStartTimes.value, [deviceId]: formatStartTime() };
     addOperationLog({ title: "启动运行", message: `${deviceName} 启动命令已下发`, tone: "success", deviceId });
@@ -1492,29 +1542,35 @@ async function holdSelectedDevice() {
   if (!selectedDevice.value) return;
   const deviceId = selectedDevice.value.device_id;
   const deviceName = selectedDevice.value.name || deviceId;
+  const isHeld = Boolean(heldDeviceIds.value[deviceId]);
+  const command = isHeld ? "Keep" : "Hold";
+  const commandLabel = isHeld ? "继续" : "保持";
   holdingDeviceIds.value = { ...holdingDeviceIds.value, [deviceId]: true };
-  commandStatusText.value = "正在下发保持命令";
-  addOperationLog({ title: "保持", message: `${deviceName} 正在下发保持命令`, tone: "warning", deviceId });
+  commandStatusText.value = `正在下发${commandLabel}命令`;
+  addOperationLog({ title: commandLabel, message: `${deviceName} 正在下发${commandLabel}命令`, tone: "warning", deviceId });
 
   try {
     const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        command: "Hold",
+        command,
+        time: formatStartTime(),
         operator_id: "web-admin",
-        reason: "hold requested from Vue dashboard"
+        reason: `${commandLabel} requested from Vue dashboard`
       })
     });
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.detail || result.message || "保持命令下发失败");
+      throw new Error(result.detail || result.message || `${commandLabel}命令下发失败`);
     }
-    commandStatusText.value = "保持命令已下发";
-    addOperationLog({ title: "保持", message: `${deviceName} 保持命令已下发`, tone: "success", deviceId });
+    heldDeviceIds.value = { ...heldDeviceIds.value, [deviceId]: !isHeld };
+    commandStatusText.value = `${commandLabel}命令已下发`;
+    trackQueuedCommand(result, commandLabel, deviceId);
+    addOperationLog({ title: commandLabel, message: `${deviceName} ${commandLabel}命令已下发`, tone: "success", deviceId });
   } catch (error) {
-    commandStatusText.value = error.message || "保持命令下发失败";
-    addOperationLog({ title: "保持", message: `${deviceName} 保持命令下发失败`, tone: "danger", deviceId });
+    commandStatusText.value = error.message || `${commandLabel}命令下发失败`;
+    addOperationLog({ title: commandLabel, message: `${deviceName} ${commandLabel}命令下发失败`, tone: "danger", deviceId });
   } finally {
     holdingDeviceIds.value = { ...holdingDeviceIds.value, [deviceId]: false };
   }
@@ -1543,6 +1599,7 @@ async function skipSelectedDeviceStep() {
       throw new Error(result.detail || result.message || "跳步命令下发失败");
     }
     commandStatusText.value = "跳步命令已下发";
+    trackQueuedCommand(result, "跳步", deviceId);
     addOperationLog({ title: "跳步", message: `${deviceName} 跳步命令已下发`, tone: "success", deviceId });
   } catch (error) {
     commandStatusText.value = error.message || "跳步命令下发失败";
@@ -1562,6 +1619,10 @@ function connectSocket() {
 
   socket.onmessage = event => {
     const message = JSON.parse(event.data);
+    if (message.type === "command_status") {
+      handleCommandStatus(message);
+      return;
+    }
     if (message.type === "memory_not_ready") {
       connectionText.value = "共享内存未就绪";
       return;

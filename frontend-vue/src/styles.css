@@ -962,10 +962,13 @@ canvas {
 .idle { color: var(--muted) !important; }
 .alarm { color: var(--red) !important; }
 .stopped { color: var(--orange) !important; }
+.unknown { color: var(--orange) !important; }
+.stale { color: var(--orange) !important; }
 .state-dot.running { background: var(--green); }
 .state-dot.idle { background: var(--muted); }
 .state-dot.alarm { background: var(--red); }
 .state-dot.stopped { background: var(--orange); }
+.state-dot.unknown { background: var(--orange); }
 
 .table-wrap {
   overflow-x: auto;

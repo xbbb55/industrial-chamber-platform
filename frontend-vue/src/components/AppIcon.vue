@@ -27,7 +27,10 @@ import {
   Droplets,
   Wrench,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Pause,
+  SkipForward,
+  Square
 } from "lucide-vue-next";
 import { computed } from "vue";
 
@@ -54,6 +57,9 @@ const icons = {
   sliders: SlidersHorizontal,
   shield: ShieldCheck,
   play: Play,
+  pause: Pause,
+  skip: SkipForward,
+  stop: Square,
   chevronDown: ChevronDown,
   chevronRight: ChevronRight,
   chevronUp: ChevronUp,
