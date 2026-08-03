@@ -14,11 +14,17 @@ class EdgeConfig:
     stream_interval_seconds: float
     shared_memory_name: str
     shared_memory_size: int
+    command_status_memory_name: str
+    command_status_memory_size: int
     auth_token: str = ""
 
     @property
     def ingest_endpoint(self) -> str:
         return self.server_url.rstrip("/") + "/api/device-ingest/snapshots"
+
+    @property
+    def command_status_endpoint(self) -> str:
+        return self.server_url.rstrip("/") + "/api/device-commands/results"
 
 
 def load_config(path: Union[str, Path]) -> EdgeConfig:
@@ -33,6 +39,8 @@ def load_config(path: Union[str, Path]) -> EdgeConfig:
         stream_interval_seconds=float(data.get("stream_interval_seconds", data.get("upload_interval_seconds", 0.5))),
         shared_memory_name=data.get("shared_memory_name", "industrial_chamber_realtime_v1"),
         shared_memory_size=int(data.get("shared_memory_size", 1024 * 256)),
+        command_status_memory_name=data.get("command_status_memory_name", "industrial_chamber_command_status_v1"),
+        command_status_memory_size=int(data.get("command_status_memory_size", 1024 * 64)),
         auth_token=auth.get("token", ""),
     )
 

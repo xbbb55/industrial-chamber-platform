@@ -23,6 +23,7 @@ WEB_DEBUG = ROOT_DIR / "web" / "memory-debug.html"
 uploaded_edge_snapshots: dict[str, dict[str, Any]] = {}
 pending_edge_commands: dict[str, list[dict[str, Any]]] = {}
 command_results: dict[str, dict[str, Any]] = {}
+command_status_events: dict[str, dict[str, Any]] = {}
 EDGE_SNAPSHOT_TTL_SECONDS = max(float(os.getenv("EDGE_SNAPSHOT_TTL_SECONDS", "5")), 0.5)
 
 
@@ -57,6 +58,7 @@ class StartCommandRequest(BaseModel):
 
 
 class CommandResultUpload(BaseModel):
+    event_id: str = ""
     edge_id: str = ""
     command_id: str = ""
     device_id: str = ""
@@ -424,19 +426,33 @@ async def pending_commands(edge_id: str) -> dict[str, Any]:
 
 @app.get("/api/device-commands/fe-w")
 async def fe_w_commands(edge_id: str) -> dict[str, Any]:
-    """Expose the exact FE_W payload consumed by the edge controller."""
+    """Expose FE_W plus correlation metadata required for execution status."""
     commands = pending_edge_commands.pop(edge_id, [])
     for command in commands:
         command["status"] = "DELIVERED"
         command["delivered_at"] = time.time()
-    return {"edge_id": edge_id, "commands": [command["fe_w"] for command in commands]}
+    return {
+        "edge_id": edge_id,
+        "commands": [{**command, **command["fe_w"]} for command in commands],
+    }
 
 
 @app.post("/api/device-commands/results")
 async def upload_command_result(result: CommandResultUpload) -> dict[str, Any]:
+    if result.event_id and result.event_id in command_status_events:
+        return {
+            "status": "accepted",
+            "event_id": result.event_id,
+            "command_id": result.command_id,
+            "duplicate": True,
+            "received_at": command_status_events[result.event_id]["received_at"],
+        }
+
     success_message = result.successMessage or result.message
     result_time = result.time or protocol_time()
-    command_results[result.command_id] = {
+    result_key = result.command_id or result.event_id or f"STATUS-{uuid.uuid4().hex[:10].upper()}"
+    stored_result = {
+        "event_id": result.event_id,
         "edge_id": result.edge_id,
         "command_id": result.command_id,
         "device_id": result.device_id,
@@ -447,10 +463,14 @@ async def upload_command_result(result: CommandResultUpload) -> dict[str, Any]:
         "be_r": {"successMessage": success_message, "time": result_time},
         "received_at": time.time(),
     }
+    command_results[result_key] = stored_result
+    if result.event_id:
+        command_status_events[result.event_id] = stored_result
     return {
         "status": "accepted",
+        "event_id": result.event_id,
         "command_id": result.command_id,
-        "received_at": command_results[result.command_id]["received_at"],
+        "received_at": stored_result["received_at"],
     }
 
 
