@@ -235,6 +235,9 @@ class ManualInputState:
                 snapshot["source"] = "manual_input_ui_command_result"
                 snapshot["sequence"] = int(snapshot.get("sequence") or 0) + 1
                 snapshot["written_at"] = now
+                # Keep the production payload timestamp current as well. The
+                # backend uses this controller time to determine data staleness.
+                snapshot["time"] = protocol_time()
                 write_snapshot(self.shm, snapshot, self.config.shared_memory_size)
                 self.last_snapshot = snapshot
                 if command_type == "STOP_TEST":

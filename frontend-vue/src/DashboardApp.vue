@@ -278,7 +278,7 @@
                   <button
                     class="danger-command-button"
                     type="button"
-                    :disabled="!selectedDevice || stoppingDeviceIds[selectedDeviceId] || stoppedDeviceIds[selectedDeviceId]"
+                    :disabled="isStopCommandDisabled"
                     @click="stopSelectedDevice"
                   >
                     <AppIcon name="stop" :size="15" :stroke-width="2.1" />
@@ -1040,6 +1040,13 @@ const isStartCommandDisabled = computed(() => {
   const activeState = ["RUNNING", "HOLDING", "PAUSED", "STOPPING", "ABORTING"].includes(device.run_state);
   return Boolean(startingDeviceIds.value[device.device_id] || locked || activeState);
 });
+const isStopCommandDisabled = computed(() => {
+  const device = selectedDevice.value;
+  if (!device) return true;
+  const activeState = ["RUNNING", "HOLDING", "PAUSED", "STOPPING", "ABORTING"].includes(device.run_state);
+  const startConfirmed = Boolean(startCommandLockedIds.value[device.device_id] || activeState);
+  return Boolean(!startConfirmed || stoppingDeviceIds.value[device.device_id] || stoppedDeviceIds.value[device.device_id]);
+});
 const activeNotifications = computed(() => {
   if (activeView.value === "device-detail") {
     return operationLogs.value.filter(item => !selectedDeviceId.value || item.deviceId === selectedDeviceId.value);
@@ -1425,19 +1432,27 @@ function iconFor(key) {
 function trackQueuedCommand(result, commandLabel, deviceId) {
   if (!result?.command_id) return;
   const existing = commandStatusById.value[result.command_id];
+  const trackedCommand = {
+    ...existing,
+    command_id: result.command_id,
+    device_id: deviceId,
+    label: commandLabel,
+    status: existing?.status || "QUEUED",
+    message: existing?.message || "等待工控机执行"
+  };
   commandStatusById.value = {
     ...commandStatusById.value,
-    [result.command_id]: {
-      ...existing,
-      command_id: result.command_id,
-      device_id: deviceId,
-      label: commandLabel,
-      status: existing?.status || "QUEUED",
-      message: existing?.message || "等待工控机执行"
-    }
+    [result.command_id]: trackedCommand
   };
   activeCommandIds.value = { ...activeCommandIds.value, [deviceId]: result.command_id };
   commandStatusText.value = existing ? (existing.message || commandExecutionText(existing.status)) : "等待工控机执行";
+
+  // The edge can execute and report a command before the HTTP response that
+  // created it reaches the browser. Re-process an already terminal result
+  // after attaching the command label so the button state is finalized.
+  if (existing && ["EXECUTED", "SUCCESS", "SUCCEEDED", "COMPLETED", "FAILED", "ERROR", "REJECTED", "TIMEOUT"].includes(String(existing.status || "").toUpperCase())) {
+    handleCommandStatus(trackedCommand);
+  }
 }
 
 function commandExecutionText(status) {
@@ -1457,6 +1472,37 @@ function handleCommandStatus(event) {
   };
   if (activeCommandIds.value[event.device_id] === event.command_id) {
     commandStatusText.value = event.message ? `${nextStatus}：${event.message}` : nextStatus;
+  }
+
+  const deviceId = event.device_id;
+  const commandLabel = current.label;
+  const normalizedStatus = String(event.status || "").toUpperCase();
+  const succeeded = ["EXECUTED", "SUCCESS", "SUCCEEDED", "COMPLETED"].includes(normalizedStatus);
+  const failed = ["FAILED", "ERROR", "REJECTED", "TIMEOUT"].includes(normalizedStatus);
+
+  if (commandLabel === "启动") {
+    if (succeeded) {
+      startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: false };
+      startCommandLockedIds.value = { ...startCommandLockedIds.value, [deviceId]: true };
+      delete stoppedDeviceIds.value[deviceId];
+      stoppedDeviceIds.value = { ...stoppedDeviceIds.value };
+      deviceStartTimes.value = { ...deviceStartTimes.value, [deviceId]: formatStartTime() };
+    } else if (failed) {
+      startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: false };
+      delete startCommandLockedIds.value[deviceId];
+      startCommandLockedIds.value = { ...startCommandLockedIds.value };
+    }
+  }
+
+  if (commandLabel === "停止") {
+    if (succeeded) {
+      stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: false };
+      stoppedDeviceIds.value = { ...stoppedDeviceIds.value, [deviceId]: true };
+      delete startCommandLockedIds.value[deviceId];
+      startCommandLockedIds.value = { ...startCommandLockedIds.value };
+    } else if (failed) {
+      stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: false };
+    }
   }
 }
 
@@ -1483,17 +1529,13 @@ async function stopSelectedDevice() {
     if (!response.ok) {
       throw new Error(result.detail || result.message || "停止命令下发失败");
     }
-    commandStatusText.value = "停止命令已下发";
+    commandStatusText.value = "停止命令已排队，等待工控机确认";
     trackQueuedCommand(result, "停止", deviceId);
-    stoppedDeviceIds.value = { ...stoppedDeviceIds.value, [deviceId]: true };
-    delete startCommandLockedIds.value[deviceId];
-    startCommandLockedIds.value = { ...startCommandLockedIds.value };
-    addOperationLog({ title: "停止运行", message: `${deviceName} 停止命令已下发`, tone: "danger", deviceId });
+    addOperationLog({ title: "停止运行", message: `${deviceName} 停止命令已排队，等待工控机确认`, tone: "warning", deviceId });
   } catch (error) {
+    stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: false };
     commandStatusText.value = error.message || "停止命令下发失败";
     addOperationLog({ title: "停止运行", message: `${deviceName} 停止命令下发失败`, tone: "danger", deviceId });
-  } finally {
-    stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: false };
   }
 }
 
@@ -1523,18 +1565,13 @@ async function startSelectedDevice() {
     if (!response.ok) {
       throw new Error(result.detail || result.message || "启动命令下发失败");
     }
-    commandStatusText.value = "启动命令已下发";
+    commandStatusText.value = "启动命令已排队，等待工控机确认";
     trackQueuedCommand(result, "启动", deviceId);
-    delete stoppedDeviceIds.value[deviceId];
-    stoppedDeviceIds.value = { ...stoppedDeviceIds.value };
-    startCommandLockedIds.value = { ...startCommandLockedIds.value, [deviceId]: true };
-    deviceStartTimes.value = { ...deviceStartTimes.value, [deviceId]: formatStartTime() };
-    addOperationLog({ title: "启动运行", message: `${deviceName} 启动命令已下发`, tone: "success", deviceId });
+    addOperationLog({ title: "启动运行", message: `${deviceName} 启动命令已排队，等待工控机确认`, tone: "warning", deviceId });
   } catch (error) {
+    startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: false };
     commandStatusText.value = error.message || "启动命令下发失败";
     addOperationLog({ title: "启动运行", message: `${deviceName} 启动命令下发失败`, tone: "danger", deviceId });
-  } finally {
-    startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: false };
   }
 }
 
