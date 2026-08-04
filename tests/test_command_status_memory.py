@@ -35,6 +35,36 @@ def test_command_execution_status_is_written_to_dedicated_memory() -> None:
         assert latest["command"] == "Stop"
         assert latest["status"] == "EXECUTED"
         assert latest["device_id"] == "SIM-TEST-001"
+        stopped_snapshot = read_snapshot(state.shm)
+        assert stopped_snapshot["program"]["run"] == 0
+        assert stopped_snapshot["mainData"]["runMode"] == 0
+        assert stopped_snapshot["status"]["state"] == "\u505c\u6b62"
+        assert not state.stream_active
+        assert state.should_upload()
+
+        state.handle_command({
+            "command_id": "CMD-TEST-002",
+            "command": "Run",
+            "device_id": "SIM-TEST-001",
+        })
+        assert state.stream_active
+
+        state.handle_command({
+            "command_id": "CMD-TEST-003",
+            "command": "Hold",
+            "device_id": "SIM-TEST-001",
+        })
+        held_snapshot = read_snapshot(state.shm)
+        assert held_snapshot["program"]["run"] == 0
+        assert held_snapshot["mainData"]["runMode"] == 0
+        assert held_snapshot["status"]["state"] == "\u4fdd\u6301"
+        assert not state.stream_active
+        assert state.should_upload()
+
+        # A paused stream must not generate a new running snapshot.
+        sequence_before = state.sequence
+        state._stream_loop()
+        assert state.sequence == sequence_before
     finally:
         state.shm.close()
         state.shm.unlink()

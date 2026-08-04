@@ -222,6 +222,16 @@ class ManualInputState:
                     program["run"] = 1
                     program["step"] = int(program.get("step") or 0) + 1
                     status["state"] = "\u8fd0\u884c\u4e2d"
+                main_data = device.setdefault("mainData", {})
+                if command_type in {"STOP_TEST", "HOLD_TEST"}:
+                    # Keep every run indicator aligned with the command result.
+                    # Otherwise downstream consumers can interpret the same
+                    # snapshot as both stopped and running.
+                    main_data["runMode"] = 0
+                    main_data["status"] = 0
+                elif command_type == "SKIP_STEP":
+                    main_data["runMode"] = 1
+                    main_data["status"] = 1
                 status["alarm"] = []
                 matched = True
 
@@ -240,11 +250,12 @@ class ManualInputState:
                 snapshot["time"] = protocol_time()
                 write_snapshot(self.shm, snapshot, self.config.shared_memory_size)
                 self.last_snapshot = snapshot
-                if command_type == "STOP_TEST":
+                if command_type in {"STOP_TEST", "HOLD_TEST"}:
                     self.stream_active = False
-                    # Stop ends the test stream, but the edge must keep uploading
-                    # the stopped snapshot so the server can distinguish STOPPED
-                    # from a lost connection.
+                    # Pausing the test stream preserves the command state in
+                    # shared memory. Telemetry uploads stay enabled so the
+                    # control center can distinguish a stopped/held test from
+                    # an offline controller.
                 self.upload_enabled = True
                 result_payload = {
                     "run_state": "STOPPED" if command_type == "STOP_TEST" else "HOLDING" if command_type == "HOLD_TEST" else "RUNNING",
@@ -262,8 +273,8 @@ class ManualInputState:
             return self.upload_enabled
 
     def on_uploaded(self, snapshot: dict[str, Any]) -> None:
-        # Uploading is also the device heartbeat. A STOP_TEST command changes
-        # the test state only; it must not disable heartbeat uploads.
+        # Uploading is also the device heartbeat. STOP_TEST and HOLD_TEST
+        # change the test state only; neither must disable heartbeat uploads.
         with self.lock:
             devices = snapshot.get("devices") or []
             self.upload_events.append({
@@ -968,6 +979,7 @@ _HTML = r"""<!doctype html>
     .edge-id { margin:0; font:700 20px/1.25 Consolas,monospace; word-break:break-all; } .endpoint { margin:10px 0 20px; color:var(--muted); font:12px/1.6 Consolas,monospace; word-break:break-all; }
     .control { width:100%; padding:12px 14px; border:0; border-radius:8px; color:#041220; background:linear-gradient(135deg,#63bcff,#52d5ff); font-weight:800; cursor:pointer; } .control:hover { filter:brightness(1.08); } .control:focus-visible,button:focus-visible,summary:focus-visible { outline:2px solid white; outline-offset:2px; }
     .rail-section { margin-top:24px; padding-top:18px; border-top:1px solid var(--line); } .rail-row { display:flex; justify-content:space-between; gap:12px; padding:8px 0; color:var(--muted); font-size:12px; } .rail-row strong { color:var(--text); font-weight:600; text-align:right; }
+    .device-run-card { margin-top:18px; padding:16px; border:1px solid #315271; border-radius:10px; background:linear-gradient(145deg,#112f4b,#0b1d31); text-align:center; } .device-run-card.running { border-color:#2dbb87; box-shadow:inset 0 0 0 1px rgba(70,214,160,.18); } .device-run-card.stopped { border-color:#ff8b8b; } .device-run-card.holding { border-color:#f2b95c; } .device-run-label { color:#a8bed5; font-size:11px; letter-spacing:.08em; } .device-run-value { margin-top:8px; font-size:26px; font-weight:900; letter-spacing:.08em; color:var(--amber); } .device-run-card.running .device-run-value { color:var(--green); } .device-run-card.stopped .device-run-value { color:var(--red); } .device-run-card.holding .device-run-value { color:var(--amber); } .device-run-detail { margin-top:6px; color:var(--muted); font-size:11px; }
     .command-state-card { margin-top:18px; padding:12px; border:1px solid #315271; border-left:3px solid var(--amber); border-radius:8px; background:rgba(6,18,32,.48); } .command-state-card.executed { border-left-color:var(--green); } .command-state-card.failed,.command-state-card.rejected { border-left-color:var(--red); } .command-state-label { color:var(--muted); font-size:11px; } .command-state-name { margin-top:5px; color:var(--text); font-size:16px; font-weight:800; } .command-state-result { margin-top:5px; color:var(--amber); font:700 12px Consolas,monospace; } .command-state-card.executed .command-state-result { color:var(--green); } .command-state-card.failed .command-state-result,.command-state-card.rejected .command-state-result { color:var(--red); } .command-state-time { margin-top:7px; color:var(--muted); font-size:11px; }
     .traffic { display:grid; gap:16px; } .stream { padding:18px; } .stream-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; } h2 { margin:0; font-size:15px; } .stream-head p { margin:4px 0 0; color:var(--muted); font-size:12px; } .counter { padding:4px 8px; border:1px solid #315271; border-radius:999px; color:#aed8ff; font:12px Consolas,monospace; white-space:nowrap; }
     .feed { display:grid; gap:8px; min-height:120px; max-height:260px; overflow:auto; padding-right:4px; } .command-feed { max-height:540px; }
@@ -998,6 +1010,7 @@ _HTML = r"""<!doctype html>
       <p class="eyebrow">本机节点</p><p id="edgeId" class="edge-id">--</p><p id="serverUrl" class="endpoint">--</p>
       <button id="openWrite" class="control" type="button">写入模拟数据</button>
       <div class="rail-section"><p class="eyebrow">传输概览</p><div class="rail-row"><span>数据流</span><strong id="streamState">--</strong></div><div class="rail-row"><span>已上报</span><strong id="uploadTotal">0</strong></div><div class="rail-row"><span>已接收命令</span><strong id="commandTotal">0</strong></div></div>
+      <div id="deviceRunCard" class="device-run-card"><div class="device-run-label">当前设备运行状态</div><div id="deviceRunValue" class="device-run-value">待命</div><div id="deviceRunDetail" class="device-run-detail">等待设备快照</div></div>
       <div id="commandStateCard" class="command-state-card"><div class="command-state-label">最新命令运行状态</div><div id="commandStateName" class="command-state-name">等待命令</div><div id="commandStateResult" class="command-state-result">--</div><div id="commandStateTime" class="command-state-time">尚无执行状态回传</div></div>
     </aside>
     <section class="traffic">
@@ -1019,8 +1032,9 @@ _HTML = r"""<!doctype html>
     function scrollToLatest(box) { requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; }); }
     function renderUploads(events) { const box=$('#uploads'); $('#uploadCount').textContent=`${events.length} 条`; $('#uploadTotal').textContent=events.length; if(!events.length) return empty(box,'等待首次快照上报'); box.replaceChildren(); events.forEach(event=>box.append(makeEvent('upload','快照上传成功',`设备 ${event.device_id || '--'} · 序列 ${event.sequence ?? '--'} · ${event.device_count ?? 0} 台设备`,event.uploaded_at,null))); scrollToLatest(box); }
     function renderCommands(commands,results) { const history=$('#commands'); const latestBox=$('#latestCommand'); const toggle=$('#toggleHistory'); latestCommandRecords=commands; $('#commandCount').textContent=`${commands.length} 条`; $('#commandTotal').textContent=commands.length; if(!commands.length) { empty(latestBox,'尚未接收到总控命令'); history.hidden=true; toggle.hidden=true; return; } const latest=commands[commands.length - 1]; const latestRaw={...latest}; delete latestRaw.received_at; latestBox.replaceChildren(makeCommandEvent(latest.command || latest.command_type || '未知命令',latest.received_at,latestRaw)); const historyCommands=commands.slice(0,-1); toggle.hidden=!historyCommands.length; if(!historyCommands.length) { history.hidden=true; return; } toggle.textContent=historyExpanded ? `收起历史命令（${historyCommands.length} 条）` : `展开历史命令（${historyCommands.length} 条）`; history.hidden=!historyExpanded; if(!historyExpanded) return; history.replaceChildren(); historyCommands.forEach(command=>{ const raw={...command}; delete raw.received_at; history.append(makeCommandEvent(command.command || command.command_type || '未知命令',command.received_at,raw)); }); scrollToLatest(history); }
+    function renderDeviceRunState(snapshot) { const card=$('#deviceRunCard'); const value=$('#deviceRunValue'); const detail=$('#deviceRunDetail'); if(!snapshot || !Object.keys(snapshot).length) { card.className='device-run-card'; value.textContent='待命'; detail.textContent='等待设备快照'; return; } const state=String(snapshot.status?.state || snapshot.run_state || '').trim(); const running=Number(snapshot.program?.run ?? snapshot.mainData?.runMode ?? snapshot.running ?? 0) === 1; let tone=''; let label='待命'; if(/停止|STOP/i.test(state)) { tone='stopped'; label='已停止'; } else if(/保持|HOLD/i.test(state)) { tone='holding'; label='保持中'; } else if(running || /运行|RUN/i.test(state)) { tone='running'; label='运行中'; } card.className=`device-run-card ${tone}`; value.textContent=label; const runTime=snapshot.timeData?.runTime; detail.textContent=runTime ? `运行时间：${runTime}` : (state || '本机实时状态'); }
     function renderCommandState(events) { const card=$('#commandStateCard'); const latest=events.at(-1); if(!latest) { card.className='command-state-card'; $('#commandStateName').textContent='等待命令'; $('#commandStateResult').textContent='--'; $('#commandStateTime').textContent='尚无执行状态回传'; return; } const status=String(latest.status || 'PENDING').toLowerCase(); card.className=`command-state-card ${status}`; $('#commandStateName').textContent=latest.command || latest.command_type || '未知命令'; $('#commandStateResult').textContent=latest.status || 'PENDING'; $('#commandStateTime').textContent=`完成时间：${timeText(latest.completed_at)}`; }
-    function update(data) { $('#edgeId').textContent=data.edge_id || '--'; $('#serverUrl').textContent=data.server_url || '--'; const streaming=Boolean(data.stream_active); $('#streamState').textContent=streaming ? '运行中' : '待命'; $('#streamState').style.color=streaming ? 'var(--green)' : 'var(--amber)'; $('#connectionDot').className=`dot ${data.last_write_error ? '' : 'live'}`; $('#connectionText').textContent=data.last_write_error ? '本机写入异常' : '本机服务运行中'; $('#snapshot').textContent=JSON.stringify(data.memory_snapshot || data.last_snapshot || {},null,2); renderUploads(data.upload_events || []); renderCommands(data.received_commands || [],data.command_results || []); renderCommandState(data.command_status_events || []); }
+    function update(data) { $('#edgeId').textContent=data.edge_id || '--'; $('#serverUrl').textContent=data.server_url || '--'; const streaming=Boolean(data.stream_active); $('#streamState').textContent=streaming ? '运行中' : '待命'; $('#streamState').style.color=streaming ? 'var(--green)' : 'var(--amber)'; $('#connectionDot').className=`dot ${data.last_write_error ? '' : 'live'}`; $('#connectionText').textContent=data.last_write_error ? '本机写入异常' : '本机服务运行中'; const snapshot=data.memory_snapshot || data.last_snapshot || {}; $('#snapshot').textContent=JSON.stringify(snapshot,null,2); renderUploads(data.upload_events || []); renderCommands(data.received_commands || [],data.command_results || []); renderDeviceRunState(snapshot); renderCommandState(data.command_status_events || []); }
     async function refresh() { const response=await fetch('/api/status'); if(!response.ok) throw new Error('状态读取失败'); update(await response.json()); }
     async function submitWrite() { const button=$('#submitWrite'); button.disabled=true; setMessage('正在写入本机共享内存…'); const raw=$('#raw').value.trim(); const payload={device_id:$('#deviceId').value.trim(),device_name:$('#deviceName').value.trim()}; if(raw) payload.raw=raw; else { payload.temperature=$('#temperature').value; payload.humidity=$('#humidity').value; } try { const response=await fetch('/api/write',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const data=await response.json(); if(!response.ok) throw new Error(data.error || '写入失败'); setMessage('模拟数据流已启动','ok'); setTimeout(()=>modal.hidden=true,350); refresh(); } catch(error) { setMessage(error.message,'bad'); } finally { button.disabled=false; } }
     const close=()=>modal.hidden=true; $('#openWrite').addEventListener('click',()=>{ modal.hidden=false; $('#deviceId').focus(); }); $('#closeModal').addEventListener('click',close); $('#cancelWrite').addEventListener('click',close); $('#closeJsonModal').addEventListener('click',()=>{ jsonModal.hidden=true; }); $('#toggleHistory').addEventListener('click',()=>{ historyExpanded=!historyExpanded; renderCommands(latestCommandRecords,[]); }); modal.addEventListener('click',event=>{if(event.target===modal)close();}); $('#submitWrite').addEventListener('click',submitWrite); document.addEventListener('keydown',event=>{if(event.key==='Escape')close();}); refresh().catch(error=>{ $('#connectionText').textContent=error.message; }); setInterval(()=>refresh().catch(()=>{}),1200);
