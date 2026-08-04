@@ -240,11 +240,11 @@ class ManualInputState:
                 snapshot["time"] = protocol_time()
                 write_snapshot(self.shm, snapshot, self.config.shared_memory_size)
                 self.last_snapshot = snapshot
-                if command_type == "STOP_TEST":
+                if command_type in {"STOP_TEST", "HOLD_TEST"}:
                     self.stream_active = False
-                    # Stop ends the test stream, but the edge must keep uploading
-                    # the stopped snapshot so the server can distinguish STOPPED
-                    # from a lost connection.
+                    # Stop/hold pause the realtime writer, but the edge must
+                    # keep uploading the resulting snapshot so the server can
+                    # distinguish a commanded state from a lost connection.
                 self.upload_enabled = True
                 result_payload = {
                     "run_state": "STOPPED" if command_type == "STOP_TEST" else "HOLDING" if command_type == "HOLD_TEST" else "RUNNING",

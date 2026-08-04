@@ -255,7 +255,7 @@
                     @click="startSelectedDevice"
                   >
                     <AppIcon name="play" :size="15" :stroke-width="2.1" />
-                    <span>{{ startingDeviceIds[selectedDeviceId] ? "启动下发中" : isStartCommandDisabled ? "已启动" : "启动运行" }}</span>
+                    <span>{{ startingDeviceIds[selectedDeviceId] ? "启动下发中" : isDeviceRunning ? "已启动" : "启动运行" }}</span>
                   </button>
                   <button
                     class="hold-command-button"
@@ -282,7 +282,7 @@
                     @click="stopSelectedDevice"
                   >
                     <AppIcon name="stop" :size="15" :stroke-width="2.1" />
-                    <span>{{ stoppingDeviceIds[selectedDeviceId] ? "停止下发中" : stoppedDeviceIds[selectedDeviceId] ? "已停止" : "停止运行" }}</span>
+                    <span>{{ stoppingDeviceIds[selectedDeviceId] ? "停止下发中" : isDeviceStopped ? "已停止" : "停止运行" }}</span>
                   </button>
                 </div>
                 <div class="command-status">
@@ -1033,19 +1033,26 @@ const runtimeDisplay = computed(() => {
 const selectedDeviceStartTime = computed(() => {
   return formatStartTimeMinute(deviceStartTimes.value[selectedDeviceId.value] || selectedDevice.value?.timeData?.startTime || "--");
 });
+const activeRunStates = ["RUNNING", "HOLDING", "PAUSED", "STOPPING", "ABORTING"];
+const stoppedRunStates = ["STOPPED", "IDLE", "COMPLETED"];
+const selectedRunState = computed(() => String(selectedDevice.value?.run_state || "").toUpperCase());
+const isDeviceRunning = computed(() => activeRunStates.includes(selectedRunState.value));
+const isDeviceStopped = computed(() => stoppedRunStates.includes(selectedRunState.value));
 const isStartCommandDisabled = computed(() => {
   const device = selectedDevice.value;
   if (!device) return true;
   const locked = startCommandLockedIds.value[device.device_id];
-  const activeState = ["RUNNING", "HOLDING", "PAUSED", "STOPPING", "ABORTING"].includes(device.run_state);
-  return Boolean(startingDeviceIds.value[device.device_id] || locked || activeState);
+  // The live controller state wins over stale local command flags. This
+  // prevents an old stop acknowledgement from making a running device look
+  // stopped, and lets a stopped device be started again after reconnects.
+  return Boolean(startingDeviceIds.value[device.device_id] || isDeviceRunning.value || (locked && !isDeviceStopped.value));
 });
 const isStopCommandDisabled = computed(() => {
   const device = selectedDevice.value;
   if (!device) return true;
-  const activeState = ["RUNNING", "HOLDING", "PAUSED", "STOPPING", "ABORTING"].includes(device.run_state);
-  const startConfirmed = Boolean(startCommandLockedIds.value[device.device_id] || activeState);
-  return Boolean(!startConfirmed || stoppingDeviceIds.value[device.device_id] || stoppedDeviceIds.value[device.device_id]);
+  // Stop is available only while the controller reports an active run state.
+  // Local command history is intentionally not enough to enable it.
+  return Boolean(!isDeviceRunning.value || stoppingDeviceIds.value[device.device_id]);
 });
 const activeNotifications = computed(() => {
   if (activeView.value === "device-detail") {
