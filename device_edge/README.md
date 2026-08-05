@@ -66,38 +66,16 @@ python -m device_edge.run_edge init-config --config device-edge.config.json
 - `server_url`：你电脑的总服务端地址。
 - `mysql.host`、`mysql.user`、`mysql.password`、`mysql.database`：工控机本地 MySQL。
 
-## 6. 一条命令模拟采集并上传
+## 6. 启动模拟端
 
 ```powershell
 cd D:\industrial-chamber-platform
-python -m device_edge.run_edge run-all --config device-edge.config.json
+python -m device_edge.run_edge manual-ui --config device-edge.config.json --host 0.0.0.0 --port 8765
 ```
 
-这个命令会同时启动：
+这个命令会同时启动本地模拟界面、共享内存写入、总服务端上传、命令接收和命令回执。
 
-```text
-模拟设备读取
-  -> 写共享内存
-  -> 读共享内存
-  -> 写本地 MySQL
-  -> 上传总服务端
-```
-
-## 7. 分开运行
-
-也可以拆成两个窗口运行。
-
-窗口 1：模拟读取并写共享内存
-
-```powershell
-python -m device_edge.run_edge simulate --config device-edge.config.json
-```
-
-窗口 2：读取共享内存并上传
-
-```powershell
-python -m device_edge.run_edge upload --config device-edge.config.json
-```
+不要再单独启动上传进程，否则同一个 `edge_id` 会建立重复长连接。
 
 ## 8. 总服务端查看实时数据
 
