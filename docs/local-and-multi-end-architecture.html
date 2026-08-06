@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>工业试验箱平台：本机与多端部署方案</title>
+  <style>
+    :root { --ink:#162338; --muted:#5e6d85; --border:#d9e2ec; --blue:#176fd1; --green:#14845a; --orange:#b96b00; --purple:#7042b2; --red:#c54b4b; --field:#edf7ff; --service:#ecf8f1; --store:#fff7e7; --ui:#f5efff; --cloud:#f2fbf5; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f6f8fb; color:var(--ink); font:15px/1.55 "PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+    main { max-width:1380px; margin:auto; padding:32px 24px 46px; }
+    h1 { margin:0; font-size:28px; line-height:1.28; }
+    h2 { margin:0 0 6px; font-size:21px; }
+    .lead, .desc { margin:8px 0 20px; color:var(--muted); }
+    .principles { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:28px; }
+    .principle { padding:13px 15px; background:#fff; border:1px solid var(--border); border-radius:10px; }
+    .principle b { color:var(--blue); }
+    section { margin-top:30px; }
+    .legend { display:flex; flex-wrap:wrap; gap:9px 17px; margin:0 0 12px; color:var(--muted); font-size:13px; }
+    .legend i { display:inline-block; width:27px; margin-right:5px; vertical-align:middle; border-top:3px solid var(--blue); }
+    .legend .command { border-top-style:dashed; border-color:var(--red); }
+    .legend .result { border-top-style:dashed; border-color:var(--green); }
+    .legend .storage { border-color:var(--orange); }
+    .diagram { overflow-x:auto; padding:20px; background:#fff; border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 24px rgba(23,40,67,.06); }
+    .diagram-inner { min-width:1010px; }
+    .zone { padding:18px; border:1.5px dashed #9fc6ee; border-radius:15px; background:#f5faff; }
+    .zone.cloud { border-color:#a9d6bb; background:var(--cloud); }
+    .zone-title { margin:0 0 14px; font-size:17px; font-weight:700; }
+    .node-row { display:grid; grid-template-columns:150px 38px 164px 38px 220px 38px 132px; align-items:center; }
+    .node { min-height:105px; display:flex; flex-direction:column; justify-content:center; padding:13px 12px; border:2px solid; border-radius:12px; text-align:center; }
+    .node strong { font-size:16px; }
+    .node span { margin-top:4px; color:#4a5a73; font-size:13px; }
+    .field { border-color:var(--blue); background:var(--field); }
+    .service { border-color:var(--green); background:var(--service); }
+    .store { border-color:var(--orange); background:var(--store); }
+    .ui { border-color:var(--purple); background:var(--ui); }
+    .connector { position:relative; height:3px; background:var(--blue); }
+    .connector::after { content:""; position:absolute; right:-1px; top:-5px; border:7px solid transparent; border-left-color:var(--blue); }
+    .line-label { display:block; margin:5px 0 -3px; color:var(--muted); font-size:12px; text-align:center; }
+    .storage-row { display:grid; grid-template-columns:150px 38px 164px 38px 220px 38px 132px; min-height:116px; align-items:start; }
+    .db { grid-column:5; position:relative; min-height:88px; margin-top:24px; }
+    .db::before { content:""; position:absolute; top:-25px; left:50%; height:24px; border-left:3px solid var(--orange); }
+    .db::after { content:""; position:absolute; top:-5px; left:calc(50% - 6px); border:6px solid transparent; border-bottom-color:var(--orange); }
+    .flow-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+    .flow { padding:10px 12px; border-radius:7px; font-size:13px; text-align:center; }
+    .flow.command { border:1px dashed var(--red); color:#8d3737; background:#fff8f8; }
+    .flow.result { border:1px dashed var(--green); color:#236a4f; background:#f6fcf8; }
+    .two-zones { display:grid; grid-template-columns:1.05fr .95fr; gap:16px; }
+    .local-grid { display:grid; grid-template-columns:130px 30px 148px 30px 190px; align-items:center; }
+    .center-grid { display:grid; grid-template-columns:175px 30px 166px 30px 132px; align-items:center; }
+    .arrow { position:relative; height:3px; background:var(--blue); }
+    .arrow::after { content:""; position:absolute; right:-1px; top:-5px; border:7px solid transparent; border-left-color:var(--blue); }
+    .vertical-db { width:188px; margin:30px auto 0; position:relative; }
+    .vertical-db::before { content:""; position:absolute; left:50%; top:-28px; height:28px; border-left:3px solid var(--orange); }
+    .vertical-db::after { content:""; position:absolute; left:calc(50% - 6px); top:-8px; border:6px solid transparent; border-bottom-color:var(--orange); }
+    .bridge { display:grid; grid-template-columns:1fr 64px 1fr; align-items:center; margin:16px 8px 0; }
+    .bridge-line { position:relative; height:4px; background:var(--blue); }
+    .bridge-line::after { content:""; position:absolute; right:-1px; top:-5px; border:7px solid transparent; border-left-color:var(--blue); }
+    .bridge-label { color:var(--muted); font-size:12px; text-align:center; }
+    .notes { display:grid; grid-template-columns:repeat(3,1fr); gap:13px; margin-top:14px; }
+    .note { padding:14px; background:#fff; border:1px solid var(--border); border-radius:10px; }
+    .note h3 { margin:0 0 5px; font-size:15px; }
+    .note p { margin:0; color:var(--muted); font-size:13px; }
+    table { width:100%; border-collapse:collapse; overflow:hidden; border:1px solid var(--border); border-radius:12px; background:#fff; }
+    th, td { padding:12px 14px; border-bottom:1px solid #e6ebf2; text-align:left; vertical-align:top; }
+    th { background:#eff4fa; }
+    tr:last-child td { border-bottom:0; }
+    .footer-note { margin:22px 0 0; padding:14px 16px; border-left:4px solid var(--orange); border-radius:4px; background:#fff4ed; color:#653f38; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.92em; }
+    @media (max-width:760px) { main { padding:22px 14px 32px; } h1 { font-size:23px; } .principles, .notes { grid-template-columns:1fr; } .diagram { padding:11px; } .two-zones { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>工业试验箱平台：本机与多端部署方案</h1>
+  <p class="lead">生产环境中，通讯工程师提供的 C++ 应用层是实时数据共享内存的唯一写入方。每台工控机仅保留一个 Python 后端服务：<b>设备边缘服务（<code>device_edge</code>）</b>，负责读取数据、服务本机 Vue Web、管理内嵌 SQLite，并按需上传和接收总控命令。</p>
+
+  <div class="principles">
+    <div class="principle"><b>一个本地后端进程</b><br><code>device_edge</code> 将共享内存读取、本机 API、命令桥接、内嵌 SQLite 和可选总控同步组织在一个服务内，降低工控机 CPU、内存与运维负担。</div>
+    <div class="principle"><b>仍然前后端分离</b><br>Vue Web 通过 HTTP / WebSocket 调用 <code>device_edge</code>；前端不读取共享内存、不处理设备协议。</div>
+    <div class="principle"><b>C++ 拥有设备侧事实</b><br>C++ 写入实时数据内存、读取命令请求并写入执行结果。<code>device_edge</code> 不生成或篡改设备实时数据。</div>
+  </div>
+
+  <section>
+    <h2>方案 A：仅本机显示与控制</h2>
+    <p class="desc">适用于只需要现场工控机 Web 界面的客户。Vue 静态文件可由 <code>device_edge</code> 托管，不需要启动 Vite、MySQL 或额外 Node 服务；SQLite 内嵌于 <code>device_edge</code> 进程。</p>
+    <div class="legend"><span><i></i>实时数据</span><span><i class="command"></i>控制命令</span><span><i class="result"></i>执行结果</span><span><i class="storage"></i>SQLite 持久化</span></div>
+    <div class="diagram" role="img" aria-label="仅本机显示和控制时，C++下层应用、共享内存、唯一的device_edge服务及Vue Web之间的数据和命令关系">
+      <div class="diagram-inner">
+        <div class="zone">
+          <p class="zone-title">单台工控机（现场本机）</p>
+          <div class="node-row">
+            <article class="node field"><strong>下层应用 / C++</strong><span>写实时数据内存<br>读取命令并执行</span></article>
+            <div><span class="line-label">标准快照</span><div class="connector"></div></div>
+            <article class="node store"><strong>BE_W 实时数据内存</strong><span>实时数据快照<br>只由 C++ 写入</span></article>
+            <div><span class="line-label">本机读取</span><div class="connector"></div></div>
+            <article class="node service"><strong>设备边缘服务</strong><span><code>device_edge</code><br>读取、标准化、HTTP / WebSocket<br>命令桥接、可选总控同步</span></article>
+            <div><span class="line-label">本机 API</span><div class="connector"></div></div>
+            <article class="node ui"><strong>Vue Web</strong><span>本机浏览器<br>展示与操作</span></article>
+          </div>
+          <div class="storage-row">
+            <article class="node store db"><strong>本地 SQLite</strong><span>由 <code>device_edge</code> 管理；数据表与保留策略待后续确认</span></article>
+          </div>
+          <div class="flow-row">
+            <div class="flow command">Vue Web → <code>device_edge</code>：HTTP 命令请求；<code>device_edge</code> → FE_W 命令请求内存 → C++（每 200ms 读取）</div>
+            <div class="flow result">C++ → BE_R 命令状态内存 → <code>device_edge</code>；<code>device_edge</code> → Vue Web：WebSocket 实时状态与命令回执</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <article class="note"><h3>只有一个 Python 服务</h3><p>工控机只运行一个 Python 后端：<code>device_edge</code>。共享内存读取一次后在进程内复用和广播，不再增加第二个本地服务。</p></article>
+      <article class="note"><h3>模拟器退出正式链路</h3><p>现有模拟写入程序仅保留为开发工具。生产启动时必须连接 C++ 已创建的共享内存，未就绪时只报告错误，不创建或写入实时数据内存。</p></article>
+      <article class="note"><h3>SQLite 是当前范围</h3><p>SQLite 内嵌于 <code>device_edge</code>，不增加数据库服务进程。具体数据表、保留周期与同步队列设计暂不在本轮确定。</p></article>
+    </div>
+  </section>
+
+  <section>
+    <h2>方案 B：本机显示 + 多用户远程管理</h2>
+    <p class="desc">适用于需要本机操作，同时希望在办公室或其他终端集中查看、远程控制多台设备的客户。每台工控机本地仍然只有一个 <code>device_edge</code> 服务；指定的一台中心主机单独运行总控服务，负责接收与路由。</p>
+    <div class="legend"><span><i></i>状态同步</span><span><i class="command"></i>控制命令</span><span><i class="result"></i>执行结果</span></div>
+    <div class="diagram" role="img" aria-label="本机显示加多用户远程管理时，本地device_edge与总控服务之间的同步和远程命令流程">
+      <div class="diagram-inner">
+        <div class="two-zones">
+          <div class="zone">
+            <p class="zone-title">工控机现场（每台设备一套）</p>
+            <div class="local-grid">
+              <article class="node field"><strong>C++</strong><span>写实时数据<br>执行控制命令</span></article>
+              <div class="arrow"></div>
+              <article class="node store"><strong>共享内存</strong><span>BE_W：实时数据<br>FE_W / BE_R：命令</span></article>
+              <div class="arrow"></div>
+              <article class="node service"><strong>设备边缘服务</strong><span><code>device_edge</code><br>本机 API / WebSocket<br>命令桥接、总控上传</span></article>
+            </div>
+            <article class="node store vertical-db"><strong>本地 SQLite</strong><span>由 <code>device_edge</code> 内嵌管理<br>表结构待后续确定</span></article>
+            <div class="flow-row"><div class="flow command">本机 Vue Web → <code>device_edge</code> → C++</div><div class="flow result">执行结果 → <code>device_edge</code> → 本机 Vue Web</div></div>
+          </div>
+          <div class="zone cloud">
+            <p class="zone-title">指定中心主机：总控平台与远程用户端</p>
+            <div class="center-grid">
+              <article class="node service"><strong>总控服务</strong><span><code>Control Center</code><br>接收设备上传、鉴权<br>命令路由、远程推送</span></article>
+              <div class="arrow"></div>
+              <article class="node store"><strong>总控运行状态</strong><span>已接收设备状态<br>路由与命令状态</span></article>
+              <div class="arrow"></div>
+              <article class="node ui"><strong>远程 Vue Web</strong><span>多用户<br>多设备管理</span></article>
+            </div>
+            <article class="node ui vertical-db"><strong>本机 Vue Web</strong><span>同样只访问本机 <code>device_edge</code></span></article>
+            <div class="flow-row"><div class="flow command">远程 Vue Web → 总控服务：鉴权、审计、生成远程命令</div><div class="flow result">总控服务 → 远程 Vue Web：设备状态、告警、命令执行结果</div></div>
+          </div>
+        </div>
+        <div class="bridge"><div class="bridge-line"></div><div class="bridge-label">WebSocket / HTTPS<br>可靠同步</div><div class="bridge-line"></div></div>
+        <div class="flow-row">
+          <div class="flow command">远程命令：远程 Vue Web → 总控服务 → 对应设备的 <code>device_edge</code> → FE_W → C++。</div>
+          <div class="flow result">状态与回执：C++ → BE_W / BE_R → <code>device_edge</code> → 总控服务；本机与远程前端分别获得实时推送。</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <article class="note"><h3>客户差异通过配置实现</h3><p>仅本机客户关闭总控连接；多端客户启用 <code>device_edge</code> 内的上传与远程命令模块。前端和现场主流程无需变更。</p></article>
+      <article class="note"><h3>总控是单独进程</h3><p>总控服务部署在指定中心主机，不部署在每台工控机上。它接收上传、维护设备路由并转发远程命令，但不直接访问共享内存。</p></article>
+      <article class="note"><h3>当前阶段边界</h3><p>本阶段引入 SQLite，但具体历史、告警、审计与断网补传的数据表尚未定稿。总控不可用时，本机展示与控制仍可工作。</p></article>
+    </div>
+  </section>
+
+  <section>
+    <h2>服务与进程清单</h2>
+    <table>
+      <thead><tr><th>组件</th><th>工控机是否独立进程</th><th>职责</th><th>仅本机版</th><th>多端版</th></tr></thead>
+      <tbody>
+        <tr><td><b>下层应用 / C++</b></td><td>是</td><td>设备协议、采集、写实时数据共享内存、读取命令请求、执行控制并写入命令状态。</td><td>启用</td><td>启用</td></tr>
+        <tr><td><b>设备边缘服务<br><code>device_edge</code></b></td><td>是，唯一 Python 后端服务</td><td>共享内存读取与标准化、HTTP / WebSocket、本机命令接收、命令桥接、内嵌 SQLite、可选总控上传与命令接收。</td><td>启用，同步关闭</td><td>启用，同步开启</td></tr>
+        <tr><td><b>Vue Web</b></td><td>浏览器进程</td><td>本机展示与操作；只调用 <code>device_edge</code> API。生产环境由 <code>device_edge</code> 托管静态文件。</td><td>启用</td><td>启用</td></tr>
+        <tr><td><b>总控服务<br><code>Control Center</code></b></td><td>指定中心主机，单独进程</td><td>接收各 <code>device_edge</code> 上传的数据和回执；多设备接入、远程权限、命令路由、统一告警、报表、远程推送。</td><td>不部署</td><td>启用</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <p class="footer-note"><b>当前边界：</b>工控机不增加第二个本地后端服务。C++ 是实时数据共享内存的唯一写入方；<code>device_edge</code> 是本机读取、命令桥接、SQLite 与前端 API 的唯一入口；Vue 与它通过 HTTP / WebSocket 保持前后端分离。SQLite 的具体表结构暂不在本方案中展开。</p>
+</main>
+</body>
+</html>

@@ -251,7 +251,7 @@
                   <button
                     class="start-command-button"
                     type="button"
-                    :disabled="isStartCommandDisabled"
+                    :disabled="!selectedDevice"
                     @click="startSelectedDevice"
                   >
                     <AppIcon name="play" :size="15" :stroke-width="2.1" />
@@ -260,7 +260,7 @@
                   <button
                     class="hold-command-button"
                     type="button"
-                    :disabled="!selectedDevice || holdingDeviceIds[selectedDeviceId]"
+                    :disabled="!selectedDevice"
                     @click="holdSelectedDevice"
                   >
                     <AppIcon :name="heldDeviceIds[selectedDeviceId] ? 'play' : 'pause'" :size="15" :stroke-width="2.1" />
@@ -269,7 +269,7 @@
                   <button
                     class="skip-command-button"
                     type="button"
-                    :disabled="!selectedDevice || skippingDeviceIds[selectedDeviceId]"
+                    :disabled="!selectedDevice"
                     @click="skipSelectedDeviceStep"
                   >
                     <AppIcon name="skip" :size="15" :stroke-width="2.1" />
@@ -278,7 +278,7 @@
                   <button
                     class="danger-command-button"
                     type="button"
-                    :disabled="isStopCommandDisabled"
+                    :disabled="!selectedDevice"
                     @click="stopSelectedDevice"
                   >
                     <AppIcon name="stop" :size="15" :stroke-width="2.1" />
@@ -1038,22 +1038,6 @@ const stoppedRunStates = ["STOPPED", "IDLE", "COMPLETED"];
 const selectedRunState = computed(() => String(selectedDevice.value?.run_state || "").toUpperCase());
 const isDeviceRunning = computed(() => activeRunStates.includes(selectedRunState.value));
 const isDeviceStopped = computed(() => stoppedRunStates.includes(selectedRunState.value));
-const isStartCommandDisabled = computed(() => {
-  const device = selectedDevice.value;
-  if (!device) return true;
-  const locked = startCommandLockedIds.value[device.device_id];
-  // The live controller state wins over stale local command flags. This
-  // prevents an old stop acknowledgement from making a running device look
-  // stopped, and lets a stopped device be started again after reconnects.
-  return Boolean(startingDeviceIds.value[device.device_id] || isDeviceRunning.value || (locked && !isDeviceStopped.value));
-});
-const isStopCommandDisabled = computed(() => {
-  const device = selectedDevice.value;
-  if (!device) return true;
-  // Stop is available only while the controller reports an active run state.
-  // Local command history is intentionally not enough to enable it.
-  return Boolean(!isDeviceRunning.value || stoppingDeviceIds.value[device.device_id]);
-});
 const activeNotifications = computed(() => {
   if (activeView.value === "device-detail") {
     return operationLogs.value.filter(item => !selectedDeviceId.value || item.deviceId === selectedDeviceId.value);
@@ -1470,7 +1454,11 @@ function commandExecutionText(status) {
 }
 
 function handleCommandStatus(event) {
-  if (!event?.command_id) return;
+  if (!event?.command_id) {
+    const nextStatus = commandExecutionText(event?.status);
+    commandStatusText.value = event?.message ? `${nextStatus}：${event.message}` : nextStatus;
+    return;
+  }
   const current = commandStatusById.value[event.command_id] || {};
   const nextStatus = commandExecutionText(event.status);
   commandStatusById.value = {
@@ -1516,7 +1504,6 @@ function handleCommandStatus(event) {
 async function stopSelectedDevice() {
   if (!selectedDevice.value) return;
   const deviceId = selectedDevice.value.device_id;
-  if (stoppedDeviceIds.value[deviceId] || stoppingDeviceIds.value[deviceId]) return;
   const deviceName = selectedDevice.value.name || deviceId;
   stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: true };
   commandStatusText.value = "正在下发停止命令";
@@ -1538,6 +1525,7 @@ async function stopSelectedDevice() {
     }
     commandStatusText.value = "停止命令已排队，等待工控机确认";
     trackQueuedCommand(result, "停止", deviceId);
+    stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: false };
     addOperationLog({ title: "停止运行", message: `${deviceName} 停止命令已排队，等待工控机确认`, tone: "warning", deviceId });
   } catch (error) {
     stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: false };
@@ -1547,7 +1535,7 @@ async function stopSelectedDevice() {
 }
 
 async function startSelectedDevice() {
-  if (!selectedDevice.value || isStartCommandDisabled.value) return;
+  if (!selectedDevice.value) return;
   const deviceId = selectedDevice.value.device_id;
   const deviceName = selectedDevice.value.name || deviceId;
   startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: true };
@@ -1574,6 +1562,7 @@ async function startSelectedDevice() {
     }
     commandStatusText.value = "启动命令已排队，等待工控机确认";
     trackQueuedCommand(result, "启动", deviceId);
+    startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: false };
     addOperationLog({ title: "启动运行", message: `${deviceName} 启动命令已排队，等待工控机确认`, tone: "warning", deviceId });
   } catch (error) {
     startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: false };

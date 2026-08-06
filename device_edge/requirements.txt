@@ -1,2 +1,5 @@
 # Persistent edge-to-control-center communication.
 websockets>=13,<16
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.5

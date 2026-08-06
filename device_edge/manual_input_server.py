@@ -322,18 +322,20 @@ class ManualInputState:
 
 def run_manual_input_server(config: EdgeConfig, host: str = "127.0.0.1", port: int = 8765) -> None:
     state = ManualInputState(config)
-    edge_client = WebSocketEdgeClient(
-        config,
-        command_handler=state.handle_command,
-        should_upload=state.should_upload,
-        on_uploaded=state.on_uploaded,
-    )
-    threading.Thread(target=edge_client.run_forever, daemon=True, name="edge-websocket-client").start()
+    if config.control_center_enabled:
+        edge_client = WebSocketEdgeClient(
+            config,
+            command_handler=state.handle_command,
+            should_upload=state.should_upload,
+            on_uploaded=state.on_uploaded,
+        )
+        threading.Thread(target=edge_client.run_forever, daemon=True, name="edge-websocket-client").start()
 
     handler = _build_handler(state)
     server = ThreadingHTTPServer((host, port), handler)
     print(f"manual input UI started: http://{host}:{port}")
-    print(f"control-center websocket: {config.websocket_endpoint}")
+    if config.control_center_enabled:
+        print(f"control-center websocket: {config.websocket_endpoint}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -27,11 +27,13 @@ class WebSocketEdgeClient:
         command_handler: Optional[CommandHandler] = None,
         should_upload: Optional[Callable[[], bool]] = None,
         on_uploaded: Optional[Callable[[dict[str, Any]], None]] = None,
+        snapshot_provider: Optional[Callable[[], dict[str, Any]]] = None,
     ) -> None:
         self._config = config
         self._command_handler = command_handler
         self._should_upload = should_upload or (lambda: True)
         self._on_uploaded = on_uploaded
+        self._snapshot_provider = snapshot_provider
 
     def run_forever(self) -> None:
         asyncio.run(self._run_forever())
@@ -98,6 +100,8 @@ class WebSocketEdgeClient:
             self._on_uploaded(snapshot)
 
     def _read_local_snapshot(self) -> dict[str, Any]:
+        if self._snapshot_provider:
+            return self._snapshot_provider()
         shm = attach_existing(self._config.shared_memory_name)
         try:
             return read_snapshot(shm)

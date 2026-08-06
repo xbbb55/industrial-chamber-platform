@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from device_edge.control_protocol import build_fe_w, normalize_command, protocol_time
 from .shared_memory_store import SharedMemoryNotReady, attach_existing, inspect_memory, read_snapshot
-from .snapshot_normalizer import normalize_snapshot
+from device_edge.snapshot_normalizer import normalize_snapshot
 
 
 app = FastAPI(title="Shared Memory Router Test")
