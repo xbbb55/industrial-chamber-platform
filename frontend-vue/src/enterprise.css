@@ -697,6 +697,12 @@ textarea:focus-visible {
   justify-content: flex-start;
 }
 .command-panel h3 { font-size: 14px; }
+.command-memory-panel { display: grid; gap: 14px; }
+.command-memory-summary { display: flex; flex-wrap: wrap; gap: 12px 24px; color: #64748b; font-size: 13px; }
+.command-memory-summary strong { color: #1e293b; }
+.command-memory-error { margin: 0; color: #b42318; font-size: 13px; }
+.diagnostic-ok { color: #15803d !important; }
+.diagnostic-error { color: #b42318 !important; }
 .command-panel p { margin-top: 5px; }
 .command-main-row {
   width: 100%;

@@ -36,6 +36,31 @@ FE_W  命令请求，device_edge 创建并写入
 BE_R  命令状态，C++ 创建并写入
 ```
 
+## C++ 原生共享内存协议
+
+当前工控机 C++ 程序使用 Windows 原生 `CreateFileMappingW` / `MapViewOfFile`。三块映射的容量均为 `4096` 字节，数据格式固定为：
+
+```text
+偏移 0~3：uint32 小端序 JSON 字节长度
+偏移 4 起：UTF-8 JSON
+```
+
+`device-edge.config.json` 必须设置：
+
+```json
+{
+  "shared_memory_name": "BE_W",
+  "command_request_memory_name": "FE_W",
+  "command_status_memory_name": "BE_R",
+  "shared_memory_size": 4096,
+  "command_request_memory_size": 4096,
+  "command_status_memory_size": 4096,
+  "shared_memory_protocol": "length_prefixed_json_v1"
+}
+```
+
+本地命名映射只在同一个 Windows 会话中可见。若 C++ 与 `device_edge` 无法在同一会话运行，双方必须统一使用 `Global\\BE_W`、`Global\\FE_W`、`Global\\BE_R`。
+
 启动本机服务：
 
 ```powershell

@@ -19,6 +19,7 @@ class EdgeConfig:
     auth_token: str = ""
     command_request_memory_name: str = "FE_W"
     command_request_memory_size: int = 1024 * 64
+    shared_memory_protocol: str = "versioned_json_v1"
     realtime_poll_interval_seconds: float = 1.0
     command_status_idle_poll_interval_seconds: float = 1.0
     command_status_active_poll_interval_seconds: float = 0.2
@@ -59,6 +60,7 @@ def load_config(path: Union[str, Path]) -> EdgeConfig:
         auth_token=auth.get("token", ""),
         command_request_memory_name=data.get("command_request_memory_name", "FE_W"),
         command_request_memory_size=int(data.get("command_request_memory_size", 1024 * 64)),
+        shared_memory_protocol=str(data.get("shared_memory_protocol", "versioned_json_v1")),
         realtime_poll_interval_seconds=float(local_api.get("realtime_poll_interval_seconds", 1.0)),
         command_status_idle_poll_interval_seconds=float(local_api.get("command_status_idle_poll_interval_seconds", 1.0)),
         command_status_active_poll_interval_seconds=float(local_api.get("command_status_active_poll_interval_seconds", 0.2)),

@@ -300,6 +300,16 @@
                   <AppIcon name="sliders" :size="16" />
                   <span>更多部件</span>
                 </button>
+                <button
+                  class="layout-config-button command-layout-button"
+                  type="button"
+                  title="打开 BE_R 命令回执诊断"
+                  aria-label="打开 BE_R 命令回执诊断"
+                  @click="openMemoryDiagnostics"
+                >
+                  <AppIcon name="activity" :size="16" />
+                  <span>BE_R 诊断</span>
+                </button>
               </div>
             </section>
 
@@ -678,6 +688,23 @@
             </div>
             <pre class="json-view">{{ formattedSnapshot }}</pre>
           </section>
+          <section class="panel command-memory-panel">
+            <div class="panel-title">
+              <div>
+                <h3>BE_R 命令回执诊断</h3>
+                <span>只读显示，不会创建或写入共享内存</span>
+              </div>
+              <button class="ghost-action" type="button" @click="refreshCommandStatusDiagnostic">刷新</button>
+            </div>
+            <div class="command-memory-summary">
+              <span>映射名：<strong>{{ commandStatusMemoryName }}</strong></span>
+              <span>连接：<strong :class="commandStatusDiagnostic?.connected ? 'diagnostic-ok' : 'diagnostic-error'">{{ commandStatusConnectionText }}</strong></span>
+              <span>版本：<strong>{{ commandStatusDiagnostic?.memory_version ?? "--" }}</strong></span>
+              <span>读取时间：<strong>{{ commandStatusReadTime }}</strong></span>
+            </div>
+            <p v-if="commandStatusDiagnostic?.error" class="command-memory-error">{{ commandStatusDiagnostic.error }}</p>
+            <pre class="json-view">{{ formattedCommandStatusContent }}</pre>
+          </section>
         </section>
 
         <section v-else class="page-stack">
@@ -757,12 +784,25 @@ const TREND_Y_MIN_SCALE = 0.18;
 const TREND_Y_MAX_SCALE = 3.5;
 const MONITOR_LAYOUT_STORAGE_KEY = "industrial-chamber-monitor-layout-v1";
 
-const activeView = ref("dashboard");
-const devices = ref([]);
+const activeView = ref("device-detail");
+const devices = ref([{
+  device_id: "EDGE-CHAMBER-001",
+  name: "环境试验箱（本机）",
+  online: false,
+  run_state: "IDLE",
+  status_text: "等待控制器数据",
+  current_temperature: 0,
+  target_temperature: 0,
+  current_humidity: 0,
+  target_humidity: 0,
+  current_step: 0,
+  total_steps: 0,
+  alarms: []
+}]);
 const snapshot = ref(null);
 const routerReadAt = ref(null);
 const connectionText = ref("连接中");
-const selectedDeviceId = ref(null);
+const selectedDeviceId = ref("EDGE-CHAMBER-001");
 const selectedDeviceSection = ref("monitor");
 const operationTab = ref("protection");
 const parameterTab = ref("basic");
@@ -848,6 +888,8 @@ const currentTimeText = ref(new Date().toLocaleTimeString());
 const commandStatusText = ref("等待操作");
 const commandStatusById = ref({});
 const activeCommandIds = ref({});
+const commandStatusDiagnostic = ref(null);
+const commandStatusDiagnosticError = ref("");
 const profileActionText = ref("");
 const stoppingDeviceIds = ref({});
 const stoppedDeviceIds = ref({});
@@ -875,6 +917,7 @@ const previousDeviceStates = ref({});
 
 let socket = null;
 let reconnectTimer = null;
+let commandStatusTimer = null;
 let clockTimer = null;
 let lastTrendDragX = 0;
 
@@ -1008,6 +1051,17 @@ const memoryName = computed(() => "industrial_chamber_realtime_v1");
 const memoryTotal = computed(() => "256KB");
 const memoryStableText = computed(() => snapshot.value ? "稳定可读" : "等待数据");
 const formattedSnapshot = computed(() => JSON.stringify(snapshot.value, null, 2));
+const commandStatusMemoryName = computed(() => commandStatusDiagnostic.value?.memory_name || "BE_R");
+const commandStatusConnectionText = computed(() => commandStatusDiagnostic.value?.connected ? "已连接" : "未连接");
+const commandStatusReadTime = computed(() => {
+  const readAt = commandStatusDiagnostic.value?.last_read_at;
+  return readAt ? new Date(readAt * 1000).toLocaleString() : "--";
+});
+const formattedCommandStatusContent = computed(() => {
+  if (commandStatusDiagnosticError.value) return commandStatusDiagnosticError.value;
+  const content = commandStatusDiagnostic.value?.content;
+  return content ? JSON.stringify(content, null, 2) : "尚无可读的 BE_R 回执内容";
+});
 const trendAxisLabels = computed(() => {
   const range = getTrendTimeRange(trendClockMs.value);
   return [0, 0.25, 0.5, 0.75, 1].map(ratio => {
@@ -1280,6 +1334,11 @@ function openDeviceDetail(deviceId) {
 function returnToDashboard() {
   activeView.value = "dashboard";
   isSidebarCollapsed.value = false;
+}
+
+function openMemoryDiagnostics() {
+  activeView.value = "memory";
+  refreshCommandStatusDiagnostic();
 }
 
 function openProfile() {
@@ -1682,6 +1741,17 @@ function connectSocket() {
   };
 }
 
+async function refreshCommandStatusDiagnostic() {
+  try {
+    const response = await fetch("/api/memory/command-status", { cache: "no-store" });
+    if (!response.ok) throw new Error(`BE_R 诊断接口请求失败：${response.status}`);
+    commandStatusDiagnostic.value = await response.json();
+    commandStatusDiagnosticError.value = "";
+  } catch (error) {
+    commandStatusDiagnosticError.value = error.message || "BE_R 诊断接口不可用";
+  }
+}
+
 function pushTrendSamples(deviceList, writtenAt) {
   const nowMs = Number(writtenAt ? writtenAt * 1000 : Date.now());
   const nextHistory = { ...trendHistory.value };
@@ -1970,6 +2040,8 @@ function handleTrendResize() {
 onMounted(() => {
   loadMonitorLayout();
   connectSocket();
+  refreshCommandStatusDiagnostic();
+  commandStatusTimer = window.setInterval(refreshCommandStatusDiagnostic, 1000);
   window.addEventListener("resize", handleTrendResize);
   clockTimer = window.setInterval(() => {
     currentTimeText.value = new Date().toLocaleTimeString();
@@ -1981,6 +2053,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (socket) socket.close();
   if (reconnectTimer) window.clearTimeout(reconnectTimer);
+  if (commandStatusTimer) window.clearInterval(commandStatusTimer);
   if (clockTimer) window.clearInterval(clockTimer);
   window.removeEventListener("resize", handleTrendResize);
 });

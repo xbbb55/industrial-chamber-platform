@@ -104,7 +104,7 @@ class WebSocketEdgeClient:
             return self._snapshot_provider()
         shm = attach_existing(self._config.shared_memory_name)
         try:
-            return read_snapshot(shm)
+            return read_snapshot(shm, protocol=self._config.shared_memory_protocol)
         finally:
             shm.close()
 

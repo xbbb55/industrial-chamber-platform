@@ -31,6 +31,8 @@ class DeviceEdgeRuntime:
         self._latest_snapshot: dict[str, Any] | None = None
         self._latest_realtime_version: int | None = None
         self._latest_status_version: int | None = None
+        self._latest_status_payload: dict[str, Any] | None = None
+        self._last_status_read_at: float | None = None
         self._last_realtime_error: str | None = None
         self._last_status_error: str | None = None
         self._pending_command: dict[str, Any] | None = None
@@ -97,6 +99,19 @@ class DeviceEdgeRuntime:
                 "control_center_enabled": self.config.control_center_enabled,
             }
 
+    def command_status_diagnostic(self) -> dict[str, Any]:
+        """Return the latest BE_R read result without modifying shared memory."""
+        with self._lock:
+            return {
+                "memory_name": self.config.command_status_memory_name,
+                "protocol": self.config.shared_memory_protocol,
+                "connected": self._status_memory is not None,
+                "memory_version": self._latest_status_version,
+                "last_read_at": self._last_status_read_at,
+                "error": self._last_status_error,
+                "content": self._latest_status_payload,
+            }
+
     def subscribe(self) -> asyncio.Queue[dict[str, Any]]:
         queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=20)
         self._subscribers.add(queue)
@@ -135,6 +150,7 @@ class DeviceEdgeRuntime:
                 self._request_memory,
                 {"command": wire_command, "time": command["time"]},
                 self.config.command_request_memory_size,
+                self.config.shared_memory_protocol,
             )
             self._pending_command = command
             if self._store is not None:
@@ -162,7 +178,10 @@ class DeviceEdgeRuntime:
         try:
             if self._realtime_memory is None:
                 self._realtime_memory = attach_existing(self.config.shared_memory_name)
-            version, raw_snapshot = read_snapshot_with_version(self._realtime_memory)
+            version, raw_snapshot = read_snapshot_with_version(
+                self._realtime_memory,
+                protocol=self.config.shared_memory_protocol,
+            )
             with self._lock:
                 if version == self._latest_realtime_version:
                     return
@@ -185,11 +204,16 @@ class DeviceEdgeRuntime:
         try:
             if self._status_memory is None:
                 self._status_memory = attach_existing(self.config.command_status_memory_name)
-            version, result = read_snapshot_with_version(self._status_memory)
+            version, result = read_snapshot_with_version(
+                self._status_memory,
+                protocol=self.config.shared_memory_protocol,
+            )
             with self._lock:
                 if version == self._latest_status_version:
                     return
                 self._latest_status_version = version
+                self._latest_status_payload = result
+                self._last_status_read_at = time.time()
                 self._last_status_error = None
             self._handle_command_result(result, version)
         except Exception as exc:

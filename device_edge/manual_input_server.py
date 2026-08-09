@@ -101,7 +101,7 @@ class ManualInputState:
             start_time=self.stream_start_time,
             sequence=self.sequence,
         )
-        write_snapshot(self.shm, snapshot, self.config.shared_memory_size)
+        write_snapshot(self.shm, snapshot, self.config.shared_memory_size, self.config.shared_memory_protocol)
         self.sequence += 1
         self.last_snapshot = snapshot
         self.last_write_error = None
@@ -152,6 +152,7 @@ class ManualInputState:
                 "events": self.command_status_events,
             },
             self.config.command_status_memory_size,
+            self.config.shared_memory_protocol,
         )
 
     def handle_command(self, command: dict[str, Any]) -> dict[str, Any]:
@@ -248,7 +249,7 @@ class ManualInputState:
                 # Keep the production payload timestamp current as well. The
                 # backend uses this controller time to determine data staleness.
                 snapshot["time"] = protocol_time()
-                write_snapshot(self.shm, snapshot, self.config.shared_memory_size)
+                write_snapshot(self.shm, snapshot, self.config.shared_memory_size, self.config.shared_memory_protocol)
                 self.last_snapshot = snapshot
                 if command_type in {"STOP_TEST", "HOLD_TEST"}:
                     self.stream_active = False
@@ -311,7 +312,7 @@ class ManualInputState:
             }
 
     def _read_snapshot_unlocked(self) -> dict[str, Any]:
-        return read_snapshot(self.shm)
+        return read_snapshot(self.shm, protocol=self.config.shared_memory_protocol)
 
     @staticmethod
     def _find_device(snapshot: dict[str, Any], device_id: Any) -> Optional[dict[str, Any]]:

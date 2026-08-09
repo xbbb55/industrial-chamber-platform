@@ -64,6 +64,10 @@ def create_app(config: EdgeConfig) -> FastAPI:
     async def status() -> dict[str, Any]:
         return runtime.health()
 
+    @app.get("/api/memory/command-status")
+    async def command_status_memory() -> dict[str, Any]:
+        return runtime.command_status_diagnostic()
+
     @app.post("/api/devices/{device_id}/commands")
     async def submit_command(device_id: str, request: LocalCommandRequest) -> dict[str, Any]:
         try:
