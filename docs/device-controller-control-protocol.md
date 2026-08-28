@@ -18,9 +18,9 @@
 | --- | --- |
 | 启动 | `Run` |
 | 停止 | `Stop` |
-| 保持 | `Hold` |
-| 继续 | `Keep` |
-| 跳段 | `Jnmp` |
+| 保持 | `HoldON` |
+| 继续 | `HoldOFF` |
+| 跳段 | `Jump` |
 | 蜂鸣器开/关 | `BuzzerON` / `BuzzerOFF` |
 | 报警复位 | `Reset` |
 | 模式切换 | `RunMode=1` / `RunMode=2` |

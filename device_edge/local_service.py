@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .config import EdgeConfig
+from .mysql_store import FixedValueStore
 from .runtime import DeviceEdgeRuntime
 from .websocket_client import WebSocketEdgeClient
 
@@ -25,8 +26,19 @@ class LocalCommandRequest(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
+class FixedValueRequest(BaseModel):
+    temperature_target: float
+    temperature_slope: float
+    humidity_target: float
+    humidity_slope: float
+    runtime_hours: int = Field(ge=0, le=65535)
+    runtime_minutes: int = Field(ge=0, le=59)
+    runtime_seconds: int = Field(ge=0, le=59)
+
+
 def create_app(config: EdgeConfig) -> FastAPI:
     runtime = DeviceEdgeRuntime(config)
+    fixed_value_store = FixedValueStore(config) if config.database_enabled else None
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -64,9 +76,23 @@ def create_app(config: EdgeConfig) -> FastAPI:
     async def status() -> dict[str, Any]:
         return runtime.health()
 
-    @app.get("/api/memory/command-status")
-    async def command_status_memory() -> dict[str, Any]:
-        return runtime.command_status_diagnostic()
+    @app.get("/api/settings/fixed-value")
+    async def get_fixed_value() -> dict[str, Any]:
+        if fixed_value_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            return {"value": fixed_value_store.get_fixed_value()}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.put("/api/settings/fixed-value")
+    async def save_fixed_value(request: FixedValueRequest) -> dict[str, Any]:
+        if fixed_value_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            return {"value": fixed_value_store.save_fixed_value(request.model_dump())}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     @app.post("/api/devices/{device_id}/commands")
     async def submit_command(device_id: str, request: LocalCommandRequest) -> dict[str, Any]:

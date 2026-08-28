@@ -31,8 +31,6 @@ class DeviceEdgeRuntime:
         self._latest_snapshot: dict[str, Any] | None = None
         self._latest_realtime_version: int | None = None
         self._latest_status_version: int | None = None
-        self._latest_status_payload: dict[str, Any] | None = None
-        self._last_status_read_at: float | None = None
         self._last_realtime_error: str | None = None
         self._last_status_error: str | None = None
         self._pending_command: dict[str, Any] | None = None
@@ -97,19 +95,6 @@ class DeviceEdgeRuntime:
                 "command_status_error": self._last_status_error,
                 "pending_command": self._pending_command,
                 "control_center_enabled": self.config.control_center_enabled,
-            }
-
-    def command_status_diagnostic(self) -> dict[str, Any]:
-        """Return the latest BE_R read result without modifying shared memory."""
-        with self._lock:
-            return {
-                "memory_name": self.config.command_status_memory_name,
-                "protocol": self.config.shared_memory_protocol,
-                "connected": self._status_memory is not None,
-                "memory_version": self._latest_status_version,
-                "last_read_at": self._last_status_read_at,
-                "error": self._last_status_error,
-                "content": self._latest_status_payload,
             }
 
     def subscribe(self) -> asyncio.Queue[dict[str, Any]]:
@@ -212,8 +197,6 @@ class DeviceEdgeRuntime:
                 if version == self._latest_status_version:
                     return
                 self._latest_status_version = version
-                self._latest_status_payload = result
-                self._last_status_read_at = time.time()
                 self._last_status_error = None
             self._handle_command_result(result, version)
         except Exception as exc:

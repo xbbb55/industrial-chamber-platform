@@ -24,6 +24,12 @@ class EdgeConfig:
     command_status_idle_poll_interval_seconds: float = 1.0
     command_status_active_poll_interval_seconds: float = 0.2
     sqlite_path: str = "device-edge.db"
+    database_enabled: bool = True
+    database_host: str = "localhost"
+    database_port: int = 3306
+    database_name: str = "HDQC"
+    database_user: str = "root"
+    database_password_env: str = "MYSQL_PWD"
     control_center_enabled: bool = False
     allowed_operator_ids: tuple[str, ...] = ("web-admin",)
 
@@ -45,6 +51,7 @@ def load_config(path: Union[str, Path]) -> EdgeConfig:
     auth = data.get("auth", {})
     control_center = data.get("control_center", {})
     local_api = data.get("local_api", {})
+    database = data.get("database", {})
     allowed_operator_ids = auth.get("allowed_operator_ids", ["web-admin"])
     return EdgeConfig(
         edge_id=data["edge_id"],
@@ -65,6 +72,12 @@ def load_config(path: Union[str, Path]) -> EdgeConfig:
         command_status_idle_poll_interval_seconds=float(local_api.get("command_status_idle_poll_interval_seconds", 1.0)),
         command_status_active_poll_interval_seconds=float(local_api.get("command_status_active_poll_interval_seconds", 0.2)),
         sqlite_path=str(data.get("sqlite_path", "device-edge.db")),
+        database_enabled=bool(database.get("enabled", True)),
+        database_host=str(database.get("host", "localhost")),
+        database_port=int(database.get("port", 3306)),
+        database_name=str(database.get("name", "HDQC")),
+        database_user=str(database.get("user", "root")),
+        database_password_env=str(database.get("password_env", "MYSQL_PWD")),
         control_center_enabled=bool(control_center.get("enabled", False)),
         allowed_operator_ids=tuple(str(item) for item in allowed_operator_ids if str(item).strip()),
     )

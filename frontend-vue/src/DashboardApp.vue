@@ -300,16 +300,6 @@
                   <AppIcon name="sliders" :size="16" />
                   <span>更多部件</span>
                 </button>
-                <button
-                  class="layout-config-button command-layout-button"
-                  type="button"
-                  title="打开 BE_R 命令回执诊断"
-                  aria-label="打开 BE_R 命令回执诊断"
-                  @click="openMemoryDiagnostics"
-                >
-                  <AppIcon name="activity" :size="16" />
-                  <span>BE_R 诊断</span>
-                </button>
               </div>
             </section>
 
@@ -338,7 +328,7 @@
                 :temperature="Number(selectedDevice.current_temperature ?? 0)"
                 :humidity="Number(selectedDevice.current_humidity ?? 0)"
                 :device-status="runStateLabel(selectedDevice.run_state)"
-                :updated-at="formatSnapshotTime(selectedDevice.updated_at || snapshot?.written_at)"
+                :running-mode="selectedDeviceRunningMode"
                 :communication-status="communicationLabel(selectedDevice.online)"
                 :start-time="selectedDeviceStartTime"
               />
@@ -688,23 +678,6 @@
             </div>
             <pre class="json-view">{{ formattedSnapshot }}</pre>
           </section>
-          <section class="panel command-memory-panel">
-            <div class="panel-title">
-              <div>
-                <h3>BE_R 命令回执诊断</h3>
-                <span>只读显示，不会创建或写入共享内存</span>
-              </div>
-              <button class="ghost-action" type="button" @click="refreshCommandStatusDiagnostic">刷新</button>
-            </div>
-            <div class="command-memory-summary">
-              <span>映射名：<strong>{{ commandStatusMemoryName }}</strong></span>
-              <span>连接：<strong :class="commandStatusDiagnostic?.connected ? 'diagnostic-ok' : 'diagnostic-error'">{{ commandStatusConnectionText }}</strong></span>
-              <span>版本：<strong>{{ commandStatusDiagnostic?.memory_version ?? "--" }}</strong></span>
-              <span>读取时间：<strong>{{ commandStatusReadTime }}</strong></span>
-            </div>
-            <p v-if="commandStatusDiagnostic?.error" class="command-memory-error">{{ commandStatusDiagnostic.error }}</p>
-            <pre class="json-view">{{ formattedCommandStatusContent }}</pre>
-          </section>
         </section>
 
         <section v-else class="page-stack">
@@ -731,6 +704,36 @@
         <div class="save-confirm-footer">
           <button class="ghost-action" type="button" @click="closeSaveConfirm">取消</button>
           <button class="primary-action" type="button" @click="confirmSaveSettings">确认修改</button>
+        </div>
+      </section>
+    </div>
+
+    <div v-if="isRunModeDialogOpen" class="run-mode-backdrop" @click.self="cancelRunModeSelection">
+      <section class="run-mode-modal" role="dialog" aria-modal="true" aria-labelledby="run-mode-title">
+        <div class="run-mode-header">
+          <div>
+            <h3 id="run-mode-title">选择运行模式</h3>
+          </div>
+          <button class="run-mode-close" type="button" title="关闭" aria-label="关闭" @click="cancelRunModeSelection">
+            <AppIcon name="close" :size="17" />
+          </button>
+        </div>
+        <div class="run-mode-options">
+          <button
+            v-for="mode in runModeOptions"
+            :key="mode.value"
+            type="button"
+            class="run-mode-option"
+            :class="{ active: runModeSelection === mode.value }"
+            @click="runModeSelection = mode.value"
+          >
+            <span class="run-mode-option-icon"><AppIcon :name="mode.icon" :size="21" /></span>
+            <span><strong>{{ mode.label }}</strong></span>
+            <i>{{ runModeSelection === mode.value ? "已选择" : "选择" }}</i>
+          </button>
+        </div>
+        <div class="run-mode-footer">
+          <div><button class="primary-action" type="button" @click="confirmRunModeSelection">确认启动</button></div>
         </div>
       </section>
     </div>
@@ -888,8 +891,6 @@ const currentTimeText = ref(new Date().toLocaleTimeString());
 const commandStatusText = ref("等待操作");
 const commandStatusById = ref({});
 const activeCommandIds = ref({});
-const commandStatusDiagnostic = ref(null);
-const commandStatusDiagnosticError = ref("");
 const profileActionText = ref("");
 const stoppingDeviceIds = ref({});
 const stoppedDeviceIds = ref({});
@@ -908,6 +909,8 @@ const isSidebarCollapsed = ref(false);
 const isLayoutEditorOpen = ref(false);
 const isNotificationOpen = ref(false);
 const isSaveConfirmOpen = ref(false);
+const isRunModeDialogOpen = ref(false);
+const runModeSelection = ref("1");
 const pendingSaveTarget = ref(null);
 const deviceStartTimes = ref({});
 const visibleMonitorCards = ref(["trend"]);
@@ -917,7 +920,6 @@ const previousDeviceStates = ref({});
 
 let socket = null;
 let reconnectTimer = null;
-let commandStatusTimer = null;
 let clockTimer = null;
 let lastTrendDragX = 0;
 
@@ -952,6 +954,10 @@ const operationTabs = [
   { key: "setpoint", label: "定值模式", description: "温湿度目标控制", icon: "sliders" },
   { key: "program", label: "程序模式", description: "试验程序与步骤", icon: "play" },
   { key: "other", label: "其他设定", description: "设备偏好与显示", icon: "settings" }
+];
+const runModeOptions = [
+  { value: "1", label: "定值模式", description: "按当前温湿度目标值运行", icon: "sliders" },
+  { value: "2", label: "程序模式", description: "按已选择的试验程序运行", icon: "play" }
 ];
 const parameterTabs = [
   { key: "basic", label: "基础信息", description: "设备身份与版本", icon: "settings" },
@@ -1024,6 +1030,10 @@ const currentDeviceSectionDescription = computed(() => {
 });
 const activeOperationTab = computed(() => operationTabs.find(item => item.key === operationTab.value) || operationTabs[0]);
 const selectedProgram = computed(() => programs.find(item => item.id === operationForm.value.programId) || programs[0]);
+const selectedDeviceRunningMode = computed(() => {
+  const mode = Number(firstDefined(selectedDevice.value?.run_mode, selectedDevice.value?.mainData?.runMode));
+  return runModeOptions.find(item => item.value === String(mode))?.label || "未知";
+});
 const currentTitle = computed(() => {
   if (activeView.value === "device-detail") return currentDeviceSectionLabel.value;
   return titleMap[activeView.value];
@@ -1051,17 +1061,6 @@ const memoryName = computed(() => "industrial_chamber_realtime_v1");
 const memoryTotal = computed(() => "256KB");
 const memoryStableText = computed(() => snapshot.value ? "稳定可读" : "等待数据");
 const formattedSnapshot = computed(() => JSON.stringify(snapshot.value, null, 2));
-const commandStatusMemoryName = computed(() => commandStatusDiagnostic.value?.memory_name || "BE_R");
-const commandStatusConnectionText = computed(() => commandStatusDiagnostic.value?.connected ? "已连接" : "未连接");
-const commandStatusReadTime = computed(() => {
-  const readAt = commandStatusDiagnostic.value?.last_read_at;
-  return readAt ? new Date(readAt * 1000).toLocaleString() : "--";
-});
-const formattedCommandStatusContent = computed(() => {
-  if (commandStatusDiagnosticError.value) return commandStatusDiagnosticError.value;
-  const content = commandStatusDiagnostic.value?.content;
-  return content ? JSON.stringify(content, null, 2) : "尚无可读的 BE_R 回执内容";
-});
 const trendAxisLabels = computed(() => {
   const range = getTrendTimeRange(trendClockMs.value);
   return [0, 0.25, 0.5, 0.75, 1].map(ratio => {
@@ -1336,11 +1335,6 @@ function returnToDashboard() {
   isSidebarCollapsed.value = false;
 }
 
-function openMemoryDiagnostics() {
-  activeView.value = "memory";
-  refreshCommandStatusDiagnostic();
-}
-
 function openProfile() {
   profileActionText.value = "";
   activeView.value = "profile";
@@ -1372,11 +1366,57 @@ function handleSidebarSelect(item) {
   activeView.value = item.key;
 }
 
-function saveOperationSettings() {
-  operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
-  operationFeedback.value = "已保存";
-  addOperationLog({ title: "保存操作设定", message: `${selectedDevice.value?.name || selectedDeviceId.value} 已更新${activeOperationTab.value.label}`, tone: "success" });
-  window.setTimeout(() => { operationFeedback.value = ""; }, 2200);
+async function saveOperationSettings() {
+  operationFeedback.value = "保存中…";
+  const payload = {
+    temperature_target: Number(operationForm.value.targetTemp),
+    temperature_slope: Number(operationForm.value.tempRamp),
+    humidity_target: Number(operationForm.value.targetHum),
+    humidity_slope: Number(operationForm.value.humRamp),
+    runtime_hours: Number(operationForm.value.runtimeHours),
+    runtime_minutes: Number(operationForm.value.runtimeMinutes),
+    runtime_seconds: Number(operationForm.value.runtimeSeconds)
+  };
+  try {
+    const response = await fetch("/api/settings/fixed-value", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "数据库保存失败");
+    applyFixedValueSettings(result.value || payload);
+    operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    operationFeedback.value = "已保存到数据库";
+    addOperationLog({ title: "保存操作设定", message: `${selectedDevice.value?.name || selectedDeviceId.value} 已更新${activeOperationTab.value.label}`, tone: "success" });
+  } catch (error) {
+    operationFeedback.value = `保存失败：${error.message || "数据库不可用"}`;
+  }
+  window.setTimeout(() => { operationFeedback.value = ""; }, 3000);
+}
+
+function applyFixedValueSettings(value) {
+  if (!value) return;
+  operationForm.value = {
+    ...operationForm.value,
+    targetTemp: Number(value.temperature_target),
+    tempRamp: Number(value.temperature_slope),
+    targetHum: Number(value.humidity_target),
+    humRamp: Number(value.humidity_slope),
+    runtimeHours: Number(value.runtime_hours),
+    runtimeMinutes: Number(value.runtime_minutes),
+    runtimeSeconds: Number(value.runtime_seconds)
+  };
+}
+
+async function loadFixedValueSettings() {
+  try {
+    const response = await fetch("/api/settings/fixed-value");
+    if (!response.ok) return;
+    const result = await response.json();
+    applyFixedValueSettings(result.value);
+  } catch {
+  }
 }
 
 function stepOperationNumber(field, delta, min = null, max = null) {
@@ -1595,30 +1635,50 @@ async function stopSelectedDevice() {
 
 async function startSelectedDevice() {
   if (!selectedDevice.value) return;
+  const currentMode = Number(firstDefined(selectedDevice.value.run_mode, selectedDevice.value.mainData?.runMode));
+  runModeSelection.value = runModeOptions.some(item => item.value === String(currentMode))
+    ? String(currentMode)
+    : "1";
+  isRunModeDialogOpen.value = true;
+}
+
+function cancelRunModeSelection() {
+  isRunModeDialogOpen.value = false;
+}
+
+function waitForCommandPollingWindow() {
+  return new Promise(resolve => window.setTimeout(resolve, 350));
+}
+
+async function postDeviceCommand(deviceId, command, reason, payload = {}) {
+  const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ command, operator_id: "web-admin", reason, payload })
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.detail || result.message || `${command}命令下发失败`);
+  return result;
+}
+
+async function confirmRunModeSelection() {
+  if (!selectedDevice.value) return;
   const deviceId = selectedDevice.value.device_id;
   const deviceName = selectedDevice.value.name || deviceId;
+  const mode = runModeOptions.find(item => item.value === runModeSelection.value) || runModeOptions[0];
+  isRunModeDialogOpen.value = false;
   startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: true };
-  commandStatusText.value = "正在下发启动命令";
-  addOperationLog({ title: "启动运行", message: `${deviceName} 正在下发启动命令`, tone: "warning", deviceId });
+  commandStatusText.value = `正在切换${mode.label}`;
+  addOperationLog({ title: "启动运行", message: `${deviceName} 正在切换至${mode.label}`, tone: "warning", deviceId });
 
   try {
-    const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        command: "Run",
-        operator_id: "web-admin",
-        reason: "start requested from Vue dashboard",
-        payload: {
-          target_temperature: Number(selectedDevice.value.target_temperature ?? selectedDevice.value.current_temperature ?? 25),
-          target_humidity: Number(selectedDevice.value.target_humidity ?? selectedDevice.value.current_humidity ?? 60)
-        }
-      })
+    await postDeviceCommand(deviceId, `RunMode=${mode.value}`, `运行模式选择：${mode.label}`);
+    await waitForCommandPollingWindow();
+    commandStatusText.value = "正在下发启动命令";
+    const result = await postDeviceCommand(deviceId, "Run", "start requested from Vue dashboard", {
+      target_temperature: Number(selectedDevice.value.target_temperature ?? selectedDevice.value.current_temperature ?? 25),
+      target_humidity: Number(selectedDevice.value.target_humidity ?? selectedDevice.value.current_humidity ?? 60)
     });
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.detail || result.message || "启动命令下发失败");
-    }
     commandStatusText.value = "启动命令已排队，等待工控机确认";
     trackQueuedCommand(result, "启动", deviceId);
     startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: false };
@@ -1635,7 +1695,7 @@ async function holdSelectedDevice() {
   const deviceId = selectedDevice.value.device_id;
   const deviceName = selectedDevice.value.name || deviceId;
   const isHeld = Boolean(heldDeviceIds.value[deviceId]);
-  const command = isHeld ? "Keep" : "Hold";
+  const command = isHeld ? "HoldOFF" : "HoldON";
   const commandLabel = isHeld ? "继续" : "保持";
   holdingDeviceIds.value = { ...holdingDeviceIds.value, [deviceId]: true };
   commandStatusText.value = `正在下发${commandLabel}命令`;
@@ -1681,7 +1741,7 @@ async function skipSelectedDeviceStep() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        command: "Jnmp",
+        command: "Jump",
         operator_id: "web-admin",
         reason: "step skip requested from Vue dashboard"
       })
@@ -1739,17 +1799,6 @@ function connectSocket() {
     connectionText.value = "重连中";
     reconnectTimer = window.setTimeout(connectSocket, 1200);
   };
-}
-
-async function refreshCommandStatusDiagnostic() {
-  try {
-    const response = await fetch("/api/memory/command-status", { cache: "no-store" });
-    if (!response.ok) throw new Error(`BE_R 诊断接口请求失败：${response.status}`);
-    commandStatusDiagnostic.value = await response.json();
-    commandStatusDiagnosticError.value = "";
-  } catch (error) {
-    commandStatusDiagnosticError.value = error.message || "BE_R 诊断接口不可用";
-  }
 }
 
 function pushTrendSamples(deviceList, writtenAt) {
@@ -2039,9 +2088,8 @@ function handleTrendResize() {
 
 onMounted(() => {
   loadMonitorLayout();
+  loadFixedValueSettings();
   connectSocket();
-  refreshCommandStatusDiagnostic();
-  commandStatusTimer = window.setInterval(refreshCommandStatusDiagnostic, 1000);
   window.addEventListener("resize", handleTrendResize);
   clockTimer = window.setInterval(() => {
     currentTimeText.value = new Date().toLocaleTimeString();
@@ -2053,7 +2101,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (socket) socket.close();
   if (reconnectTimer) window.clearTimeout(reconnectTimer);
-  if (commandStatusTimer) window.clearInterval(commandStatusTimer);
   if (clockTimer) window.clearInterval(clockTimer);
   window.removeEventListener("resize", handleTrendResize);
 });

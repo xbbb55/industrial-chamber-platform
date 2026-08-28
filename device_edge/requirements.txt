@@ -3,3 +3,4 @@ websockets>=13,<16
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.5
+mysql-connector-python==9.2.0

@@ -64,13 +64,13 @@
 
 <script setup>
 import { computed } from "vue";
-import { Clock3, Network, ServerCog, Timer } from "lucide-vue-next";
+import { Gauge, Network, ServerCog, Timer } from "lucide-vue-next";
 
 const props = defineProps({
   temperature: { type: Number, default: 0 },
   humidity: { type: Number, default: 0 },
   deviceStatus: { type: String, default: "未知" },
-  updatedAt: { type: String, default: "--" },
+  runningMode: { type: String, default: "未知" },
   communicationStatus: { type: String, default: "未知" },
   startTime: { type: String, default: "--" }
 });
@@ -139,7 +139,7 @@ function statusTone(status) {
 
 const statusItems = computed(() => [
   { icon: ServerCog, label: "设备状态", value: props.deviceStatus, tone: "green" },
-  { icon: Clock3, label: "更新时间", value: props.updatedAt, tone: "" },
+  { icon: Gauge, label: "运行模式", value: props.runningMode, tone: "" },
   { icon: Network, label: "通讯状态", value: props.communicationStatus, tone: props.communicationStatus === "在线" ? "green" : "" },
   { icon: Timer, label: "启动时间", value: props.startTime, tone: "" }
 ]);

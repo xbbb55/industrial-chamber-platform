@@ -10,6 +10,14 @@
   "command_status_memory_size": 4096,
   "shared_memory_protocol": "length_prefixed_json_v1",
   "sqlite_path": "device-edge.db",
+  "database": {
+    "enabled": true,
+    "host": "localhost",
+    "port": 3306,
+    "name": "HDQC",
+    "user": "root",
+    "password_env": "MYSQL_PWD"
+  },
   "local_api": {
     "realtime_poll_interval_seconds": 1.0,
     "command_status_idle_poll_interval_seconds": 1.0,

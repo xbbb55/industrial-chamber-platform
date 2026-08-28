@@ -75,6 +75,15 @@ GET /api/memory/devices
 GET /api/status
 POST /api/devices/{device_id}/commands
 WS  /ws/memory
+GET /api/settings/fixed-value
+PUT /api/settings/fixed-value
+
+定值模式参数保存到本机 MySQL `HDQC.fixed_value`，固定使用 `id=1` 保存当前配置，重复保存会更新该记录。数据库密码不写入配置文件，启动服务前设置配置中 `password_env` 指定的环境变量，例如：
+
+```powershell
+$env:MYSQL_PWD = "你的数据库密码"
+python -m device_edge.run_edge serve --config device-edge.config.json --host 127.0.0.1 --port 8765
+```
 ```
 
 Vue 开发环境默认代理到 `http://127.0.0.1:8765`。生产环境构建 `frontend-vue` 后，`device_edge` 会托管 `frontend-vue/dist` 中的静态文件。
@@ -84,6 +93,8 @@ Vue 开发环境默认代理到 `http://127.0.0.1:8765`。生产环境构建 `fr
 `device_edge` 接收前端或总控命令后，先进行本地操作员白名单校验，再向 `FE_W` 写入当前 C++ 协议的命令。C++ 每 200ms 读取一次，读取后必须清空命令内容，再执行设备动作。C++ 不负责用户权限判断，但必须自行完成命令码、设备状态和参数范围的安全校验。
 
 当前 `FE_W` 与 `BE_R` 维持既有协议：
+
+保持时写入 `HoldON`，继续时写入 `HoldOFF`；跳步时写入 `Jump`。
 
 ```json
 {"command":"Run","time":"2026-07-22 15:30:53"}
