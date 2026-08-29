@@ -1,5 +1,5 @@
 import { createApp } from "vue";
-import App from "./DashboardApp.vue";
+import App from "./AppRoot.vue";
 import "./styles.css";
 import "./enterprise.css";
 

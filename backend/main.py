@@ -11,9 +11,11 @@ from typing import Any, Optional
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from backend.auth import build_auth_router
 
 
 app = FastAPI(title="Industrial Chamber Platform Test")
+app.include_router(build_auth_router())
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 WEB_INDEX = ROOT_DIR / "web" / "index.html"

@@ -24,6 +24,8 @@ class ControlProtocolTests(unittest.TestCase):
             "Jnmp": "SKIP_STEP",
             "BuzzerON": "BUZZER_ON",
             "BuzzerOFF": "BUZZER_OFF",
+            "LightON": "LIGHT_ON",
+            "LightOFF": "LIGHT_OFF",
             "Reset": "RESET_ALARM",
         }
         for wire, internal in expected.items():

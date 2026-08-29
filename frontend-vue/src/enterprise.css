@@ -44,8 +44,6 @@ textarea:focus-visible {
 
 .sidebar::before,
 .sidebar::after,
-.topbar::before,
-.topbar::after,
 .content::before {
   content: "";
   position: absolute;
@@ -165,24 +163,6 @@ textarea:focus-visible {
   border-bottom-color: var(--line);
 }
 
-.topbar::before {
-  left: 30%;
-  right: 16%;
-  top: 18px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(230, 237, 247, .36), transparent);
-}
-
-.topbar::after {
-  right: 176px;
-  bottom: -1px;
-  width: 118px;
-  height: 24px;
-  border-top: 1px solid rgba(230, 237, 247, .24);
-  border-right: 1px solid rgba(230, 237, 247, .24);
-  transform: skewX(-42deg);
-}
-
 .topbar > * {
   position: relative;
   z-index: 1;
@@ -191,7 +171,8 @@ textarea:focus-visible {
 .topbar h2 { font-size: 18px; font-weight: 700; }
 .top-actions { gap: 12px; }
 
-.notify {
+.notify,
+.light-toggle {
   width: 34px;
   height: 34px;
   display: grid;
@@ -203,6 +184,16 @@ textarea:focus-visible {
   cursor: pointer;
   position: relative;
 }
+
+.light-toggle.active {
+  outline: 1px solid rgba(58, 207, 255, .72);
+  outline-offset: -1px;
+  background: rgba(21, 142, 211, .16);
+  color: #8be8ff;
+  box-shadow: inset 0 0 12px rgba(28, 171, 232, .14), 0 0 8px rgba(38, 182, 244, .16);
+}
+
+.light-toggle:hover { border-color: #55d8ff; color: #e8f9ff; }
 
 .notify:hover { color: var(--text); background: transparent; border-color: transparent; }
 .notify::after { display: none; }
@@ -265,6 +256,90 @@ textarea:focus-visible {
   color: var(--muted);
   font-size: 12px;
 }
+
+.notification-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.notification-tabs button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notification-tabs button:hover,
+.notification-tabs button.active {
+  border-color: var(--line-strong);
+  border-bottom-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--text);
+}
+
+.notification-tabs button span {
+  min-width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.alarm-info-list {
+  min-height: 0;
+  padding: 12px 10px 12px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #218dcc rgba(3, 15, 28, .92);
+  color-scheme: dark;
+}
+
+.alarm-info-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-soft);
+}
+
+.alarm-info-summary div {
+  display: grid;
+  gap: 4px;
+}
+
+.alarm-info-summary span,
+.alarm-info-summary small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.alarm-info-summary strong {
+  color: var(--green);
+  font-size: 13px;
+}
+
+.alarm-info-summary strong.active { color: var(--red); }
 
 .notification-modal-close {
   width: 30px;
@@ -667,6 +742,9 @@ textarea:focus-visible {
 .profile-hero-meta span { color: #76a2bb; font-size: 11px; }
 .profile-hero-meta strong { color: #c9f2ff; font-family: "Roboto Mono", Consolas, monospace; font-size: 16px; }
 .profile-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(360px, .92fr); gap: 14px; }
+.profile-logout-row { display: flex; justify-content: flex-end; margin-top: auto; padding-top: 2px; }
+.profile-logout-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 8px 14px; border: 1px solid rgba(245, 92, 104, .56); border-radius: 5px; background: rgba(89, 29, 43, .76); color: #ffd9dd; font-size: 12px; font-weight: 700; cursor: pointer; }
+.profile-logout-button:hover { border-color: #ff7985; background: rgba(126, 36, 53, .9); }
 .profile-info-panel, .profile-security-panel, .profile-activity-panel { padding: 18px 20px; }
 .profile-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin-top: 16px; }
 .profile-fields > div { display: grid; gap: 6px; min-height: 56px; padding: 11px 13px; border: 1px solid rgba(42, 164, 239, .2); border-radius: 5px; background: rgba(5, 29, 49, .68); }
@@ -863,8 +941,6 @@ textarea:focus-visible {
 .skip-command-button:hover:not(:disabled) { background: #5b6b82; }
 .danger-command-button { background: #b4232d; }
 .danger-command-button:hover:not(:disabled) { background: #d12d38; }
-.command-status { min-width: 0; }
-.command-status p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .command-layout-button { margin-left: auto; }
 .runtime-panel {
   min-height: 42px;
@@ -1653,7 +1729,8 @@ textarea:focus-visible {
 .device-status-badge.online { color: #34d9ff !important; background: rgba(18, 141, 187, .14); box-shadow: 0 0 8px rgba(39, 203, 255, .16); }
 .device-status-badge.stopped, .device-status-badge.idle { color: #ffb12b !important; background: rgba(193, 112, 20, .14); }
 .device-status-badge.alarm, .device-status-badge.offline { color: #ff5964 !important; background: rgba(210, 42, 54, .14); }
-.notify {
+.notify,
+.light-toggle {
   border: 0;
   border-color: rgba(31, 161, 248, .45);
   border-radius: 4px;
@@ -1800,7 +1877,6 @@ textarea:focus-visible {
 .hold-command-button { background: linear-gradient(135deg, #1678d2, #104c98); color: #e0f4ff; }
 .skip-command-button { background: linear-gradient(135deg, #425d77, #263d55); color: #e6f3ff; }
 .danger-command-button { background: linear-gradient(135deg, #d92535, #891823); color: #fff0f0; }
-.command-status h3 { color: #e6f7ff; font-size: 16px; }
 .command-layout-button { border-color: rgba(39, 169, 245, .45); border-radius: 2px; background: rgba(8, 31, 53, .9); color: #b8dcf5; }
 
 .runtime-panel { min-height: 52px; }

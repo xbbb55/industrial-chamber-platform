@@ -88,6 +88,18 @@ python -m device_edge.run_edge serve --config device-edge.config.json --host 127
 
 Vue 开发环境默认代理到 `http://127.0.0.1:8765`。生产环境构建 `frontend-vue` 后，`device_edge` 会托管 `frontend-vue/dist` 中的静态文件。
 
+## 登录账户（MySQL）
+
+首次调用登录接口时，服务会在配置的 MySQL 数据库（默认 `HDQC`）中创建 `accounts` 表，并按环境变量写入管理员账户：
+
+```powershell
+$env:MYSQL_PWD = "你的数据库密码"
+$env:AUTH_SEED_USERNAME = "admin"          # 可选，默认 admin
+$env:AUTH_SEED_PASSWORD = "请修改为强密码"  # 可选，默认仅用于本地开发
+```
+
+连接参数可通过 `MYSQL_HOST`、`MYSQL_PORT`、`MYSQL_DATABASE`、`MYSQL_USER` 配置。生产环境请使用密钥管理注入强密码。
+
 ## 命令协议
 
 `device_edge` 接收前端或总控命令后，先进行本地操作员白名单校验，再向 `FE_W` 写入当前 C++ 协议的命令。C++ 每 200ms 读取一次，读取后必须清空命令内容，再执行设备动作。C++ 不负责用户权限判断，但必须自行完成命令码、设备状态和参数范围的安全校验。

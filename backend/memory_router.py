@@ -12,9 +12,11 @@ from pydantic import BaseModel, Field
 from device_edge.control_protocol import build_fe_w, normalize_command, protocol_time
 from .shared_memory_store import SharedMemoryNotReady, attach_existing, inspect_memory, read_snapshot
 from device_edge.snapshot_normalizer import normalize_snapshot
+from backend.auth import build_auth_router
 
 
 app = FastAPI(title="Shared Memory Router Test")
+app.include_router(build_auth_router())
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 WEB_INDEX = ROOT_DIR / "web" / "edge-ingest-dashboard.html"

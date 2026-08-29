@@ -15,6 +15,7 @@ import {
   Gauge,
   History,
   LayoutDashboard,
+  Lightbulb,
   RotateCcw,
   Settings2,
   SlidersHorizontal,
@@ -30,7 +31,8 @@ import {
   ZoomOut,
   Pause,
   SkipForward,
-  Square
+  Square,
+  LogOut
 } from "lucide-vue-next";
 import { computed } from "vue";
 
@@ -48,6 +50,7 @@ const icons = {
   collapse: ChevronsLeft,
   dashboard: LayoutDashboard,
   humidity: Droplets,
+  light: Lightbulb,
   gauge: Gauge,
   history: History,
   reports: FileText,
@@ -67,7 +70,8 @@ const icons = {
   tools: Wrench,
   zoomIn: ZoomIn,
   zoomOut: ZoomOut,
-  close: X
+  close: X,
+  logout: LogOut
 };
 
 const iconComponent = computed(() => icons[props.name] || Activity);

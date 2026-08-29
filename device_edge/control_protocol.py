@@ -17,6 +17,8 @@ DIRECT_COMMANDS = {
     "Jnmp": "SKIP_STEP",
     "BuzzerON": "BUZZER_ON",
     "BuzzerOFF": "BUZZER_OFF",
+    "LightON": "LIGHT_ON",
+    "LightOFF": "LIGHT_OFF",
     "Reset": "RESET_ALARM",
 }
 

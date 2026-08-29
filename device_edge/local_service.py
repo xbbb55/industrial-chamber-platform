@@ -16,6 +16,7 @@ from .config import EdgeConfig
 from .mysql_store import FixedValueStore
 from .runtime import DeviceEdgeRuntime
 from .websocket_client import WebSocketEdgeClient
+from backend.auth import build_auth_router
 
 
 class LocalCommandRequest(BaseModel):
@@ -58,6 +59,7 @@ def create_app(config: EdgeConfig) -> FastAPI:
             await runtime.stop()
 
     app = FastAPI(title="Industrial Chamber Device Edge", lifespan=lifespan)
+    app.include_router(build_auth_router())
     app.state.runtime = runtime
     dist_dir = Path(__file__).resolve().parents[1] / "frontend-vue" / "dist"
 

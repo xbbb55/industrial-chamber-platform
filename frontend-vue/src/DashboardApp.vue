@@ -59,7 +59,6 @@
             <div class="device-title-copy">
               <h2>{{ selectedDevice?.name || selectedDeviceId }}</h2>
               <div class="device-title-meta">
-                <span class="device-meta-item"><small>ID</small>{{ selectedDeviceId }}</span>
                 <span class="device-meta-item"><small>IP</small>{{ selectedDevice?.device_ip || selectedDevice?.ip_address || selectedDevice?.ip || "暂无 IP" }}</span>
                 <strong
                   v-if="selectedDevice"
@@ -79,6 +78,18 @@
           <h2 v-else>{{ currentTitle }}</h2>
         </div>
         <div class="top-actions">
+          <button
+            class="light-toggle"
+            :class="{ active: isLightOn }"
+            type="button"
+            :title="isLightOn ? '关灯' : '开灯'"
+            :aria-label="isLightOn ? '关灯' : '开灯'"
+            :aria-pressed="isLightOn"
+            :disabled="!selectedDevice || isLightCommandPending"
+            @click="toggleSelectedDeviceLight"
+          >
+            <AppIcon name="light" :size="18" />
+          </button>
           <button class="notify" type="button" :title="notificationTitle" :aria-label="notificationTitle" @click="isNotificationOpen = true">
             <AppIcon name="bell" :size="18" />
             <span v-if="notificationCount > 0">{{ notificationCountText }}</span>
@@ -140,9 +151,9 @@
               <h2>个人中心</h2>
               <span>管理个人资料、账号状态与安全信息</span>
             </div>
-            <button class="profile-back-button" type="button" @click="returnToDashboard">
-              <AppIcon name="dashboard" :size="16" />
-              <span>返回设备看板</span>
+            <button class="profile-back-button" type="button" @click="returnToMonitoring">
+              <AppIcon name="gauge" :size="16" />
+              <span>返回</span>
             </button>
           </div>
 
@@ -189,20 +200,13 @@
             </section>
           </div>
 
-          <section class="panel profile-activity-panel">
-            <div class="panel-title">
-              <h3>最近操作</h3>
-              <span>当前浏览器会话</span>
-            </div>
-            <div v-if="operationLogs.length" class="profile-activity-list">
-              <div v-for="item in operationLogs.slice(0, 5)" :key="item.id" class="profile-activity-item">
-                <i :class="item.tone"></i>
-                <div><strong>{{ item.title }}</strong><span>{{ item.message }}</span></div>
-                <time>{{ item.timeText }}</time>
-              </div>
-            </div>
-            <div v-else class="profile-empty-activity">暂无操作记录，设备控制操作会显示在这里。</div>
-          </section>
+          <div class="profile-logout-row">
+            <button class="profile-logout-button" type="button" @click="logoutToLogin">
+              <AppIcon name="logout" :size="16" />
+              <span>退出登录</span>
+            </button>
+          </div>
+
         </section>
 
         <section v-else-if="activeView === 'device-detail'" class="page-stack">
@@ -284,10 +288,6 @@
                     <AppIcon name="stop" :size="15" :stroke-width="2.1" />
                     <span>{{ stoppingDeviceIds[selectedDeviceId] ? "停止下发中" : isDeviceStopped ? "已停止" : "停止运行" }}</span>
                   </button>
-                </div>
-                <div class="command-status">
-                  <h3>远程控制</h3>
-                  <p>{{ commandStatusText }}</p>
                 </div>
                 <button
                   class="layout-config-button command-layout-button"
@@ -743,13 +743,17 @@
         <div class="notification-modal-header">
           <div>
             <h3 id="notification-modal-title">{{ notificationTitle }}</h3>
-            <span>{{ notificationSubtitle }}</span>
+            <span v-if="activeView !== 'device-detail'">{{ notificationSubtitle }}</span>
           </div>
           <button class="notification-modal-close" type="button" title="关闭" aria-label="关闭" @click="isNotificationOpen = false">
             <AppIcon name="close" :size="17" />
           </button>
         </div>
-        <div class="notification-list">
+        <div v-if="activeView === 'device-detail'" class="notification-tabs" role="tablist" aria-label="设备信息类别">
+          <button type="button" :class="{ active: notificationTab === 'operations' }" role="tab" :aria-selected="notificationTab === 'operations'" @click="notificationTab = 'operations'">操作日志</button>
+          <button type="button" :class="{ active: notificationTab === 'alarms' }" role="tab" :aria-selected="notificationTab === 'alarms'" @click="notificationTab = 'alarms'">报警信息<span v-if="selectedDeviceAlarmItems.length">{{ selectedDeviceAlarmItems.length }}</span></button>
+        </div>
+        <div v-if="notificationTab === 'operations' || activeView !== 'device-detail'" class="notification-list">
           <div v-if="activeNotifications.length === 0" class="notification-empty">
             <strong>{{ notificationEmptyTitle }}</strong>
             <span>{{ notificationEmptyText }}</span>
@@ -761,6 +765,24 @@
               <p>{{ item.message }}</p>
             </div>
             <time>{{ item.timeText }}</time>
+          </article>
+        </div>
+        <div v-else class="alarm-info-list">
+          <div class="alarm-info-summary">
+            <div><span>当前状态</span><strong :class="{ active: selectedDeviceAlarmItems.length > 0 }">{{ selectedDeviceAlarmState }}</strong></div>
+            <small>{{ selectedDeviceAlarmItems.length ? `检测到 ${selectedDeviceAlarmItems.length} 条报警` : "当前设备未上报报警" }}</small>
+          </div>
+          <div v-if="selectedDeviceAlarmItems.length === 0" class="notification-empty">
+            <strong>当前无报警</strong>
+            <span>设备应用层的 status.alarm 暂无报警内容。</span>
+          </div>
+          <article v-for="(alarm, index) in selectedDeviceAlarmItems" :key="`${alarm}-${index}`" class="notification-item danger">
+            <i aria-hidden="true"></i>
+            <div>
+              <strong>报警 {{ index + 1 }}</strong>
+              <p>{{ alarm }}</p>
+            </div>
+            <time>{{ selectedDevice?.data_time || selectedDevice?.time || "实时" }}</time>
           </article>
         </div>
       </section>
@@ -776,6 +798,8 @@ import DeviceOverviewList from "./components/DeviceOverviewList.vue";
 import AppIcon from "./components/AppIcon.vue";
 import HmiDashboard from "./components/HmiDashboard.vue";
 import { communicationClass, communicationLabel, runStateLabel } from "./utils/state";
+
+const emit = defineEmits(["logout"]);
 
 const TREND_PAST_MS = 5 * 60 * 1000;
 const TREND_FUTURE_MS = 5 * 60 * 1000;
@@ -888,9 +912,7 @@ const deviceDisplayMode = ref("list");
 const selectedTrendCanvas = ref(null);
 const trendHistory = ref({});
 const currentTimeText = ref(new Date().toLocaleTimeString());
-const commandStatusText = ref("等待操作");
 const commandStatusById = ref({});
-const activeCommandIds = ref({});
 const profileActionText = ref("");
 const stoppingDeviceIds = ref({});
 const stoppedDeviceIds = ref({});
@@ -907,7 +929,10 @@ const trendYOffsetRatio = ref(0);
 const isTrendDragging = ref(false);
 const isSidebarCollapsed = ref(false);
 const isLayoutEditorOpen = ref(false);
+const isLightOn = ref(true);
+const isLightCommandPending = ref(false);
 const isNotificationOpen = ref(false);
+const notificationTab = ref("operations");
 const isSaveConfirmOpen = ref(false);
 const isRunModeDialogOpen = ref(false);
 const runModeSelection = ref("1");
@@ -1097,6 +1122,23 @@ const activeNotifications = computed(() => {
   }
   return deviceNotifications.value;
 });
+const selectedDeviceAlarmState = computed(() => {
+  const status = selectedDevice.value?.status || {};
+  return String(status.state || selectedDevice.value?.status_text || "正常").trim() || "正常";
+});
+const selectedDeviceAlarmItems = computed(() => {
+  const device = selectedDevice.value || {};
+  const status = device.status || {};
+  const rawAlarms = status.alarm ?? device.alarms ?? device.alarm;
+  const alarms = (Array.isArray(rawAlarms) ? rawAlarms : rawAlarms ? [rawAlarms] : [])
+    .map(item => String(item).trim())
+    .filter(Boolean);
+  const statusText = selectedDeviceAlarmState.value;
+  if (!alarms.length && ["报警", "故障", "保护", "异常"].some(keyword => statusText.includes(keyword))) {
+    alarms.push(statusText);
+  }
+  return [...new Set(alarms)];
+});
 
 watch(() => selectedDevice.value?.timeData?.startTime, startTime => {
   if (!selectedDeviceId.value || !startTime || deviceStartTimes.value[selectedDeviceId.value]) return;
@@ -1105,10 +1147,7 @@ watch(() => selectedDevice.value?.timeData?.startTime, startTime => {
 const notificationCount = computed(() => activeNotifications.value.length);
 const notificationCountText = computed(() => notificationCount.value > 99 ? "99+" : String(notificationCount.value));
 const notificationTitle = computed(() => activeView.value === "device-detail" ? "操作日志" : "设备运行通知");
-const notificationSubtitle = computed(() => {
-  if (activeView.value === "device-detail") return `${selectedDevice.value?.name || selectedDeviceId.value} 的远程控制记录`;
-  return "记录设备启动、停止、断开连接等运行状态变化";
-});
+const notificationSubtitle = computed(() => "记录设备启动、停止、断开连接等运行状态变化");
 const notificationEmptyTitle = computed(() => activeView.value === "device-detail" ? "暂无操作记录" : "暂无设备通知");
 const notificationEmptyText = computed(() => activeView.value === "device-detail" ? "当前设备还没有远程控制操作。" : "设备状态变化会显示在这里。");
 
@@ -1341,6 +1380,18 @@ function openProfile() {
   isSidebarCollapsed.value = false;
 }
 
+function returnToMonitoring() {
+  selectedDeviceSection.value = "monitor";
+  activeView.value = "device-detail";
+  isSidebarCollapsed.value = false;
+}
+
+function logoutToLogin() {
+  window.localStorage.removeItem("industrial-auth-token");
+  window.localStorage.removeItem("industrial-auth-user");
+  emit("logout");
+}
+
 function openSaveConfirm(target) {
   pendingSaveTarget.value = target;
   isSaveConfirmOpen.value = true;
@@ -1534,9 +1585,6 @@ function trackQueuedCommand(result, commandLabel, deviceId) {
     ...commandStatusById.value,
     [result.command_id]: trackedCommand
   };
-  activeCommandIds.value = { ...activeCommandIds.value, [deviceId]: result.command_id };
-  commandStatusText.value = existing ? (existing.message || commandExecutionText(existing.status)) : "等待工控机执行";
-
   // The edge can execute and report a command before the HTTP response that
   // created it reaches the browser. Re-process an already terminal result
   // after attaching the command label so the button state is finalized.
@@ -1555,7 +1603,6 @@ function commandExecutionText(status) {
 function handleCommandStatus(event) {
   if (!event?.command_id) {
     const nextStatus = commandExecutionText(event?.status);
-    commandStatusText.value = event?.message ? `${nextStatus}：${event.message}` : nextStatus;
     return;
   }
   const current = commandStatusById.value[event.command_id] || {};
@@ -1564,10 +1611,6 @@ function handleCommandStatus(event) {
     ...commandStatusById.value,
     [event.command_id]: { ...current, ...event, message: event.message || nextStatus }
   };
-  if (activeCommandIds.value[event.device_id] === event.command_id) {
-    commandStatusText.value = event.message ? `${nextStatus}：${event.message}` : nextStatus;
-  }
-
   const deviceId = event.device_id;
   const commandLabel = current.label;
   const normalizedStatus = String(event.status || "").toUpperCase();
@@ -1605,7 +1648,6 @@ async function stopSelectedDevice() {
   const deviceId = selectedDevice.value.device_id;
   const deviceName = selectedDevice.value.name || deviceId;
   stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: true };
-  commandStatusText.value = "正在下发停止命令";
   addOperationLog({ title: "停止运行", message: `${deviceName} 正在下发停止命令`, tone: "warning", deviceId });
 
   try {
@@ -1622,13 +1664,11 @@ async function stopSelectedDevice() {
     if (!response.ok) {
       throw new Error(result.detail || result.message || "停止命令下发失败");
     }
-    commandStatusText.value = "停止命令已排队，等待工控机确认";
     trackQueuedCommand(result, "停止", deviceId);
     stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: false };
     addOperationLog({ title: "停止运行", message: `${deviceName} 停止命令已排队，等待工控机确认`, tone: "warning", deviceId });
   } catch (error) {
     stoppingDeviceIds.value = { ...stoppingDeviceIds.value, [deviceId]: false };
-    commandStatusText.value = error.message || "停止命令下发失败";
     addOperationLog({ title: "停止运行", message: `${deviceName} 停止命令下发失败`, tone: "danger", deviceId });
   }
 }
@@ -1654,11 +1694,33 @@ async function postDeviceCommand(deviceId, command, reason, payload = {}) {
   const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ command, operator_id: "web-admin", reason, payload })
+    body: JSON.stringify({ command, time: formatStartTime(), operator_id: "web-admin", reason, payload })
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.detail || result.message || `${command}命令下发失败`);
   return result;
+}
+
+async function toggleSelectedDeviceLight() {
+  if (!selectedDevice.value || isLightCommandPending.value) return;
+  const deviceId = selectedDevice.value.device_id;
+  const deviceName = selectedDevice.value.name || deviceId;
+  const nextLightState = !isLightOn.value;
+  const command = nextLightState ? "LightON" : "LightOFF";
+  const commandLabel = nextLightState ? "开灯" : "关灯";
+  isLightCommandPending.value = true;
+  addOperationLog({ title: commandLabel, message: `${deviceName} 正在下发${commandLabel}命令`, tone: "warning", deviceId });
+
+  try {
+    const result = await postDeviceCommand(deviceId, command, `${commandLabel} requested from Vue dashboard`);
+    isLightOn.value = nextLightState;
+    trackQueuedCommand(result, commandLabel, deviceId);
+    addOperationLog({ title: commandLabel, message: `${deviceName} ${commandLabel}命令已排队，等待工控机确认`, tone: "success", deviceId });
+  } catch (error) {
+    addOperationLog({ title: commandLabel, message: `${deviceName} ${commandLabel}命令下发失败：${error.message || "未知错误"}`, tone: "danger", deviceId });
+  } finally {
+    isLightCommandPending.value = false;
+  }
 }
 
 async function confirmRunModeSelection() {
@@ -1668,24 +1730,20 @@ async function confirmRunModeSelection() {
   const mode = runModeOptions.find(item => item.value === runModeSelection.value) || runModeOptions[0];
   isRunModeDialogOpen.value = false;
   startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: true };
-  commandStatusText.value = `正在切换${mode.label}`;
   addOperationLog({ title: "启动运行", message: `${deviceName} 正在切换至${mode.label}`, tone: "warning", deviceId });
 
   try {
     await postDeviceCommand(deviceId, `RunMode=${mode.value}`, `运行模式选择：${mode.label}`);
     await waitForCommandPollingWindow();
-    commandStatusText.value = "正在下发启动命令";
     const result = await postDeviceCommand(deviceId, "Run", "start requested from Vue dashboard", {
       target_temperature: Number(selectedDevice.value.target_temperature ?? selectedDevice.value.current_temperature ?? 25),
       target_humidity: Number(selectedDevice.value.target_humidity ?? selectedDevice.value.current_humidity ?? 60)
     });
-    commandStatusText.value = "启动命令已排队，等待工控机确认";
     trackQueuedCommand(result, "启动", deviceId);
     startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: false };
     addOperationLog({ title: "启动运行", message: `${deviceName} 启动命令已排队，等待工控机确认`, tone: "warning", deviceId });
   } catch (error) {
     startingDeviceIds.value = { ...startingDeviceIds.value, [deviceId]: false };
-    commandStatusText.value = error.message || "启动命令下发失败";
     addOperationLog({ title: "启动运行", message: `${deviceName} 启动命令下发失败`, tone: "danger", deviceId });
   }
 }
@@ -1698,7 +1756,6 @@ async function holdSelectedDevice() {
   const command = isHeld ? "HoldOFF" : "HoldON";
   const commandLabel = isHeld ? "继续" : "保持";
   holdingDeviceIds.value = { ...holdingDeviceIds.value, [deviceId]: true };
-  commandStatusText.value = `正在下发${commandLabel}命令`;
   addOperationLog({ title: commandLabel, message: `${deviceName} 正在下发${commandLabel}命令`, tone: "warning", deviceId });
 
   try {
@@ -1717,11 +1774,9 @@ async function holdSelectedDevice() {
       throw new Error(result.detail || result.message || `${commandLabel}命令下发失败`);
     }
     heldDeviceIds.value = { ...heldDeviceIds.value, [deviceId]: !isHeld };
-    commandStatusText.value = `${commandLabel}命令已下发`;
     trackQueuedCommand(result, commandLabel, deviceId);
     addOperationLog({ title: commandLabel, message: `${deviceName} ${commandLabel}命令已下发`, tone: "success", deviceId });
   } catch (error) {
-    commandStatusText.value = error.message || `${commandLabel}命令下发失败`;
     addOperationLog({ title: commandLabel, message: `${deviceName} ${commandLabel}命令下发失败`, tone: "danger", deviceId });
   } finally {
     holdingDeviceIds.value = { ...holdingDeviceIds.value, [deviceId]: false };
@@ -1733,7 +1788,6 @@ async function skipSelectedDeviceStep() {
   const deviceId = selectedDevice.value.device_id;
   const deviceName = selectedDevice.value.name || deviceId;
   skippingDeviceIds.value = { ...skippingDeviceIds.value, [deviceId]: true };
-  commandStatusText.value = "正在下发跳步命令";
   addOperationLog({ title: "跳步", message: `${deviceName} 正在下发跳步命令`, tone: "warning", deviceId });
 
   try {
@@ -1750,11 +1804,9 @@ async function skipSelectedDeviceStep() {
     if (!response.ok) {
       throw new Error(result.detail || result.message || "跳步命令下发失败");
     }
-    commandStatusText.value = "跳步命令已下发";
     trackQueuedCommand(result, "跳步", deviceId);
     addOperationLog({ title: "跳步", message: `${deviceName} 跳步命令已下发`, tone: "success", deviceId });
   } catch (error) {
-    commandStatusText.value = error.message || "跳步命令下发失败";
     addOperationLog({ title: "跳步", message: `${deviceName} 跳步命令下发失败`, tone: "danger", deviceId });
   } finally {
     skippingDeviceIds.value = { ...skippingDeviceIds.value, [deviceId]: false };
