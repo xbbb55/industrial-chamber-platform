@@ -2,11 +2,9 @@ import asyncio
 import os
 import time
 import uuid
-from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from device_edge.control_protocol import build_fe_w, normalize_command, protocol_time
@@ -15,13 +13,9 @@ from device_edge.snapshot_normalizer import normalize_snapshot
 from backend.auth import build_auth_router
 
 
-app = FastAPI(title="Shared Memory Router Test")
+app = FastAPI(title="Industrial Chamber Control Center")
 app.include_router(build_auth_router())
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-WEB_INDEX = ROOT_DIR / "web" / "edge-ingest-dashboard.html"
-WEB_MEMORY = ROOT_DIR / "web" / "memory-dashboard.html"
-WEB_DEBUG = ROOT_DIR / "web" / "memory-debug.html"
 uploaded_edge_snapshots: dict[str, dict[str, Any]] = {}
 pending_edge_commands: dict[str, list[dict[str, Any]]] = {}
 command_results: dict[str, dict[str, Any]] = {}
@@ -339,21 +333,6 @@ def make_edge_command(
     }
     queue_edge_command(edge_id, item)
     return item
-
-
-@app.get("/")
-async def index() -> FileResponse:
-    return FileResponse(WEB_INDEX)
-
-
-@app.get("/memory")
-async def memory_page() -> FileResponse:
-    return FileResponse(WEB_MEMORY)
-
-
-@app.get("/debug")
-async def debug_page() -> FileResponse:
-    return FileResponse(WEB_DEBUG)
 
 
 @app.get("/api/memory/snapshot")

@@ -1,135 +1,62 @@
-# Industrial Chamber Platform Test Project
+# Industrial Chamber Platform
 
-This is a minimal end-to-end test project for the environmental chamber architecture.
-
-It verifies the core loop:
+该仓库保留工控机边缘服务、Vue 本机看板与可选总控原型。设备采集与实际控制由外部 C++ 通讯程序负责；该程序通过 Windows 共享内存与 `device_edge` 交互。
 
 ```text
-simulated C++ device agent
-  -> in-memory realtime broker
-  -> FastAPI routes and WebSocket
-  -> browser dashboard
-  -> control request
-  -> simulated device command queue
-  -> execution result back to browser
+C++ 通讯程序
+  -> BE_W（实时数据） -> device_edge -> 本机 HTTP / WebSocket -> Vue 看板
+  <- FE_W（控制请求） <- device_edge
+  -> BE_R（执行结果） -> device_edge
+
+device_edge --可选 WebSocket--> backend.memory_router（多设备总控原型）
 ```
 
-For this first test, Redis and MySQL are intentionally replaced by in-process memory structures so the line can be tested quickly. After the workflow is proven, replace:
+## 本机边缘服务
 
-- `latest_state` with Redis Hash/String
-- `event_queues` with Redis Stream/PubSub
-- `control_requests` with MySQL persistence
-
-## Run
-
-Install dependencies:
+安装边缘服务依赖：
 
 ```powershell
-python -m pip install -r requirements.txt
+python -m pip install -r device_edge/requirements.txt
 ```
 
-Start the server:
+复制并配置边缘服务配置文件：
 
 ```powershell
-python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+python -m device_edge.run_edge init-config --config device-edge.config.json
 ```
 
-Open:
-
-```text
-http://127.0.0.1:8000
-```
-
-## Shared Memory Test
-
-This is the closer simulation for your target architecture:
-
-```text
-process 1: device_memory_writer.py
-  -> writes realtime chamber data into Windows shared memory
-
-process 2: backend.memory_router
-  -> reads shared memory
-  -> exposes HTTP routes
-  -> pushes snapshots to WebSocket clients
-
-browser:
-  -> opens the management frontend
-  -> reads data through the router
-```
-
-Start the memory writer in terminal 1:
+确认 C++ 通讯程序已经创建 `BE_W` 和 `BE_R` 后，启动本机服务：
 
 ```powershell
-python device_memory_writer_cn.py
+python -m device_edge.run_edge serve --config device-edge.config.json --host 0.0.0.0 --port 8765
 ```
 
-模拟器现在写入生产工控 JSON 的单设备根对象（`DUT`、`compressor`、`mainData`、`program`、`status`、`timeData`）。默认设备号为 `SIM-PY-CN-001`，可通过环境变量切换：
+详细的共享内存、命令和数据库配置见 [device_edge/README.md](device_edge/README.md)。
 
-```powershell
-$env:CHAMBER_DEVICE_ID = "SIM-PY-CN-002"
-python device_memory_writer_cn.py
-```
+## Vue 工业看板
 
-Start the router in terminal 2:
-
-```powershell
-python -m uvicorn backend.memory_router:app --host 127.0.0.1 --port 8010
-```
-
-Open:
-
-```text
-http://127.0.0.1:8010
-```
-
-Useful APIs:
-
-```text
-GET /api/memory/snapshot
-GET /api/memory/devices
-WS  /ws/memory
-```
-
-## Vue Industrial Dashboard
-
-新的客户端看板位于 `frontend-vue`，用于模拟最终浏览器/桌面端管理界面。它通过 Vite 代理访问本机 FastAPI：
-
-```text
-Vue dashboard: http://127.0.0.1:5173
-FastAPI router: http://127.0.0.1:8010
-WebSocket:      ws://127.0.0.1:8010/ws/memory
-```
-
-首次运行安装依赖：
+开发环境下，Vite 默认代理到本机 `device_edge`：
 
 ```powershell
 cd D:\industrial-chamber-platform\frontend-vue
 npm install
-```
-
-启动前端开发服务：
-
-```powershell
 npm run dev
 ```
 
-局域网其它电脑访问时，先确保后端使用 `--host 0.0.0.0` 启动，再访问：
-
-```text
-http://本机IP:5173
-```
-
-生产构建验证：
+看板地址为 `http://127.0.0.1:5173`。生产部署前执行：
 
 ```powershell
 npm run build
 ```
 
-## What To Test
+构建后的 `frontend-vue/dist` 会由 `device_edge` 托管。
 
-1. Watch three simulated chambers update in realtime.
-2. Open a chamber card to see status, temperature, humidity, step, and alarms.
-3. Click `Start Test`.
-4. The request goes through FastAPI, reaches the simulated device worker, starts running, and pushes results back to the browser.
-5. Click `Stop` to send a stop request through the same control path.
+## 可选总控原型
+
+多设备总控服务接收各边缘端的 WebSocket 上传，聚合实时设备状态，并向边缘端下发命令：
+
+```powershell
+python -m uvicorn backend.memory_router:app --host 0.0.0.0 --port 8010
+```
+
+边缘端配置中设置 `control_center.enabled=true` 和总控地址后，会连接 `WS /api/edge/ws`。当前总控原型仍使用进程内实时状态和命令记录，尚未接入 Redis/MySQL 持久化。

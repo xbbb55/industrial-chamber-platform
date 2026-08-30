@@ -24,16 +24,17 @@
 当前相关文件：
 
 ```text
-device_agent/cpp/SharedMemoryWriter.cpp
-device_memory_writer.py
-device_memory_writer_cn.py
-device_memory_uploader.py
-backend/shared_memory_store.py
+device_edge/config.py
+device_edge/runtime.py
+device_edge/shared_memory_store.py
+device_edge/sqlite_store.py
+device_edge/websocket_client.py
+device_edge/local_service.py
 ```
 
 职责说明：
 
-- C++ 上位机或采集程序读取设备实时数据。
+- 外部 C++ 上位机或采集程序读取设备实时数据。
 - C++ 将当前完整快照写入 Windows 共享内存。
 - 设备端上传服务读取本机共享内存。
 - 上传服务负责本地缓存、断线重试、必要时写本地数据库。
@@ -48,12 +49,10 @@ backend/shared_memory_store.py
 
 ```text
 backend/memory_router.py
-backend/main.py
 ```
 
 职责说明：
 
-- `backend.main` 当前是端到端模拟，把设备模拟、指令队列、管理接口混在一起，只适合 Demo。
 - `backend.memory_router` 通过 `WS /api/edge/ws` 接收设备端数据和执行结果；它同时读取本机共享内存的 Demo 逻辑后续应拆开。
 - 总控平台只接收设备通讯端上传的数据，不关心底层 C++ 如何采集。
 - 总控平台统一维护设备、工控机、实时状态、历史数据、告警、试验任务、用户权限。
@@ -65,13 +64,11 @@ backend/main.py
 
 ```text
 frontend-vue/
-web/
 ```
 
 职责说明：
 
 - `frontend-vue` 是后续主用户端。
-- `web` 是早期静态测试页面，可作为调试页保留或逐步下线。
 - 用户端只访问总控平台 API。
 - 用户端不直接读取共享内存，不直接访问设备端上传服务。
 
@@ -83,8 +80,6 @@ web/
 industrial-chamber-platform/
   apps/
     device-edge/
-      cpp/
-        SharedMemoryWriter.cpp
       agent/
         shared_memory_store.py
         uploader.py

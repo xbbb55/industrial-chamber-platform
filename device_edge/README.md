@@ -134,11 +134,3 @@ $env:AUTH_SEED_PASSWORD = "请修改为强密码"  # 可选，默认仅用于本
   "server_url": "http://192.168.1.20:8010"
 }
 ```
-
-## 模拟器
-
-`manual-ui` 仅用于没有 C++ 时的开发测试；它会生成模拟数据并写入共享内存，不属于生产启动路径：
-
-```powershell
-python -m device_edge.run_edge manual-ui --config device-edge.config.json
-```

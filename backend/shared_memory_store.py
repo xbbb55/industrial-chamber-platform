@@ -26,7 +26,7 @@ def attach_existing() -> shared_memory.SharedMemory:
         return shared_memory.SharedMemory(name=SHM_NAME, create=False)
     except FileNotFoundError as exc:
         raise SharedMemoryNotReady(
-            f"Shared memory {SHM_NAME!r} is not created yet. Start device_memory_writer.py first."
+            f"Shared memory {SHM_NAME!r} is not created yet. Start a compatible external shared-memory writer first."
         ) from exc
 
 
