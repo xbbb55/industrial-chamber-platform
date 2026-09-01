@@ -96,10 +96,10 @@
           </button>
           <button class="user-card" type="button" aria-label="打开个人中心" @click="openProfile">
             <div>
-              <strong>Admin User</strong>
-              <span>系统管理员</span>
+              <strong>{{ sessionUser.display_name }}</strong>
+              <span>{{ sessionUser.role_label }}</span>
             </div>
-            <div class="avatar">A</div>
+            <div class="avatar">{{ sessionUser.display_name.slice(0, 1).toUpperCase() }}</div>
           </button>
         </div>
       </header>
@@ -145,69 +145,14 @@
           </section>
         </section>
 
-        <section v-else-if="activeView === 'profile'" class="page-stack profile-page">
-          <div class="section-head profile-section-head">
-            <div>
-              <h2>个人中心</h2>
-              <span>管理个人资料、账号状态与安全信息</span>
-            </div>
-            <button class="profile-back-button" type="button" @click="returnToMonitoring">
-              <AppIcon name="gauge" :size="16" />
-              <span>返回</span>
-            </button>
-          </div>
-
-          <section class="profile-hero panel">
-            <div class="profile-avatar">A</div>
-            <div class="profile-identity">
-              <div class="profile-name-row">
-                <h3>Admin User</h3>
-                <span class="profile-status"><i></i>在线</span>
-              </div>
-              <p>系统管理员 · 工业试验箱平台</p>
-              <span class="profile-id">账号 ID：ADMIN-001</span>
-            </div>
-            <div class="profile-hero-meta">
-              <span>当前会话</span>
-              <strong>{{ currentTimeText }}</strong>
-            </div>
-          </section>
-
-          <div class="profile-grid">
-            <section class="panel profile-info-panel">
-              <div class="panel-title">
-                <h3>基本资料</h3>
-                <span>账户信息</span>
-              </div>
-              <div class="profile-fields">
-                <div><span>姓名</span><strong>Admin User</strong></div>
-                <div><span>角色</span><strong>系统管理员</strong></div>
-                <div><span>所属组织</span><strong>工业试验箱控制中心</strong></div>
-                <div><span>工作邮箱</span><strong>admin@industrial-chamber.local</strong></div>
-                <div><span>联系电话</span><strong>未设置</strong></div>
-                <div><span>时区</span><strong>Asia/Shanghai (UTC+8)</strong></div>
-              </div>
-            </section>
-
-            <section class="panel profile-security-panel">
-              <div class="panel-title">
-                <h3>账号安全</h3>
-                <span>安全等级：良好</span>
-              </div>
-              <div class="security-item"><AppIcon name="settings" :size="17" /><div><strong>登录密码</strong><span>建议定期更新密码</span></div><button type="button" @click="profileActionText = '密码修改功能即将开放'">修改</button></div>
-              <div class="security-item"><AppIcon name="bell" :size="17" /><div><strong>通知偏好</strong><span>接收设备报警与运行通知</span></div><button type="button" @click="profileActionText = '通知偏好已保持为默认设置'">管理</button></div>
-              <p v-if="profileActionText" class="profile-action-feedback">{{ profileActionText }}</p>
-            </section>
-          </div>
-
-          <div class="profile-logout-row">
-            <button class="profile-logout-button" type="button" @click="logoutToLogin">
-              <AppIcon name="logout" :size="16" />
-              <span>退出登录</span>
-            </button>
-          </div>
-
-        </section>
+        <ProfileCenter
+          v-else-if="activeView === 'profile'"
+          :user="sessionUser"
+          :current-time="currentTimeText"
+          @back="returnToMonitoring"
+          @logout="logoutToLogin"
+          @user-updated="updateSessionUser"
+        />
 
         <section v-else-if="activeView === 'device-detail'" class="page-stack">
           <section
@@ -452,19 +397,19 @@
                 </button>
               </nav>
 
-              <section class="operation-editor panel">
+              <section class="operation-editor">
                 <div v-if="operationTab === 'protection'" class="protection-settings-grid">
-                  <section v-for="item in protectionItems" :key="item.key" class="protection-card" :class="{ 'protection-card-empty': item.empty, 'protection-card-enabled': !item.empty && operationForm[item.enabled] }">
+                  <section v-for="item in protectionItems" :key="item.key" class="protection-card" :class="{ 'protection-card-enabled': operationForm[item.enabled] }">
                     <header>
                       <span>{{ item.label }}</span>
-                      <label v-if="!item.empty" class="protection-switch">
+                      <label class="protection-switch">
                         <input v-model="operationForm[item.enabled]" type="checkbox" :aria-label="`${item.label}开关`">
                         <i></i><small>{{ operationForm[item.enabled] ? '已启用' : '未启用' }}</small>
                       </label>
                     </header>
-                    <div v-if="!item.empty" class="protection-fields" :class="{ disabled: !operationForm[item.enabled] }">
-                      <label><span>上限值</span><b>=</b><span class="hmi-number-control"><input v-model="operationForm[item.upper]" :disabled="!operationForm[item.enabled]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}上限值`" @blur="clampOperationNumber(item.upper, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :disabled="!operationForm[item.enabled]" :title="`调高${item.label}上限值`" :aria-label="`调高${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :disabled="!operationForm[item.enabled]" :title="`调低${item.label}上限值`" :aria-label="`调低${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
-                      <label><span>下限值</span><b>=</b><span class="hmi-number-control"><input v-model="operationForm[item.lower]" :disabled="!operationForm[item.enabled]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}下限值`" @blur="clampOperationNumber(item.lower, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :disabled="!operationForm[item.enabled]" :title="`调高${item.label}下限值`" :aria-label="`调高${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :disabled="!operationForm[item.enabled]" :title="`调低${item.label}下限值`" :aria-label="`调低${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
+                    <div class="protection-fields" :class="{ disabled: !operationForm[item.enabled] }">
+                      <label><span>上限值</span><span class="hmi-number-control"><input v-model="operationForm[item.upper]" :disabled="!operationForm[item.enabled]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}上限值`" @blur="clampOperationNumber(item.upper, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :disabled="!operationForm[item.enabled]" :title="`调高${item.label}上限值`" :aria-label="`调高${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :disabled="!operationForm[item.enabled]" :title="`调低${item.label}上限值`" :aria-label="`调低${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
+                      <label><span>下限值</span><span class="hmi-number-control"><input v-model="operationForm[item.lower]" :disabled="!operationForm[item.enabled]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}下限值`" @blur="clampOperationNumber(item.lower, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :disabled="!operationForm[item.enabled]" :title="`调高${item.label}下限值`" :aria-label="`调高${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :disabled="!operationForm[item.enabled]" :title="`调低${item.label}下限值`" :aria-label="`调低${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
                     </div>
                   </section>
                 </div>
@@ -529,23 +474,23 @@
                   <section class="other-settings-card">
                     <header>运行等待设定</header>
                     <div class="other-value-list">
-                      <label><span>温度等待区域</span><b>=</b><input v-model.number="operationForm.waitTemperatureUpper" type="number" step="0.1" aria-label="温度等待区域上限"></label>
-                      <label><span>湿度等待区域</span><b>=</b><input v-model.number="operationForm.waitHumidityUpper" type="number" step="0.1" aria-label="湿度等待区域上限"></label>
+                      <label><span>温度等待区域</span><input v-model.number="operationForm.waitTemperatureUpper" type="number" step="0.1" aria-label="温度等待区域上限"></label>
+                      <label><span>湿度等待区域</span><input v-model.number="operationForm.waitHumidityUpper" type="number" step="0.1" aria-label="湿度等待区域上限"></label>
                     </div>
                   </section>
 
                   <section class="other-settings-card">
                     <header>事件</header>
                     <div class="other-value-list single-value">
-                      <label><span>事件</span><b>=</b><input v-model="operationForm.eventCode" type="text" maxlength="16" aria-label="事件代码"></label>
+                      <label><span>事件</span><input v-model="operationForm.eventCode" type="text" maxlength="16" aria-label="事件代码"></label>
                     </div>
                   </section>
 
                   <section class="other-settings-card">
                     <header>预约启动设定</header>
                     <div class="schedule-list">
-                      <label class="schedule-row"><input v-model="operationForm.scheduledStartEnabled" type="checkbox"><span>启动</span><b>=</b><input v-model="operationForm.scheduledStartDate" type="date" aria-label="预约启动日期"><input v-model="operationForm.scheduledStartTime" type="time" aria-label="预约启动时间"></label>
-                      <label class="schedule-row"><input v-model="operationForm.scheduledStopEnabled" type="checkbox"><span>停机</span><b>=</b><input v-model="operationForm.scheduledStopDate" type="date" aria-label="预约停机日期"><input v-model="operationForm.scheduledStopTime" type="time" aria-label="预约停机时间"></label>
+                      <label class="schedule-row"><input v-model="operationForm.scheduledStartEnabled" type="checkbox"><span>启动</span><input v-model="operationForm.scheduledStartDate" type="date" aria-label="预约启动日期"><input v-model="operationForm.scheduledStartTime" type="time" aria-label="预约启动时间"></label>
+                      <label class="schedule-row"><input v-model="operationForm.scheduledStopEnabled" type="checkbox"><span>停机</span><input v-model="operationForm.scheduledStopDate" type="date" aria-label="预约停机日期"><input v-model="operationForm.scheduledStopTime" type="time" aria-label="预约停机时间"></label>
                     </div>
                   </section>
                 </div>
@@ -797,9 +742,16 @@ import LiveDeviceDetailCard from "./components/LiveDeviceDetailCard.vue";
 import DeviceOverviewList from "./components/DeviceOverviewList.vue";
 import AppIcon from "./components/AppIcon.vue";
 import HmiDashboard from "./components/HmiDashboard.vue";
+import ProfileCenter from "./components/ProfileCenter.vue";
 import { communicationClass, communicationLabel, runStateLabel } from "./utils/state";
 
 const emit = defineEmits(["logout"]);
+const props = defineProps({
+  initialUser: {
+    type: Object,
+    default: () => ({ username: "admin", display_name: "Admin User", role: "ADMIN", role_label: "管理员" })
+  }
+});
 
 const TREND_PAST_MS = 5 * 60 * 1000;
 const TREND_FUTURE_MS = 5 * 60 * 1000;
@@ -913,7 +865,7 @@ const selectedTrendCanvas = ref(null);
 const trendHistory = ref({});
 const currentTimeText = ref(new Date().toLocaleTimeString());
 const commandStatusById = ref({});
-const profileActionText = ref("");
+const sessionUser = ref({ ...props.initialUser });
 const stoppingDeviceIds = ref({});
 const stoppedDeviceIds = ref({});
 const startingDeviceIds = ref({});
@@ -993,8 +945,7 @@ const parameterTabs = [
 const protectionItems = [
   { key: "air-temperature", label: "空气温度保护", upper: "airTempUpper", lower: "airTempLower", enabled: "airTempProtectionEnabled" },
   { key: "dut-temperature", label: "试品温度保护", upper: "dutTempUpper", lower: "dutTempLower", enabled: "dutTempProtectionEnabled" },
-  { key: "dut-control-air", label: "试品控温空气温度", upper: "dutControlAirUpper", lower: "dutControlAirLower", enabled: "dutControlAirProtectionEnabled" },
-  { key: "empty", label: "", empty: true }
+  { key: "dut-control-air", label: "试品控温空气温度", upper: "dutControlAirUpper", lower: "dutControlAirLower", enabled: "dutControlAirProtectionEnabled" }
 ];
 const controlModes = [
   { key: "precise", label: "精准控制", description: "优先保持目标稳定" },
@@ -1144,6 +1095,9 @@ watch(() => selectedDevice.value?.timeData?.startTime, startTime => {
   if (!selectedDeviceId.value || !startTime || deviceStartTimes.value[selectedDeviceId.value]) return;
   deviceStartTimes.value = { ...deviceStartTimes.value, [selectedDeviceId.value]: startTime };
 }, { immediate: true });
+watch(() => props.initialUser, user => {
+  if (user?.username) updateSessionUser(user);
+}, { deep: true });
 const notificationCount = computed(() => activeNotifications.value.length);
 const notificationCountText = computed(() => notificationCount.value > 99 ? "99+" : String(notificationCount.value));
 const notificationTitle = computed(() => activeView.value === "device-detail" ? "操作日志" : "设备运行通知");
@@ -1375,9 +1329,13 @@ function returnToDashboard() {
 }
 
 function openProfile() {
-  profileActionText.value = "";
   activeView.value = "profile";
   isSidebarCollapsed.value = false;
+}
+
+function updateSessionUser(user) {
+  sessionUser.value = { ...user };
+  window.localStorage.setItem("industrial-auth-user", JSON.stringify(sessionUser.value));
 }
 
 function returnToMonitoring() {
@@ -1390,6 +1348,11 @@ function logoutToLogin() {
   window.localStorage.removeItem("industrial-auth-token");
   window.localStorage.removeItem("industrial-auth-user");
   emit("logout");
+}
+
+function authHeaders() {
+  const token = window.localStorage.getItem("industrial-auth-token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function openSaveConfirm(target) {
@@ -1431,7 +1394,7 @@ async function saveOperationSettings() {
   try {
     const response = await fetch("/api/settings/fixed-value", {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify(payload)
     });
     const result = await response.json().catch(() => ({}));
@@ -1653,7 +1616,7 @@ async function stopSelectedDevice() {
   try {
     const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         command: "Stop",
         operator_id: "web-admin",
@@ -1693,7 +1656,7 @@ function waitForCommandPollingWindow() {
 async function postDeviceCommand(deviceId, command, reason, payload = {}) {
   const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ command, time: formatStartTime(), operator_id: "web-admin", reason, payload })
   });
   const result = await response.json();
@@ -1761,7 +1724,7 @@ async function holdSelectedDevice() {
   try {
     const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         command,
         time: formatStartTime(),
@@ -1793,7 +1756,7 @@ async function skipSelectedDeviceStep() {
   try {
     const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         command: "Jump",
         operator_id: "web-admin",
@@ -1892,13 +1855,13 @@ function drawSelectedTrend() {
     const samples = trendHistory.value[selectedDeviceId.value] || [];
 
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "#0b1020";
+    ctx.fillStyle = "#f8fbfc";
     ctx.fillRect(0, 0, width, height);
 
-    ctx.strokeStyle = "#293142";
+    ctx.strokeStyle = "#d8e2e8";
     ctx.lineWidth = 1;
     ctx.font = "12px Microsoft YaHei";
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = "#1f2933";
 
     for (let index = 0; index <= 5; index += 1) {
       const y = padTop + index * (plotHeight / 5);
@@ -1935,7 +1898,7 @@ function drawSelectedTrend() {
     drawTimeSeries(ctx, samples, "hum", "#22c55e", yRanges.hum.min, yRanges.hum.max, startMs, endMs, padLeft, padTop, plotWidth, plotHeight);
 
     if (samples.length === 0) {
-      ctx.fillStyle = "#64748b";
+      ctx.fillStyle = "#35596d";
       ctx.font = "14px Microsoft YaHei";
       ctx.fillText("等待实时数据写入曲线", padLeft + 18, padTop + 34);
     }
@@ -1962,7 +1925,7 @@ function prepareTrendCanvas(canvas) {
 
 function drawTimeAxis(ctx, startMs, endMs, padLeft, plotWidth, y) {
   ctx.setLineDash([]);
-  ctx.fillStyle = "#94a3b8";
+  ctx.fillStyle = "#1f2933";
   ctx.font = "12px Microsoft YaHei";
   ctx.textAlign = "center";
 
@@ -1985,11 +1948,11 @@ function drawValueAxis(ctx, tempRange, humRange, padLeft, axisRight, padTop, plo
     const tempValue = tempRange.max - (tempRange.max - tempRange.min) * ratio;
     const humValue = humRange.max - (humRange.max - humRange.min) * ratio;
 
-    ctx.fillStyle = "#60a5fa";
+    ctx.fillStyle = "#1f2933";
     ctx.textAlign = "right";
     ctx.fillText(`${tempValue.toFixed(1)}C`, padLeft - 8, y + 4);
 
-    ctx.fillStyle = "#34d399";
+    ctx.fillStyle = "#1f2933";
     ctx.textAlign = "left";
     ctx.fillText(`${humValue.toFixed(1)}%`, axisRight + 8, y + 4);
   }

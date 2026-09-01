@@ -95,10 +95,10 @@ Vue 开发环境默认代理到 `http://127.0.0.1:8765`。生产环境构建 `fr
 ```powershell
 $env:MYSQL_PWD = "你的数据库密码"
 $env:AUTH_SEED_USERNAME = "admin"          # 可选，默认 admin
-$env:AUTH_SEED_PASSWORD = "请修改为强密码"  # 可选，默认仅用于本地开发
+$env:AUTH_SEED_PASSWORD = "12345"          # 可选，默认 12345，仅用于本地开发
 ```
 
-连接参数可通过 `MYSQL_HOST`、`MYSQL_PORT`、`MYSQL_DATABASE`、`MYSQL_USER` 配置。生产环境请使用密钥管理注入强密码。
+连接参数可通过 `MYSQL_HOST`、`MYSQL_PORT`、`MYSQL_DATABASE`、`MYSQL_USER` 配置。当前密码规则为至少 5 位数字；管理员可创建用户并分配管理员、工程师或销售权限组，三种权限组目前拥有相同的设备业务权限。
 
 ## 命令协议
 

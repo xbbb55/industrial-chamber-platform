@@ -2141,7 +2141,7 @@ textarea:focus-visible {
 .operation-settings { display: flex; flex-direction: column; gap: 14px; min-height: 0; height: 100%; }
 .eyebrow-label { color: #45cfff; font: 700 10px/1.2 "Roboto Mono", Consolas, monospace; letter-spacing: .13em; }
 .operation-layout { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; align-items: stretch; flex: 1 1 auto; min-height: 0; }
-.operation-nav, .operation-editor { border: 1px solid rgba(39, 151, 228, .48); border-radius: 0; background: linear-gradient(125deg, rgba(5, 28, 47, .98), rgba(3, 17, 30, .97)); clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); }
+.operation-nav { border: 1px solid rgba(39, 151, 228, .48); border-radius: 0; background: linear-gradient(125deg, rgba(5, 28, 47, .98), rgba(3, 17, 30, .97)); clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); }
 .operation-nav { align-self: stretch; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: stretch; padding: 10px 12px; }
 .operation-nav button { position: relative; display: flex; align-items: center; width: 100%; gap: 9px; min-height: 56px; padding: 9px 12px; border: 1px solid transparent; border-radius: 2px; background: transparent; color: #86a9bf; text-align: left; overflow: hidden; transition: border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease; }
 .operation-nav button::before,
@@ -2158,21 +2158,7 @@ textarea:focus-visible {
 .operation-nav button.active::after { opacity: 1; }
 .operation-nav button.active strong { color: #eefcff; }
 .operation-nav button.active small { color: #8adfff; }
-.operation-editor { position: relative; isolation: isolate; align-self: stretch; display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden; padding: 24px 28px 20px; background:
-  radial-gradient(circle at 74% 28%, rgba(30, 153, 232, .10), transparent 30%),
-  linear-gradient(125deg, rgba(6, 34, 56, .98), rgba(3, 16, 29, .98)); }
-.operation-editor::before,
-.operation-editor::after { content: ""; position: absolute; z-index: -1; pointer-events: none; }
-.operation-editor::before { left: 0; right: 0; bottom: 0; height: 48%; opacity: .26; background:
-  linear-gradient(30deg, rgba(21, 107, 157, .28) 12%, transparent 12.5%, transparent 87%, rgba(21, 107, 157, .28) 87.5%, rgba(21, 107, 157, .28)),
-  linear-gradient(150deg, rgba(21, 107, 157, .28) 12%, transparent 12.5%, transparent 87%, rgba(21, 107, 157, .28) 87.5%, rgba(21, 107, 157, .28)),
-  linear-gradient(30deg, rgba(21, 107, 157, .28) 12%, transparent 12.5%, transparent 87%, rgba(21, 107, 157, .28) 87.5%, rgba(21, 107, 157, .28)),
-  linear-gradient(150deg, rgba(21, 107, 157, .28) 12%, transparent 12.5%, transparent 87%, rgba(21, 107, 157, .28) 87.5%, rgba(21, 107, 157, .28)),
-  linear-gradient(60deg, rgba(24, 118, 170, .18) 25%, transparent 25.5%, transparent 75%, rgba(24, 118, 170, .18) 75%);
-  background-position: 0 0, 0 0, 18px 31px, 18px 31px, 0 0;
-  background-size: 36px 62px;
-  mask-image: linear-gradient(transparent, #000 30%, #000); }
-.operation-editor::after { left: 28px; right: 28px; bottom: 5px; height: 2px; background: linear-gradient(90deg, transparent, #1588ee 12%, #2bd4ff 50%, #1588ee 88%, transparent); opacity: .38; box-shadow: 0 -2px 12px rgba(21, 145, 222, .45); }
+.operation-editor { position: relative; align-self: stretch; display: flex; flex-direction: column; min-height: 0; height: 100%; padding: 24px 0 20px; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
 .operation-editor > * { position: relative; z-index: 1; }
 .operation-editor-head { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 15px; margin-bottom: 8px; border-bottom: 1px solid rgba(40, 137, 193, .29); }
 .operation-editor-head h3 { margin: 5px 0 0; color: #e8f7ff; font-size: 20px; }
@@ -2320,6 +2306,112 @@ textarea:focus-visible {
 .program-summary small { margin-left: auto; }
 .operation-editor-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(40, 137, 193, .29); color: #6f8fa3; font-size: 10px; }
 .operation-editor-footer div { display: flex; gap: 8px; }
+
+/* Operation card standard: restraint comes from one surface, one divider, and state-led colour. */
+.operation-settings {
+  --operation-card-surface: rgba(5, 28, 45, .82);
+  --operation-card-surface-active: rgba(7, 38, 58, .9);
+  --operation-card-border: rgba(84, 144, 174, .38);
+  --operation-card-border-active: rgba(52, 170, 211, .72);
+  --operation-card-divider: rgba(84, 144, 174, .24);
+  --operation-field-surface: rgba(2, 17, 29, .9);
+  --operation-field-border: rgba(73, 144, 178, .5);
+}
+.operation-settings .protection-card,
+.operation-settings .setpoint-module-card,
+.operation-settings .other-settings-card,
+.operation-settings .program-card {
+  border: 1px solid var(--operation-card-border);
+  border-radius: 4px;
+  background: var(--operation-card-surface);
+  box-shadow: none;
+  clip-path: none;
+}
+.operation-settings .protection-card::before,
+.operation-settings .protection-card::after,
+.operation-settings .setpoint-module-card::before,
+.operation-settings .setpoint-module-card::after,
+.operation-settings .other-settings-card::after { content: none; }
+.operation-settings .protection-card-enabled {
+  border-color: var(--operation-card-border-active);
+  background: var(--operation-card-surface-active);
+  box-shadow: none;
+}
+.operation-settings .protection-card header,
+.operation-settings .setpoint-module-card header,
+.operation-settings .other-settings-card header {
+  min-height: 44px;
+  padding: 0 16px;
+  border-bottom-color: var(--operation-card-divider);
+  background: rgba(12, 66, 96, .38);
+  text-shadow: none;
+}
+.operation-settings .protection-card header,
+.operation-settings .other-settings-card header { font-size: 13px; }
+.operation-settings .setpoint-module-card header { min-height: 44px; }
+.operation-settings .setpoint-module-card header span { font-size: 14px; text-shadow: none; }
+.operation-settings .setpoint-module-card header svg { filter: none; }
+.operation-settings .setpoint-module-card header small { border-left-color: var(--operation-card-divider); }
+.operation-settings .setpoint-module-card:hover {
+  transform: none;
+  border-color: var(--operation-card-border-active);
+  box-shadow: none;
+}
+.operation-settings .protection-settings-grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-rows: none;
+  grid-auto-rows: 176px;
+  gap: 12px;
+  padding-top: 0;
+}
+.operation-settings .protection-card-empty { display: none; }
+.operation-settings .protection-fields { gap: 12px; padding: 18px 20px; }
+.operation-settings .protection-fields label {
+  grid-template-columns: minmax(0, 1fr) minmax(145px, 1.3fr);
+  gap: 12px;
+}
+.operation-settings .protection-fields label b { display: none; }
+.operation-settings .setpoint-module-grid,
+.operation-settings .other-settings-grid { gap: 12px; padding-top: 0; }
+.operation-settings .setpoint-module-card { min-height: 184px; }
+.operation-settings .setpoint-runtime-card { grid-column: span 12; min-height: 172px; }
+.operation-settings .setpoint-module-fields { padding: 8px 16px 12px; }
+.operation-settings .setpoint-inline-field { min-height: 54px; border-bottom-color: var(--operation-card-divider); }
+.operation-settings .runtime-time-control { padding: 16px; }
+.operation-settings .other-settings-card { min-height: 148px; }
+.operation-settings .other-radio-list,
+.operation-settings .other-value-list,
+.operation-settings .schedule-list { min-height: 104px; padding: 12px 16px; }
+.operation-settings .other-value-list label { grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr); gap: 12px; }
+.operation-settings .other-value-list label b,
+.operation-settings .schedule-row b { display: none; }
+.operation-settings .schedule-row { grid-template-columns: 14px 34px minmax(118px, 1fr) 102px; gap: 8px; }
+.operation-settings .hmi-number-control,
+.operation-settings .other-value-list input,
+.operation-settings .schedule-row input[type="date"],
+.operation-settings .schedule-row input[type="time"],
+.operation-settings .other-radio-list select {
+  border-color: var(--operation-field-border);
+  border-radius: 4px;
+  background: var(--operation-field-surface);
+  box-shadow: none;
+}
+.operation-settings .hmi-number-control:focus-within,
+.operation-settings .other-value-list input:focus,
+.operation-settings .schedule-row input:focus,
+.operation-settings .other-radio-list select:focus {
+  border-color: #46c8f4;
+  box-shadow: 0 0 0 2px rgba(70, 200, 244, .18);
+}
+.operation-settings .hmi-number-steps { background: rgba(7, 48, 72, .82); }
+.operation-settings .hmi-number-steps button:hover { box-shadow: none; }
+.operation-settings .program-card { padding: 14px 16px; }
+.operation-settings .program-card-mark { border-radius: 3px; border-color: var(--operation-card-border); }
+.operation-settings .program-card.active {
+  border-color: var(--operation-card-border-active);
+  background: var(--operation-card-surface-active);
+  box-shadow: none;
+}
 .content:has(.system-parameters) { overflow-x: hidden; overflow-y: auto; }
 .content:has(.system-parameters) .page-stack { flex: 0 0 auto; min-height: max-content; padding-bottom: 18px; }
 .system-parameters { display: flex; flex-direction: column; gap: 12px; min-height: auto; }
@@ -2426,19 +2518,6 @@ textarea:focus-visible {
   width: 1px;
   height: 100%;
   background: linear-gradient(180deg, transparent 2%, rgba(46, 179, 241, .32) 12%, rgba(13, 81, 126, .16) 84%, transparent 98%);
-}
-
-.sidebar::after {
-  top: 42%;
-  right: 0;
-  left: auto;
-  width: 3px;
-  height: 74px;
-  border: 0;
-  background: repeating-linear-gradient(180deg, #1ca9ee 0 8px, transparent 8px 23px);
-  box-shadow: 0 0 8px rgba(24, 164, 232, .48);
-  transform: none;
-  opacity: .72;
 }
 
 .brand {
@@ -2784,4 +2863,560 @@ textarea:focus-visible {
   flex: 1 1 auto;
   min-height: 320px;
   grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+/* Colour-zone sample: the operation settings view separates the navigation frame
+   from the active work surface while retaining one cyan interaction colour. */
+.app-shell:has(.operation-settings) {
+  background: #071a2a;
+}
+.app-shell:has(.operation-settings) .sidebar {
+  background:
+    linear-gradient(180deg, #04111d 0%, #020b14 58%, #01080f 100%);
+  border-right-color: rgba(40, 124, 169, .5);
+  box-shadow: inset -10px 0 22px rgba(0, 18, 33, .5);
+}
+.app-shell:has(.operation-settings) .sidebar::before {
+  background: linear-gradient(180deg, transparent 2%, rgba(53, 153, 202, .26) 12%, rgba(13, 63, 98, .12) 84%, transparent 98%);
+}
+.app-shell:has(.operation-settings) .nav-list {
+  border-color: rgba(31, 95, 133, .38);
+  background: rgba(1, 11, 19, .56);
+}
+.app-shell:has(.operation-settings) .nav-list::before { opacity: .12; }
+.app-shell:has(.operation-settings) .brand {
+  background: linear-gradient(90deg, rgba(3, 19, 32, .96), rgba(2, 12, 22, .9));
+}
+.app-shell:has(.operation-settings) .sidebar-foot {
+  background: linear-gradient(180deg, rgba(1, 10, 18, .94), rgba(1, 7, 13, .98));
+}
+.app-shell:has(.operation-settings) .main-shell { background: #081e31; }
+.app-shell:has(.operation-settings) .topbar {
+  background: linear-gradient(90deg, #04111d, #03101b 62%, #020b14);
+  border-bottom-color: rgba(40, 124, 169, .5);
+}
+.app-shell:has(.operation-settings) .content {
+  background:
+    linear-gradient(90deg, rgba(69, 139, 178, .12) 1px, transparent 1px) 0 0 / 34px 34px,
+    linear-gradient(rgba(69, 139, 178, .09) 1px, transparent 1px) 0 0 / 34px 34px,
+    #081f33;
+}
+
+/* Scheme B sample: deep-blue navigation frame with a blue-grey work surface. */
+.app-shell:has(.operation-settings) { background: #b1c2cd; }
+.app-shell:has(.operation-settings) .sidebar,
+.app-shell:has(.operation-settings) .topbar,
+.app-shell:has(.operation-settings) .brand {
+  background: linear-gradient(180deg, #06233b 0%, #051d33 100%);
+  border-color: rgba(141, 196, 222, .42);
+}
+.app-shell:has(.operation-settings) .brand {
+  box-sizing: border-box;
+  min-height: 72px;
+  height: 72px;
+  padding: 12px 16px;
+}
+.app-shell:has(.operation-settings).sidebar-collapsed .brand { padding-inline: 14px; }
+.app-shell:has(.operation-settings) .sidebar {
+  border-right-color: transparent;
+  box-shadow: none;
+}
+.app-shell:has(.operation-settings) .sidebar::before { display: none; }
+.app-shell:has(.operation-settings) .main-shell { background: #b1c2cd; }
+.app-shell:has(.operation-settings) .content {
+  background:
+    linear-gradient(90deg, rgba(77, 122, 146, .08) 1px, transparent 1px) 0 0 / 34px 34px,
+    linear-gradient(rgba(77, 122, 146, .06) 1px, transparent 1px) 0 0 / 34px 34px,
+    #b1c2cd;
+}
+.app-shell:has(.operation-settings) .operation-settings {
+  --operation-card-surface: #f8fbfc;
+  --operation-card-surface-active: #f2f9fc;
+  --operation-card-border: #c7d4dc;
+  --operation-card-border-active: #c7d4dc;
+  --operation-card-divider: #d8e2e8;
+  --operation-field-surface: #ffffff;
+  --operation-field-border: #b9cad4;
+  color: #24475c;
+}
+.app-shell:has(.operation-settings) .operation-nav {
+  border-color: #c7d4dc;
+  background: #f2f2f2;
+  box-shadow: 0 1px 2px rgba(23, 53, 70, .05);
+  clip-path: none;
+}
+.app-shell:has(.operation-settings) .operation-nav button { color: #597280; }
+.app-shell:has(.operation-settings) .operation-nav button strong { color: #24475c; }
+.app-shell:has(.operation-settings) .operation-nav button small { color: #718996; }
+.app-shell:has(.operation-settings) .operation-nav button::before,
+.app-shell:has(.operation-settings) .operation-nav button::after { opacity: 0; }
+.app-shell:has(.operation-settings) .operation-nav button:hover {
+  border-color: #a6c6d6;
+  background: #edf6fa;
+  box-shadow: none;
+}
+.app-shell:has(.operation-settings) .operation-nav button.active {
+  border-color: #2787b4;
+  background: #e1f2f8;
+  box-shadow: inset 3px 0 0 #1686b8;
+  color: #164c68;
+}
+.app-shell:has(.operation-settings) .operation-nav button.active strong { color: #164c68; }
+.app-shell:has(.operation-settings) .operation-nav button.active small { color: #2f7698; }
+.app-shell:has(.operation-settings) .protection-card,
+.app-shell:has(.operation-settings) .setpoint-module-card,
+.app-shell:has(.operation-settings) .other-settings-card,
+.app-shell:has(.operation-settings) .program-card { color: #24475c; }
+.app-shell:has(.operation-settings) .protection-card header,
+.app-shell:has(.operation-settings) .setpoint-module-card header,
+.app-shell:has(.operation-settings) .other-settings-card header {
+  background: #f1f6f8;
+  color: #183f55;
+}
+.app-shell:has(.operation-settings) .setpoint-module-card header span,
+.app-shell:has(.operation-settings) .setpoint-module-card header small,
+.app-shell:has(.operation-settings) .protection-fields label span,
+.app-shell:has(.operation-settings) .setpoint-inline-field,
+.app-shell:has(.operation-settings) .other-radio-list label,
+.app-shell:has(.operation-settings) .other-value-list label,
+.app-shell:has(.operation-settings) .schedule-row { color: #35596d; }
+.app-shell:has(.operation-settings) .setpoint-inline-field > span small,
+.app-shell:has(.operation-settings) .runtime-time-field > span,
+.app-shell:has(.operation-settings) .setting-section-title small,
+.app-shell:has(.operation-settings) .program-card span { color: #718996; }
+.app-shell:has(.operation-settings) .setpoint-inline-field b,
+.app-shell:has(.operation-settings) .runtime-time-field b,
+.app-shell:has(.operation-settings) .program-card strong,
+.app-shell:has(.operation-settings) .program-summary strong { color: #183f55; text-shadow: none; }
+.app-shell:has(.operation-settings) .hmi-number-control input,
+.app-shell:has(.operation-settings) .other-value-list input,
+.app-shell:has(.operation-settings) .schedule-row input,
+.app-shell:has(.operation-settings) .other-radio-list select { color: #173f57; }
+.app-shell:has(.operation-settings) .hmi-number-steps {
+  border-left-color: #c5d4dc;
+  background: #eef5f8;
+}
+.app-shell:has(.operation-settings) .hmi-number-steps button {
+  border-bottom-color: #d5e0e6;
+  color: #31779a;
+}
+.app-shell:has(.operation-settings) .hmi-number-steps button:hover { background: #dceff6; color: #145f84; }
+.app-shell:has(.operation-settings) .protection-switch i {
+  border-color: #9eb4c0;
+  background: #dbe5ea;
+}
+.app-shell:has(.operation-settings) .protection-switch i::after { background: #7892a0; }
+.app-shell:has(.operation-settings) .protection-switch input:checked + i {
+  border-color: #2384af;
+  background: #1789b9;
+  box-shadow: none;
+}
+.app-shell:has(.operation-settings) .protection-switch input:checked + i::after { background: #ffffff; box-shadow: none; }
+.app-shell:has(.operation-settings) .protection-card-enabled .protection-switch small,
+.app-shell:has(.operation-settings) .program-card.active i { color: #19759d; }
+.app-shell:has(.operation-settings) .other-radio-list input[type="radio"],
+.app-shell:has(.operation-settings) .schedule-row input[type="checkbox"] { accent-color: #1983b1; }
+.app-shell:has(.operation-settings) .other-radio-list select,
+.app-shell:has(.operation-settings) .schedule-row input[type="date"],
+.app-shell:has(.operation-settings) .schedule-row input[type="time"] { color-scheme: light; }
+.app-shell:has(.operation-settings) .schedule-row input[type="date"]::-webkit-calendar-picker-indicator,
+.app-shell:has(.operation-settings) .schedule-row input[type="time"]::-webkit-calendar-picker-indicator { filter: none; }
+.app-shell:has(.operation-settings) .program-summary {
+  border-left-color: #2b8ab4;
+  background: #e4f1f6;
+}
+.app-shell:has(.operation-settings) .program-summary span,
+.app-shell:has(.operation-settings) .program-summary small,
+.app-shell:has(.operation-settings) .program-card i,
+.app-shell:has(.operation-settings) .operation-editor-footer { color: #6a8290; }
+.app-shell:has(.operation-settings) .secondary-action,
+.app-shell:has(.operation-settings) .ghost-action {
+  border-color: #b8cad4;
+  background: #f8fbfc;
+  color: #365a6e;
+}
+.app-shell:has(.operation-settings) .primary-action {
+  border-color: #1479aa;
+  background: #197fae;
+  box-shadow: none;
+}
+
+/* Shared light-workspace standard for every view except realtime monitoring. */
+.app-shell:not(:has(.monitor-layout)) {
+  --workspace-surface: #b1c2cd;
+  --card-surface: #f8fbfc;
+  --card-surface-muted: #f1f6f8;
+  --card-border: #c7d4dc;
+  --card-divider: #d8e2e8;
+  --field-surface: #ffffff;
+  --field-border: #b9cad4;
+  --ink-strong: #183f55;
+  --ink: #35596d;
+  --ink-muted: #718996;
+}
+.app-shell:not(:has(.monitor-layout)),
+.app-shell:not(:has(.monitor-layout)) .main-shell { background: var(--workspace-surface); }
+.app-shell:not(:has(.monitor-layout)) .content {
+  background:
+    linear-gradient(90deg, rgba(77, 122, 146, .08) 1px, transparent 1px) 0 0 / 34px 34px,
+    linear-gradient(rgba(77, 122, 146, .06) 1px, transparent 1px) 0 0 / 34px 34px,
+    var(--workspace-surface);
+}
+.app-shell:not(:has(.monitor-layout)) .sidebar,
+.app-shell:not(:has(.monitor-layout)) .topbar,
+.app-shell:not(:has(.monitor-layout)) .brand {
+  background: linear-gradient(180deg, #06233b 0%, #051d33 100%);
+  border-color: rgba(57, 142, 190, .58);
+}
+.app-shell:not(:has(.monitor-layout)) .sidebar { border-right-color: transparent; box-shadow: none; }
+.app-shell:not(:has(.monitor-layout)) .sidebar::before { display: none; }
+.app-shell:not(:has(.monitor-layout)) .brand { box-sizing: border-box; min-height: 72px; height: 72px; padding: 12px 16px; }
+.app-shell:not(:has(.monitor-layout)).sidebar-collapsed .brand { padding-inline: 14px; }
+
+.app-shell:not(:has(.monitor-layout)) .panel:not(.operation-nav),
+.app-shell:not(:has(.monitor-layout)) .system-parameter-card,
+.app-shell:not(:has(.monitor-layout)) .metric-card,
+.app-shell:not(:has(.monitor-layout)) .detail-card,
+.app-shell:not(:has(.monitor-layout)) .profile-hero,
+.app-shell:not(:has(.monitor-layout)) .profile-hero-summary {
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  background: var(--card-surface);
+  color: var(--ink);
+  box-shadow: none;
+  clip-path: none;
+}
+.app-shell:not(:has(.monitor-layout)) .system-parameter-card::after,
+.app-shell:not(:has(.monitor-layout)) .device-card-list .detail-card::before,
+.app-shell:not(:has(.monitor-layout)) .profile-hero::after,
+.app-shell:not(:has(.monitor-layout)) .overview-panel .panel-title h3::before { content: none; }
+.app-shell:not(:has(.monitor-layout)) .panel-title,
+.app-shell:not(:has(.monitor-layout)) .system-parameter-card header {
+  border-bottom-color: var(--card-divider);
+  background: var(--card-surface-muted);
+}
+.app-shell:not(:has(.monitor-layout)) .panel-title h3,
+.app-shell:not(:has(.monitor-layout)) .section-head h2,
+.app-shell:not(:has(.monitor-layout)) .empty-panel h3,
+.app-shell:not(:has(.monitor-layout)) .system-parameter-card header span,
+.app-shell:not(:has(.monitor-layout)) .detail-card h3,
+.app-shell:not(:has(.monitor-layout)) .metric-head strong { color: var(--ink-strong); text-shadow: none; }
+.app-shell:not(:has(.monitor-layout)) .panel-title span,
+.app-shell:not(:has(.monitor-layout)) .section-head > span,
+.app-shell:not(:has(.monitor-layout)) .empty-panel p,
+.app-shell:not(:has(.monitor-layout)) .system-parameter-card header small,
+.app-shell:not(:has(.monitor-layout)) .metric-head p,
+.app-shell:not(:has(.monitor-layout)) .metric-head span { color: var(--ink-muted); }
+
+.app-shell:not(:has(.monitor-layout)) .operation-nav {
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  background: #f2f2f2;
+  box-shadow: none;
+  clip-path: none;
+}
+.app-shell:not(:has(.monitor-layout)) .operation-nav button { color: #597280; }
+.app-shell:not(:has(.monitor-layout)) .operation-nav button strong { color: var(--ink); }
+.app-shell:not(:has(.monitor-layout)) .operation-nav button small { color: var(--ink-muted); }
+.app-shell:not(:has(.monitor-layout)) .operation-nav button::before,
+.app-shell:not(:has(.monitor-layout)) .operation-nav button::after { opacity: 0; }
+.app-shell:not(:has(.monitor-layout)) .operation-nav button:hover {
+  border-color: #a6c6d6;
+  background: #edf6fa;
+  box-shadow: none;
+}
+.app-shell:not(:has(.monitor-layout)) .operation-nav button.active {
+  border-color: #2787b4;
+  background: #e1f2f8;
+  box-shadow: inset 3px 0 0 #1686b8;
+  color: #164c68;
+}
+.app-shell:not(:has(.monitor-layout)) .operation-nav button.active strong { color: #164c68; }
+.app-shell:not(:has(.monitor-layout)) .operation-nav button.active small { color: #2f7698; }
+
+.app-shell:not(:has(.monitor-layout)) .system-parameter-card header { min-height: 44px; padding-inline: 16px; }
+.app-shell:not(:has(.monitor-layout)) .system-parameter-card header small { border-left-color: var(--card-divider); }
+.app-shell:not(:has(.monitor-layout)) .parameter-fields,
+.app-shell:not(:has(.monitor-layout)) .system-parameters-footer { color: var(--ink); }
+.app-shell:not(:has(.monitor-layout)) .parameter-fields label,
+.app-shell:not(:has(.monitor-layout)) .parameter-fields label b,
+.app-shell:not(:has(.monitor-layout)) .parameter-fields-three label span,
+.app-shell:not(:has(.monitor-layout)) .parameter-fields-three .parameter-group-title,
+.app-shell:not(:has(.monitor-layout)) .system-parameters-footer { color: var(--ink); }
+.app-shell:not(:has(.monitor-layout)) .parameter-fields-three .parameter-group-title,
+.app-shell:not(:has(.monitor-layout)) .system-parameters-footer { border-color: var(--card-divider); }
+
+.app-shell:not(:has(.monitor-layout)) .content input:not([type="checkbox"]):not([type="radio"]),
+.app-shell:not(:has(.monitor-layout)) .content select,
+.app-shell:not(:has(.monitor-layout)) .content textarea,
+.app-shell:not(:has(.monitor-layout)) .hmi-number-control {
+  border-color: var(--field-border);
+  border-radius: 4px;
+  background: var(--field-surface);
+  color: #173f57;
+  box-shadow: none;
+  color-scheme: light;
+}
+.app-shell:not(:has(.monitor-layout)) .hmi-number-control input { color: #173f57; }
+.app-shell:not(:has(.monitor-layout)) .hmi-number-steps {
+  border-left-color: #c5d4dc;
+  background: #eef5f8;
+}
+.app-shell:not(:has(.monitor-layout)) .hmi-number-steps button { border-bottom-color: #d5e0e6; color: #31779a; }
+.app-shell:not(:has(.monitor-layout)) .content input:focus,
+.app-shell:not(:has(.monitor-layout)) .content select:focus,
+.app-shell:not(:has(.monitor-layout)) .content textarea:focus,
+.app-shell:not(:has(.monitor-layout)) .hmi-number-control:focus-within {
+  border-color: #46c8f4;
+  box-shadow: 0 0 0 2px rgba(70, 200, 244, .18);
+}
+
+.app-shell:not(:has(.monitor-layout)) .primary-action,
+.app-shell:not(:has(.monitor-layout)) .profile-primary-button {
+  border-color: #1479aa;
+  border-radius: 4px;
+  background: #197fae;
+  color: #ffffff;
+  box-shadow: none;
+}
+.app-shell:not(:has(.monitor-layout)) .secondary-action,
+.app-shell:not(:has(.monitor-layout)) .ghost-action,
+.app-shell:not(:has(.monitor-layout)) .profile-secondary-button,
+.app-shell:not(:has(.monitor-layout)) .user-save-button,
+.app-shell:not(:has(.monitor-layout)) .link-button {
+  border-color: #b8cad4;
+  border-radius: 4px;
+  background: var(--card-surface);
+  color: #365a6e;
+  box-shadow: none;
+}
+.app-shell:not(:has(.monitor-layout)) .secondary-action:hover,
+.app-shell:not(:has(.monitor-layout)) .ghost-action:hover,
+.app-shell:not(:has(.monitor-layout)) .profile-secondary-button:hover:not(:disabled),
+.app-shell:not(:has(.monitor-layout)) .user-save-button:hover:not(:disabled),
+.app-shell:not(:has(.monitor-layout)) .link-button:hover { background: #edf6fa; color: #145f84; }
+
+.app-shell:not(:has(.monitor-layout)) .overview-row {
+  border-top-color: var(--card-divider);
+  background: transparent;
+}
+.app-shell:not(:has(.monitor-layout)) .overview-row:hover,
+.app-shell:not(:has(.monitor-layout)) .overview-row:focus-visible {
+  border-color: #a6c6d6;
+  background: #edf6fa;
+  box-shadow: none;
+}
+.app-shell:not(:has(.monitor-layout)) .overview-device strong,
+.app-shell:not(:has(.monitor-layout)) .overview-cell strong,
+.app-shell:not(:has(.monitor-layout)) .detail-card strong,
+.app-shell:not(:has(.monitor-layout)) .mini-box strong { color: var(--ink-strong); text-shadow: none; }
+.app-shell:not(:has(.monitor-layout)) .overview-device p,
+.app-shell:not(:has(.monitor-layout)) .overview-cell span,
+.app-shell:not(:has(.monitor-layout)) .overview-cell .communication-health,
+.app-shell:not(:has(.monitor-layout)) .mini-box span,
+.app-shell:not(:has(.monitor-layout)) .detail-card p { color: var(--ink-muted); }
+.app-shell:not(:has(.monitor-layout)) .device-card-list .mini-box {
+  border-color: var(--card-divider);
+  border-radius: 4px;
+  background: var(--card-surface-muted);
+}
+.app-shell:not(:has(.monitor-layout)) .device-card-list .clickable-detail-card:hover,
+.app-shell:not(:has(.monitor-layout)) .device-card-list .clickable-detail-card:focus-visible { background: #edf6fa; }
+.app-shell:not(:has(.monitor-layout)) .json-view {
+  border-color: var(--card-border);
+  border-radius: 4px;
+  background: var(--field-surface);
+  color: var(--ink);
+}
+
+.app-shell:not(:has(.monitor-layout)) .profile-hero-summary,
+.app-shell:not(:has(.monitor-layout)) .profile-fields > div,
+.app-shell:not(:has(.monitor-layout)) .security-item-primary,
+.app-shell:not(:has(.monitor-layout)) .security-item > svg,
+.app-shell:not(:has(.monitor-layout)) .profile-role-note,
+.app-shell:not(:has(.monitor-layout)) .user-list,
+.app-shell:not(:has(.monitor-layout)) .profile-modal,
+.app-shell:not(:has(.monitor-layout)) .save-confirm-modal,
+.app-shell:not(:has(.monitor-layout)) .run-mode-modal,
+.app-shell:not(:has(.monitor-layout)) .notification-modal {
+  border-color: var(--card-border);
+  background: var(--card-surface);
+  box-shadow: none;
+}
+.app-shell:not(:has(.monitor-layout)) .profile-name-row h3,
+.app-shell:not(:has(.monitor-layout)) .profile-fields dd,
+.app-shell:not(:has(.monitor-layout)) .profile-activity-item strong,
+.app-shell:not(:has(.monitor-layout)) .user-list-row,
+.app-shell:not(:has(.monitor-layout)) .profile-modal h3 { color: var(--ink-strong); }
+.app-shell:not(:has(.monitor-layout)) .profile-identity p,
+.app-shell:not(:has(.monitor-layout)) .profile-id,
+.app-shell:not(:has(.monitor-layout)) .profile-hero-meta span,
+.app-shell:not(:has(.monitor-layout)) .profile-hero-meta strong,
+.app-shell:not(:has(.monitor-layout)) .profile-fields dt,
+.app-shell:not(:has(.monitor-layout)) .profile-fields span,
+.app-shell:not(:has(.monitor-layout)) .security-item span,
+.app-shell:not(:has(.monitor-layout)) .profile-panel-heading span,
+.app-shell:not(:has(.monitor-layout)) .profile-users-title > div > span,
+.app-shell:not(:has(.monitor-layout)) .profile-activity-item span,
+.app-shell:not(:has(.monitor-layout)) .profile-activity-item time,
+.app-shell:not(:has(.monitor-layout)) .user-list-row small,
+.app-shell:not(:has(.monitor-layout)) .user-login-name,
+.app-shell:not(:has(.monitor-layout)) .profile-modal-header span,
+.app-shell:not(:has(.monitor-layout)) .profile-form-fields label { color: var(--ink-muted); }
+.app-shell:not(:has(.monitor-layout)) .profile-summary-item,
+.app-shell:not(:has(.monitor-layout)) .user-list-row,
+.app-shell:not(:has(.monitor-layout)) .profile-modal-header,
+.app-shell:not(:has(.monitor-layout)) .profile-modal-footer { border-color: var(--card-divider); }
+.app-shell:not(:has(.monitor-layout)) .user-list-head,
+.app-shell:not(:has(.monitor-layout)) .profile-modal-footer { background: var(--card-surface-muted); color: var(--ink-muted); }
+.app-shell:not(:has(.monitor-layout)) .profile-role-note { color: var(--ink); }
+
+/* Bring the realtime monitoring work surface into the shared workspace palette. */
+.app-shell:has(.monitor-layout),
+.app-shell:has(.monitor-layout) .main-shell { background: #b1c2cd; }
+.app-shell:has(.monitor-layout) .content {
+  background:
+    linear-gradient(90deg, rgba(77, 122, 146, .08) 1px, transparent 1px) 0 0 / 34px 34px,
+    linear-gradient(rgba(77, 122, 146, .06) 1px, transparent 1px) 0 0 / 34px 34px,
+    #b1c2cd;
+}
+
+/* Realtime monitoring: use the shared light card surface and dark data type. */
+.app-shell:has(.monitor-layout) .monitor-layout .panel,
+.app-shell:has(.monitor-layout) .monitor-layout .monitor-card {
+  border: 1px solid #c7d4dc;
+  border-radius: 4px;
+  background: #f8fbfc;
+  color: #1f2933;
+  box-shadow: none;
+  clip-path: none;
+}
+.app-shell:has(.monitor-layout) .monitor-layout .panel::before,
+.app-shell:has(.monitor-layout) .monitor-layout .monitor-card::before,
+.app-shell:has(.monitor-layout) .realtime-tile::before,
+.app-shell:has(.monitor-layout) .realtime-tile::after,
+.app-shell:has(.monitor-layout) .trend-title-block h3::before,
+.app-shell:has(.monitor-layout) .dut-temperature-panel::before,
+.app-shell:has(.monitor-layout) .event-panel::before,
+.app-shell:has(.monitor-layout) .event-item::after { content: none; }
+.app-shell:has(.monitor-layout) .realtime-tile,
+.app-shell:has(.monitor-layout) .realtime-tile.humidity,
+.app-shell:has(.monitor-layout) .dut-temperature-item,
+.app-shell:has(.monitor-layout) .event-item {
+  border-color: #d8e2e8;
+  border-radius: 4px;
+  background: #f1f6f8;
+  box-shadow: none;
+}
+.app-shell:has(.monitor-layout) .dut-temperature-item.dut-selected-card,
+.app-shell:has(.monitor-layout) .event-item.event-active {
+  border-color: #a6c6d6;
+  background: #edf6fa;
+  box-shadow: none;
+}
+.app-shell:has(.monitor-layout) .realtime-tile :is(span, strong, small, b),
+.app-shell:has(.monitor-layout) .runtime-tag :is(span, strong),
+.app-shell:has(.monitor-layout) .trend-title-block :is(h3, span),
+.app-shell:has(.monitor-layout) .chart-legend span,
+.app-shell:has(.monitor-layout) .trend-toolbar span,
+.app-shell:has(.monitor-layout) .trend-time-axis,
+.app-shell:has(.monitor-layout) .trend-hint,
+.app-shell:has(.monitor-layout) .dut-selected-caption,
+.app-shell:has(.monitor-layout) .dut-temperature-item :is(span, strong, small),
+.app-shell:has(.monitor-layout) .event-count-caption,
+.app-shell:has(.monitor-layout) .event-item :is(span, strong) { color: #1f2933; text-shadow: none; }
+.app-shell:has(.monitor-layout) .runtime-tags > i { background: #d8e2e8; }
+.app-shell:has(.monitor-layout) .event-panel-header { border-color: #d8e2e8; background: #fafafa; }
+.app-shell:has(.monitor-layout) .trend-panel canvas,
+.app-shell:has(.monitor-layout) .custom-monitor-grid .trend-panel canvas {
+  border-color: #c7d4dc;
+  border-radius: 4px;
+  background: #f8fbfc;
+}
+.app-shell:has(.monitor-layout) .trend-toolbar button {
+  border-color: #b8cad4;
+  border-radius: 4px;
+  background: #f8fbfc;
+  color: #365a6e;
+  box-shadow: none;
+}
+
+.app-shell:has(.monitor-layout) .hmi-dashboard {
+  border: 1px solid #c7d4dc;
+  border-radius: 4px;
+  background: #f8fbfc;
+  color: #1f2933;
+  box-shadow: none;
+  clip-path: none;
+}
+.app-shell:has(.monitor-layout) .hmi-dashboard::before,
+.app-shell:has(.monitor-layout) .hmi-dashboard::after { content: none; }
+.app-shell:has(.monitor-layout) .hmi-dashboard :is(.header-title h3, .header-title p, .gauge-numbers span, .gauge-label, .gauge-subtitle, .digital-value strong, .digital-value > span) {
+  color: #1f2933;
+  text-shadow: none;
+}
+.app-shell:has(.monitor-layout) .gauge-stage { background: none; }
+.app-shell:has(.monitor-layout) .gauge-card { filter: none; }
+.app-shell:has(.monitor-layout) .metal-ring {
+  background: linear-gradient(135deg, #aebdc6 0%, #f5f8fa 18%, #b9c7cf 42%, #eef3f6 68%, #9dacb7 100%);
+  box-shadow: inset 0 0 0 2px #d8e2e8, inset 0 0 0 8px #f8fbfc, 0 0 0 1px #c7d4dc;
+}
+.app-shell:has(.monitor-layout) .metal-ring::after { background: #eef3f6; box-shadow: inset 0 0 20px rgba(53, 89, 109, .10); }
+.app-shell:has(.monitor-layout) .gauge-face {
+  border-color: #b9cad4;
+  background: radial-gradient(circle at 50% 43%, #ffffff 0%, #edf3f6 72%, #e2ebef 100%);
+  box-shadow: inset 0 0 0 5px rgba(255, 255, 255, .72), 0 0 0 1px #d8e2e8;
+}
+.app-shell:has(.monitor-layout) .status-bar {
+  border-color: #c7d4dc;
+  border-radius: 4px;
+  background: #f1f6f8;
+  box-shadow: none;
+  clip-path: none;
+}
+.app-shell:has(.monitor-layout) .status-bar::before { content: none; }
+.app-shell:has(.monitor-layout) .status-item:not(:first-child)::before { border-color: #d8e2e8; }
+.app-shell:has(.monitor-layout) .status-icon { color: #365a6e; filter: none; }
+.app-shell:has(.monitor-layout) .status-copy > span,
+.app-shell:has(.monitor-layout) .status-copy strong { color: #1f2933; }
+.app-shell:has(.monitor-layout) .status-copy strong.green { color: #168252; }
+.app-shell:has(.monitor-layout) .status-copy strong.red { color: #c5363d; }
+.app-shell:has(.monitor-layout) .status-copy strong.orange { color: #ad6700; }
+.app-shell:has(.monitor-layout) .status-copy strong.blue { color: #197fae; }
+
+/* The realtime view shares the same navigation frame dimensions as operation setup. */
+.app-shell:has(.monitor-layout) .sidebar,
+.app-shell:has(.monitor-layout) .topbar,
+.app-shell:has(.monitor-layout) .brand {
+  background: linear-gradient(180deg, #06233b 0%, #051d33 100%);
+  border-color: rgba(57, 142, 190, .58);
+}
+.app-shell:has(.monitor-layout) .sidebar { border-right-color: transparent; box-shadow: none; }
+.app-shell:has(.monitor-layout) .sidebar::before { display: none; }
+.app-shell:has(.monitor-layout) .brand { box-sizing: border-box; min-height: 72px; height: 72px; padding: 12px 16px; }
+.app-shell:has(.monitor-layout).sidebar-collapsed .brand { padding-inline: 14px; }
+.app-shell:has(.monitor-layout) .command-layout-button {
+  border-color: #b8cad4;
+  border-radius: 4px;
+  background: #f8fbfc;
+  color: #365a6e;
+  box-shadow: none;
+}
+.app-shell:has(.monitor-layout) .command-layout-button:hover,
+.app-shell:has(.monitor-layout) .command-layout-button.active {
+  border-color: #a6c6d6;
+  background: #edf6fa;
+  color: #145f84;
+  box-shadow: none;
+}
+.app-shell:has(.monitor-layout) .realtime-tile strong { font-family: system-ui, sans-serif; }
+
+/* Keep the program-mode heading neutral within the light operation settings surface. */
+.app-shell:has(.operation-settings) .program-toolbar .setting-section-title > span { color: #597276; }
+
+/* The wallboard shell is intentionally unframed; its gauges and status bar provide the visual grouping. */
+.app-shell:has(.monitor-layout) .monitor-layout.wallboard-mode .hmi-dashboard {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }

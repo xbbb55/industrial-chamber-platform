@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -16,7 +16,7 @@ from .config import EdgeConfig
 from .mysql_store import FixedValueStore
 from .runtime import DeviceEdgeRuntime
 from .websocket_client import WebSocketEdgeClient
-from backend.auth import build_auth_router
+from backend.auth import build_auth_router, current_account, record_operation
 
 
 class LocalCommandRequest(BaseModel):
@@ -88,18 +88,21 @@ def create_app(config: EdgeConfig) -> FastAPI:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     @app.put("/api/settings/fixed-value")
-    async def save_fixed_value(request: FixedValueRequest) -> dict[str, Any]:
+    async def save_fixed_value(request: FixedValueRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
         if fixed_value_store is None:
             raise HTTPException(status_code=503, detail="数据库存储未启用")
         try:
-            return {"value": fixed_value_store.save_fixed_value(request.model_dump())}
+            value = fixed_value_store.save_fixed_value(request.model_dump())
+            record_operation(account, "FIXED_VALUE_SETTINGS_UPDATED", target_type="settings", target_id="fixed-value")
+            return {"value": value}
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     @app.post("/api/devices/{device_id}/commands")
-    async def submit_command(device_id: str, request: LocalCommandRequest) -> dict[str, Any]:
+    async def submit_command(device_id: str, request: LocalCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
         try:
-            command = runtime.submit_command({**request.model_dump(), "device_id": device_id})
+            record_operation(account, "DEVICE_COMMAND_REQUESTED", target_type="device", target_id=device_id, details={"command": request.command})
+            command = runtime.submit_command({**request.model_dump(), "operator_id": account["username"], "device_id": device_id})
         except PermissionError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
         except (RuntimeError, ValueError) as exc:

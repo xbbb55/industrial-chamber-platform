@@ -32,7 +32,10 @@ import {
   Pause,
   SkipForward,
   Square,
-  LogOut
+  LogOut,
+  KeyRound,
+  UsersRound,
+  Plus
 } from "lucide-vue-next";
 import { computed } from "vue";
 
@@ -71,7 +74,10 @@ const icons = {
   zoomIn: ZoomIn,
   zoomOut: ZoomOut,
   close: X,
-  logout: LogOut
+  logout: LogOut,
+  key: KeyRound,
+  users: UsersRound,
+  plus: Plus
 };
 
 const iconComponent = computed(() => icons[props.name] || Activity);

@@ -4,13 +4,13 @@ import time
 import uuid
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
 from device_edge.control_protocol import build_fe_w, normalize_command, protocol_time
 from .shared_memory_store import SharedMemoryNotReady, attach_existing, inspect_memory, read_snapshot
 from device_edge.snapshot_normalizer import normalize_snapshot
-from backend.auth import build_auth_router
+from backend.auth import build_auth_router, current_account, record_operation
 
 
 app = FastAPI(title="Industrial Chamber Control Center")
@@ -306,6 +306,7 @@ def make_edge_command(
     device_id: str,
     command: str,
     *,
+    account: Optional[dict[str, Any]] = None,
     operator_id: str = "web-admin",
     reason: str = "command from Vue dashboard",
     payload: Optional[dict[str, Any]] = None,
@@ -331,6 +332,14 @@ def make_edge_command(
         "payload": payload or {},
         "fe_w": fe_w,
     }
+    if account is not None:
+        record_operation(
+            account,
+            "DEVICE_COMMAND_QUEUED",
+            target_type="device",
+            target_id=device_id,
+            details={"command": command_type, "edge_id": edge_id, "command_id": item["command_id"]},
+        )
     queue_edge_command(edge_id, item)
     return item
 
@@ -350,11 +359,12 @@ async def memory_devices() -> list[dict[str, Any]]:
 
 
 @app.post("/api/devices/{device_id}/commands")
-async def controller_command(device_id: str, request: ControllerCommandRequest) -> dict[str, Any]:
+async def controller_command(device_id: str, request: ControllerCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
     item = make_edge_command(
         device_id,
         request.command,
-        operator_id=request.operator_id,
+        account=account,
+        operator_id=account["username"],
         reason=request.reason,
         payload=request.payload,
         when=request.time,
@@ -370,7 +380,7 @@ async def controller_command(device_id: str, request: ControllerCommandRequest) 
 
 
 @app.post("/api/devices/{device_id}/stop-requests")
-async def stop_device(device_id: str, request: StopCommandRequest) -> dict[str, Any]:
+async def stop_device(device_id: str, request: StopCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
     edge_id = find_edge_id_for_device(device_id)
     if not edge_id:
         raise HTTPException(status_code=404, detail=f"No uploaded edge found for device: {device_id}")
@@ -380,7 +390,7 @@ async def stop_device(device_id: str, request: StopCommandRequest) -> dict[str, 
         "device_id": device_id,
         "edge_id": edge_id,
         "command_type": "STOP_TEST",
-        "operator_id": request.operator_id,
+        "operator_id": account["username"],
         "reason": request.reason,
         "created_at": time.time(),
         "status": "PENDING",
@@ -389,6 +399,7 @@ async def stop_device(device_id: str, request: StopCommandRequest) -> dict[str, 
         },
         "fe_w": build_fe_w("Stop"),
     }
+    record_operation(account, "DEVICE_STOP_REQUESTED", target_type="device", target_id=device_id, details={"edge_id": edge_id, "command_id": command["command_id"]})
     queue_edge_command(edge_id, command)
     return {
         "status": "QUEUED",
@@ -400,7 +411,7 @@ async def stop_device(device_id: str, request: StopCommandRequest) -> dict[str, 
 
 
 @app.post("/api/devices/{device_id}/start-requests")
-async def start_device(device_id: str, request: StartCommandRequest) -> dict[str, Any]:
+async def start_device(device_id: str, request: StartCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
     edge_id = find_edge_id_for_device(device_id)
     if not edge_id:
         raise HTTPException(status_code=404, detail=f"No uploaded edge found for device: {device_id}")
@@ -410,7 +421,7 @@ async def start_device(device_id: str, request: StartCommandRequest) -> dict[str
         "device_id": device_id,
         "edge_id": edge_id,
         "command_type": "START_TEST",
-        "operator_id": request.operator_id,
+        "operator_id": account["username"],
         "reason": request.reason,
         "created_at": time.time(),
         "status": "PENDING",
@@ -421,6 +432,7 @@ async def start_device(device_id: str, request: StartCommandRequest) -> dict[str
         },
         "fe_w": build_fe_w("Run"),
     }
+    record_operation(account, "DEVICE_START_REQUESTED", target_type="device", target_id=device_id, details={"edge_id": edge_id, "command_id": command["command_id"]})
     queue_edge_command(edge_id, command)
     return {
         "status": "QUEUED",
@@ -432,7 +444,7 @@ async def start_device(device_id: str, request: StartCommandRequest) -> dict[str
 
 
 @app.post("/api/devices/{device_id}/hold-requests")
-async def hold_device(device_id: str, request: HoldCommandRequest) -> dict[str, Any]:
+async def hold_device(device_id: str, request: HoldCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
     edge_id = find_edge_id_for_device(device_id)
     if not edge_id:
         raise HTTPException(status_code=404, detail=f"No uploaded edge found for device: {device_id}")
@@ -442,7 +454,7 @@ async def hold_device(device_id: str, request: HoldCommandRequest) -> dict[str, 
         "device_id": device_id,
         "edge_id": edge_id,
         "command_type": "HOLD_TEST",
-        "operator_id": request.operator_id,
+        "operator_id": account["username"],
         "reason": request.reason,
         "created_at": time.time(),
         "status": "PENDING",
@@ -451,6 +463,7 @@ async def hold_device(device_id: str, request: HoldCommandRequest) -> dict[str, 
         },
         "fe_w": build_fe_w("Hold"),
     }
+    record_operation(account, "DEVICE_HOLD_REQUESTED", target_type="device", target_id=device_id, details={"edge_id": edge_id, "command_id": command["command_id"]})
     queue_edge_command(edge_id, command)
     return {
         "status": "QUEUED",
@@ -462,7 +475,7 @@ async def hold_device(device_id: str, request: HoldCommandRequest) -> dict[str, 
 
 
 @app.post("/api/devices/{device_id}/skip-step-requests")
-async def skip_step_device(device_id: str, request: SkipStepCommandRequest) -> dict[str, Any]:
+async def skip_step_device(device_id: str, request: SkipStepCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
     edge_id = find_edge_id_for_device(device_id)
     if not edge_id:
         raise HTTPException(status_code=404, detail=f"No uploaded edge found for device: {device_id}")
@@ -472,7 +485,7 @@ async def skip_step_device(device_id: str, request: SkipStepCommandRequest) -> d
         "device_id": device_id,
         "edge_id": edge_id,
         "command_type": "SKIP_STEP",
-        "operator_id": request.operator_id,
+        "operator_id": account["username"],
         "reason": request.reason,
         "created_at": time.time(),
         "status": "PENDING",
@@ -481,6 +494,7 @@ async def skip_step_device(device_id: str, request: SkipStepCommandRequest) -> d
         },
         "fe_w": build_fe_w("Jnmp"),
     }
+    record_operation(account, "DEVICE_SKIP_STEP_REQUESTED", target_type="device", target_id=device_id, details={"edge_id": edge_id, "command_id": command["command_id"]})
     queue_edge_command(edge_id, command)
     return {
         "status": "QUEUED",
