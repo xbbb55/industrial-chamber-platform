@@ -399,38 +399,34 @@
 
               <section class="operation-editor">
                 <div v-if="operationTab === 'protection'" class="protection-settings-grid">
-                  <section v-for="item in protectionItems" :key="item.key" class="protection-card" :class="{ 'protection-card-enabled': operationForm[item.enabled] }">
+                  <section v-for="item in protectionItems" :key="item.key" class="protection-card protection-card-enabled">
                     <header>
                       <span>{{ item.label }}</span>
-                      <label class="protection-switch">
-                        <input v-model="operationForm[item.enabled]" type="checkbox" :aria-label="`${item.label}开关`">
-                        <i></i><small>{{ operationForm[item.enabled] ? '已启用' : '未启用' }}</small>
-                      </label>
                     </header>
-                    <div class="protection-fields" :class="{ disabled: !operationForm[item.enabled] }">
-                      <label><span>上限值</span><span class="hmi-number-control"><input v-model="operationForm[item.upper]" :disabled="!operationForm[item.enabled]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}上限值`" @blur="clampOperationNumber(item.upper, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :disabled="!operationForm[item.enabled]" :title="`调高${item.label}上限值`" :aria-label="`调高${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :disabled="!operationForm[item.enabled]" :title="`调低${item.label}上限值`" :aria-label="`调低${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
-                      <label><span>下限值</span><span class="hmi-number-control"><input v-model="operationForm[item.lower]" :disabled="!operationForm[item.enabled]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}下限值`" @blur="clampOperationNumber(item.lower, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :disabled="!operationForm[item.enabled]" :title="`调高${item.label}下限值`" :aria-label="`调高${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :disabled="!operationForm[item.enabled]" :title="`调低${item.label}下限值`" :aria-label="`调低${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
+                    <div class="protection-fields">
+                      <label><span>上限值</span><span class="hmi-number-control"><input v-model="operationForm[item.upper]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}上限值`" @blur="clampOperationNumber(item.upper, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :title="`调高${item.label}上限值`" :aria-label="`调高${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`调低${item.label}上限值`" :aria-label="`调低${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
+                      <label><span>下限值</span><span class="hmi-number-control"><input v-model="operationForm[item.lower]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}下限值`" @blur="clampOperationNumber(item.lower, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :title="`调高${item.label}下限值`" :aria-label="`调高${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`调低${item.label}下限值`" :aria-label="`调低${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
                     </div>
                   </section>
                 </div>
 
                 <div v-else-if="operationTab === 'setpoint'" class="setpoint-module-grid">
                   <section class="setpoint-module-card setpoint-temperature-card">
-                    <header><span><AppIcon name="temperature" :size="16" />温度</span><small>CH-01 / TEMP</small></header>
+                    <header><span><AppIcon name="temperature" :size="16" />温度</span></header>
                     <div class="setpoint-module-fields">
-                      <label class="setpoint-inline-field"><span><small>SETPOINT</small>目标值</span><div><span class="hmi-number-control"><input v-model="operationForm.targetTemp" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高温度目标值" aria-label="调高温度目标值" @click.stop.prevent="stepOperationNumber('targetTemp', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低温度目标值" aria-label="调低温度目标值" @click.stop.prevent="stepOperationNumber('targetTemp', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
-                      <label class="setpoint-inline-field"><span><small>RAMP RATE</small>斜率值</span><div><span class="hmi-number-control"><input v-model="operationForm.tempRamp" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高温度斜率值" aria-label="调高温度斜率值" @click.stop.prevent="stepOperationNumber('tempRamp', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低温度斜率值" aria-label="调低温度斜率值" @click.stop.prevent="stepOperationNumber('tempRamp', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C/min</b></div></label>
+                      <label class="setpoint-inline-field"><span>目标值</span><div><span class="hmi-number-control"><input v-model="operationForm.targetTemp" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高温度目标值" aria-label="调高温度目标值" @click.stop.prevent="stepOperationNumber('targetTemp', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低温度目标值" aria-label="调低温度目标值" @click.stop.prevent="stepOperationNumber('targetTemp', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
+                      <label class="setpoint-inline-field"><span>斜率值</span><div><span class="hmi-number-control"><input v-model="operationForm.tempRamp" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高温度斜率值" aria-label="调高温度斜率值" @click.stop.prevent="stepOperationNumber('tempRamp', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低温度斜率值" aria-label="调低温度斜率值" @click.stop.prevent="stepOperationNumber('tempRamp', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C/min</b></div></label>
                     </div>
                   </section>
                   <section class="setpoint-module-card setpoint-humidity-card">
-                    <header><span><AppIcon name="humidity" :size="16" />湿度</span><small>CH-02 / HUM</small></header>
+                    <header><span><AppIcon name="humidity" :size="16" />湿度</span></header>
                     <div class="setpoint-module-fields">
-                      <label class="setpoint-inline-field"><span><small>SETPOINT</small>目标值</span><div><span class="hmi-number-control"><input v-model="operationForm.targetHum" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高湿度目标值" aria-label="调高湿度目标值" @click.stop.prevent="stepOperationNumber('targetHum', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低湿度目标值" aria-label="调低湿度目标值" @click.stop.prevent="stepOperationNumber('targetHum', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
-                      <label class="setpoint-inline-field"><span><small>RAMP RATE</small>斜率值</span><div><span class="hmi-number-control"><input v-model="operationForm.humRamp" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高湿度斜率值" aria-label="调高湿度斜率值" @click.stop.prevent="stepOperationNumber('humRamp', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低湿度斜率值" aria-label="调低湿度斜率值" @click.stop.prevent="stepOperationNumber('humRamp', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%/min</b></div></label>
+                      <label class="setpoint-inline-field"><span>目标值</span><div><span class="hmi-number-control"><input v-model="operationForm.targetHum" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高湿度目标值" aria-label="调高湿度目标值" @click.stop.prevent="stepOperationNumber('targetHum', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低湿度目标值" aria-label="调低湿度目标值" @click.stop.prevent="stepOperationNumber('targetHum', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                      <label class="setpoint-inline-field"><span>斜率值</span><div><span class="hmi-number-control"><input v-model="operationForm.humRamp" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高湿度斜率值" aria-label="调高湿度斜率值" @click.stop.prevent="stepOperationNumber('humRamp', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低湿度斜率值" aria-label="调低湿度斜率值" @click.stop.prevent="stepOperationNumber('humRamp', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%/min</b></div></label>
                     </div>
                   </section>
                   <section class="setpoint-module-card setpoint-runtime-card">
-                    <header><span><AppIcon name="history" :size="16" />运行时间</span><small>CH-03 / H:M:S</small></header>
+                    <header><span><AppIcon name="history" :size="16" />运行时间</span></header>
                     <div class="runtime-time-control" aria-label="运行时间，格式为小时分钟秒">
                       <label class="runtime-time-field"><span>小时</span><div><span class="hmi-number-control"><input v-model="operationForm.runtimeHours" type="number" min="0" step="1" aria-label="运行时间小时" @blur="clampOperationNumber('runtimeHours', 0, 999)"><span class="hmi-number-steps"><button type="button" title="增加小时" aria-label="增加小时" @click.stop.prevent="stepOperationNumber('runtimeHours', 1, 0, 999)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少小时" aria-label="减少小时" @click.stop.prevent="stepOperationNumber('runtimeHours', -1, 0, 999)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>H</b></div></label>
                       <label class="runtime-time-field"><span>分钟</span><div><span class="hmi-number-control"><input v-model="operationForm.runtimeMinutes" type="number" min="0" max="59" step="1" aria-label="运行时间分钟" @blur="clampOperationNumber('runtimeMinutes', 0, 59)"><span class="hmi-number-steps"><button type="button" title="增加分钟" aria-label="增加分钟" @click.stop.prevent="stepOperationNumber('runtimeMinutes', 1, 0, 59)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少分钟" aria-label="减少分钟" @click.stop.prevent="stepOperationNumber('runtimeMinutes', -1, 0, 59)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>M</b></div></label>
@@ -440,12 +436,24 @@
                 </div>
 
                 <div v-else-if="operationTab === 'program'" class="program-settings">
-                  <div class="program-toolbar"><div><span class="setting-section-title inline"><span>程序模式</span><small>选择需要下发的试验程序</small></span></div><button class="secondary-action" type="button" @click="operationFeedback = '程序新建功能即将开放'">＋ 新建程序</button></div>
-                  <div class="program-list"><button v-for="program in programs" :key="program.id" type="button" class="program-card" :class="{ active: operationForm.programId === program.id }" @click="operationForm.programId = program.id"><div class="program-card-mark">{{ program.id }}</div><div><strong>{{ program.name }}</strong><span>{{ program.steps }} 个步骤 · {{ program.duration }}</span></div><i>{{ operationForm.programId === program.id ? '已选择' : '选择' }}</i></button></div>
-                  <div class="program-summary"><span>选中程序</span><strong>{{ selectedProgram.name }}</strong><small>执行前请确认保护设定与目标定值</small></div>
+                  <div class="program-toolbar"><div><span class="setting-section-title inline"><span>程序模式</span><small>从数据库读取并维护试验程序</small></span></div><button class="secondary-action" type="button" @click="openProgramEditor()">＋ 新建程序</button></div>
+                  <div v-if="programs.length" class="program-workspace">
+                    <div class="program-list">
+                      <div class="program-list-header"><span>程序名</span><span>总运行时间</span><span>预览</span><span>维护</span><span>状态</span></div>
+                      <article v-for="program in programs" :key="program.pro_no" class="program-card" :class="{ active: operationForm.programId === String(program.pro_no) }">
+                        <button class="program-card-select" type="button" @click="selectProgram(program.pro_no)"><strong>{{ program.name }}</strong></button>
+                        <span class="program-card-duration">{{ program.display_total_time == null ? '--' : formatDuration(program.display_total_time) }}</span>
+                        <button class="program-preview-button" type="button" @click="openProgramPreview(program.pro_no)">预览</button>
+                        <div class="program-card-actions"><button type="button" title="编辑程序" @click="openProgramEditor(program.pro_no)">编辑</button><button type="button" title="删除程序" @click="deleteProgram(program.pro_no)">删除</button></div>
+                        <span class="program-card-selection" :class="{ selected: operationForm.programId === String(program.pro_no) }">{{ operationForm.programId === String(program.pro_no) ? '已选中' : '未选中' }}</span>
+                      </article>
+                    </div>
+                  </div>
+                  <section v-else class="program-empty-state"><strong>暂无程序组</strong><span>数据库中还没有程序，点击“新建程序”开始配置。</span><button class="primary-action" type="button" @click="openProgramEditor()">新建程序</button></section>
                 </div>
 
-                <div v-else class="other-settings-grid">
+                <section v-else class="other-settings-section">
+                  <div class="other-settings-grid">
                   <section class="other-settings-card">
                     <header>断电后启动方式</header>
                     <div class="other-radio-list">
@@ -467,7 +475,7 @@
                     <header>温度控制方式</header>
                     <div class="other-radio-list other-temperature-options">
                       <label><input v-model="operationForm.temperatureControlMode" type="radio" value="air"><span>空气控温</span></label>
-                      <label><input v-model="operationForm.temperatureControlMode" type="radio" value="dut"><span>试品控温</span><select v-model="operationForm.dutTemperatureSource" :disabled="operationForm.temperatureControlMode !== 'dut'" aria-label="试品温度来源"><option value="dut1">试品温度1</option><option value="dut2">试品温度2</option><option value="dut3">试品温度3</option></select></label>
+                      <label><input v-model="operationForm.temperatureControlMode" type="radio" value="dut"><span>试品控温</span><select v-model="operationForm.dutTemperatureSource" :disabled="operationForm.temperatureControlMode !== 'dut'" aria-label="试品温度来源"><option v-for="index in 8" :key="index" :value="`dut${index}`">试品温度{{ index }}</option></select></label>
                     </div>
                   </section>
 
@@ -482,7 +490,7 @@
                   <section class="other-settings-card">
                     <header>事件</header>
                     <div class="other-value-list single-value">
-                      <label><span>事件</span><input v-model="operationForm.eventCode" type="text" maxlength="16" aria-label="事件代码"></label>
+                      <label><span>事件</span><input :value="operationForm.eventCode" type="text" maxlength="16" readonly aria-label="事件代码，点击选择事件" title="点击选择事件" @click="openEventDialog" @keydown.enter.prevent="openEventDialog" @keydown.space.prevent="openEventDialog"></label>
                     </div>
                   </section>
 
@@ -493,9 +501,11 @@
                       <label class="schedule-row"><input v-model="operationForm.scheduledStopEnabled" type="checkbox"><span>停机</span><input v-model="operationForm.scheduledStopDate" type="date" aria-label="预约停机日期"><input v-model="operationForm.scheduledStopTime" type="time" aria-label="预约停机时间"></label>
                     </div>
                   </section>
-                </div>
+                  </div>
+                  <div class="operation-editor-footer other-settings-footer"><span>最后保存：{{ operationLastSaved }}</span><button class="primary-action" type="button" @click="openSaveConfirm('other')">保存设定</button></div>
+                </section>
 
-                <div class="operation-editor-footer"><span>最后保存：{{ operationLastSaved }}</span><div><button class="ghost-action" type="button" @click="resetOperationForm">恢复默认</button><button class="primary-action" type="button" @click="openSaveConfirm('operation')">保存设定</button></div></div>
+                <div v-if="operationTab !== 'other'" class="operation-editor-footer"><span>最后保存：{{ operationLastSaved }}</span><div v-if="operationTab !== 'program'"><button class="ghost-action" type="button" @click="resetOperationForm">恢复默认</button><button class="primary-action" type="button" @click="openSaveConfirm('operation')">保存设定</button></div></div>
               </section>
             </div>
           </section>
@@ -508,9 +518,9 @@
                 <AppIcon name="chevronRight" :size="14" />
               </button>
             </nav>
-            <div class="system-parameters-grid" :class="{ 'basic-parameter-grid': parameterTab === 'basic' }">
+            <div class="system-parameters-grid" :class="{ 'basic-parameter-grid': parameterTab === 'basic', 'calibration-parameter-grid': parameterTab === 'calibration' }">
               <section v-if="parameterTab === 'basic'" class="system-parameter-card product-info-card">
-                <header><span>产品信息</span><small>PRODUCT / INFO</small></header>
+                <header><span>产品信息</span></header>
                 <div class="parameter-fields">
                   <label><span>产品编号</span><input :value="selectedDevice.device_id" type="text" disabled></label>
                   <label><span>产品型号</span><input v-model="parameterForm.model" type="text"></label>
@@ -518,13 +528,58 @@
                 </div>
               </section>
 
-              <section v-if="parameterTab === 'calibration'" class="system-parameter-card">
-                <header><span>测量校正</span><small>MEASURE / CALIBRATION</small></header>
-                <div class="parameter-fields">
-                  <label><span>温度零点</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureOffset" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度零点" aria-label="增加温度零点" @click.stop.prevent="stepParameterNumber('temperatureOffset', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度零点" aria-label="减少温度零点" @click.stop.prevent="stepParameterNumber('temperatureOffset', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
-                  <label><span>温度增益</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureGain" type="number" step="0.001"><span class="hmi-number-steps"><button type="button" title="增加温度增益" aria-label="增加温度增益" @click.stop.prevent="stepParameterNumber('temperatureGain', 0.001)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度增益" aria-label="减少温度增益" @click.stop.prevent="stepParameterNumber('temperatureGain', -0.001)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>×</b></div></label>
-                  <label><span>湿度零点</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityOffset" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加湿度零点" aria-label="增加湿度零点" @click.stop.prevent="stepParameterNumber('humidityOffset', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度零点" aria-label="减少湿度零点" @click.stop.prevent="stepParameterNumber('humidityOffset', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
-                  <label><span>湿度增益</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityGain" type="number" step="0.001"><span class="hmi-number-steps"><button type="button" title="增加湿度增益" aria-label="增加湿度增益" @click.stop.prevent="stepParameterNumber('humidityGain', 0.001)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度增益" aria-label="减少湿度增益" @click.stop.prevent="stepParameterNumber('humidityGain', -0.001)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>×</b></div></label>
+              <template v-if="parameterTab === 'calibration'">
+                <section v-for="card in calibrationCards" :key="card.key" class="system-parameter-card calibration-card measurement-calibration-card">
+                  <header><span>{{ card.title }}</span><small>{{ card.code }}</small></header>
+                  <div class="calibration-card-content">
+                    <div class="calibration-readings" :aria-label="`当前${card.title}测量值`">
+                      <div v-for="reading in calibrationReadings(card)" :key="reading.label" class="calibration-reading">
+                        <span>{{ reading.label }}</span>
+                        <output>{{ formatCalibrationValue(reading.value) }}<small>{{ card.unit }}</small></output>
+                      </div>
+                    </div>
+
+                    <div class="calibration-matrix" role="group" :aria-label="`${card.title}校正参数`">
+                      <div class="calibration-matrix-head" aria-hidden="true">
+                        <span></span><span>区间</span><span>修正值</span><span>定校</span>
+                      </div>
+                      <div v-for="row in card.rows" :key="row.area.key" class="calibration-matrix-row">
+                        <strong>{{ row.number }}</strong>
+                        <label :title="row.area.key">
+                          <span class="hmi-number-control"><input v-model.number="parameterForm[row.area.key]" type="number" step="any" :aria-label="`${row.number}号${card.title}区间（${row.area.key}）`"><span class="hmi-number-steps"><button type="button" :title="`增加${row.number}号${card.title}区间`" :aria-label="`增加${row.number}号${card.title}区间`" @click.stop.prevent="stepParameterNumber(row.area.key, 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少${row.number}号${card.title}区间`" :aria-label="`减少${row.number}号${card.title}区间`" @click.stop.prevent="stepParameterNumber(row.area.key, -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                        </label>
+                        <label :title="row.corrected.key">
+                          <span class="hmi-number-control"><input v-model.number="parameterForm[row.corrected.key]" type="number" step="any" :aria-label="`${row.number}号${card.title}修正值（${row.corrected.key}）`"><span class="hmi-number-steps"><button type="button" :title="`增加${row.number}号${card.title}修正值`" :aria-label="`增加${row.number}号${card.title}修正值`" @click.stop.prevent="stepParameterNumber(row.corrected.key, 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少${row.number}号${card.title}修正值`" :aria-label="`减少${row.number}号${card.title}修正值`" @click.stop.prevent="stepParameterNumber(row.corrected.key, -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                        </label>
+                        <label v-if="row.number === 1" :title="card.correction.key">
+                          <span class="hmi-number-control"><input v-model.number="parameterForm[card.correction.key]" type="number" step="any" :aria-label="`${card.title}定校（${card.correction.key}）`"><span class="hmi-number-steps"><button type="button" :title="`增加${card.title}定校`" :aria-label="`增加${card.title}定校`" @click.stop.prevent="stepParameterNumber(card.correction.key, 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少${card.title}定校`" :aria-label="`减少${card.title}定校`" @click.stop.prevent="stepParameterNumber(card.correction.key, -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                        </label>
+                        <span v-else aria-hidden="true"></span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </template>
+
+              <section v-if="parameterTab === 'calibration'" class="system-parameter-card calibration-card dut-calibration-card">
+                <header><span>试品温度</span><small>DUT TEMPERATURE</small></header>
+                <div class="dut-calibration-content" role="table" aria-label="试品温度测量值">
+                  <div v-for="(group, groupIndex) in dutCalibrationGroups" :key="groupIndex" class="dut-calibration-group" role="rowgroup">
+                    <div class="dut-calibration-head" role="row">
+                      <span role="columnheader"></span>
+                      <span role="columnheader">采集值</span>
+                      <span role="columnheader">修正值</span>
+                      <span role="columnheader">最终值</span>
+                    </div>
+                    <div v-for="channel in group" :key="channel" class="dut-calibration-row" role="row">
+                      <strong role="rowheader">试品温度{{ channel }}</strong>
+                      <output role="cell" :aria-label="`试品温度${channel}采集值`">{{ formatCalibrationValue(dutCalibrationValue(channel, 'collected')) }}</output>
+                      <label class="dut-correction-value" role="cell">
+                        <span class="hmi-number-control"><input v-model.number="parameterForm[`DUT${channel}_Corrected`]" type="number" step="any" :aria-label="`试品温度${channel}修正值`"><span class="hmi-number-steps"><button type="button" :title="`增加试品温度${channel}修正值`" :aria-label="`增加试品温度${channel}修正值`" @click.stop.prevent="stepParameterNumber(`DUT${channel}_Corrected`, 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少试品温度${channel}修正值`" :aria-label="`减少试品温度${channel}修正值`" @click.stop.prevent="stepParameterNumber(`DUT${channel}_Corrected`, -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                      </label>
+                      <output role="cell" :aria-label="`试品温度${channel}最终值`">{{ formatCalibrationValue(dutCalibrationValue(channel, 'final')) }}</output>
+                    </div>
+                  </div>
                 </div>
               </section>
 
@@ -542,17 +597,17 @@
                 </div>
               </section>
 
-              <section v-if="parameterTab === 'frequency'" class="system-parameter-card">
-                <header><span>电机频率</span><small>OUTPUT / FREQUENCY</small></header>
+              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
+                <header><span>电机频率</span></header>
                 <div class="parameter-fields">
-                  <label><span>压缩机频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.compressorFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高压缩机频率" aria-label="提高压缩机频率" @click.stop.prevent="stepParameterNumber('compressorFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低压缩机频率" aria-label="降低压缩机频率" @click.stop.prevent="stepParameterNumber('compressorFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
-                  <label><span>循环风机频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.circulationFanFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高循环风机频率" aria-label="提高循环风机频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低循环风机频率" aria-label="降低循环风机频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
-                  <label><span>加湿器频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidifierFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高加湿器频率" aria-label="提高加湿器频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低加湿器频率" aria-label="降低加湿器频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
-                  <label><span>频率上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.frequencyLimit" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高频率上限" aria-label="提高频率上限" @click.stop.prevent="stepParameterNumber('frequencyLimit', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低频率上限" aria-label="降低频率上限" @click.stop.prevent="stepParameterNumber('frequencyLimit', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
+                  <label><span>升降温频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.compressorFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高升降温频率" aria-label="提高升降温频率" @click.stop.prevent="stepParameterNumber('compressorFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低升降温频率" aria-label="降低升降温频率" @click.stop.prevent="stepParameterNumber('compressorFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
+                  <label><span>恒温频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.circulationFanFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高恒温频率" aria-label="提高恒温频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低恒温频率" aria-label="降低恒温频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
+                  <label><span>湿度频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidifierFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高湿度频率" aria-label="提高湿度频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低湿度频率" aria-label="降低湿度频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
+                  <label><span>其他频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.frequencyLimit" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高其他频率" aria-label="提高其他频率" @click.stop.prevent="stepParameterNumber('frequencyLimit', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低其他频率" aria-label="降低其他频率" @click.stop.prevent="stepParameterNumber('frequencyLimit', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
                 </div>
               </section>
 
-              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
+              <section v-if="parameterTab === 'frequency'" class="system-parameter-card">
                 <header><span>历史记录</span><small>HISTORY / RECORD</small></header>
                 <div class="parameter-fields">
                   <label><span>记录周期</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.historyRecordInterval" type="number" min="1" step="1"><span class="hmi-number-steps"><button type="button" title="增加记录周期" aria-label="增加记录周期" @click.stop.prevent="stepParameterNumber('historyRecordInterval', 1, 1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少记录周期" aria-label="减少记录周期" @click.stop.prevent="stepParameterNumber('historyRecordInterval', -1, 1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>秒</b></div></label>
@@ -561,7 +616,7 @@
               </section>
 
               <section v-if="parameterTab === 'basic'" class="system-parameter-card">
-                <header><span>温度操作范围</span><small>TEMPERATURE / RANGE</small></header>
+                <header><span>温度操作范围</span></header>
                 <div class="parameter-fields">
                   <label><span>操作下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureRangeMin" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度操作下限" aria-label="增加温度操作下限" @click.stop.prevent="stepParameterNumber('temperatureRangeMin', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作下限" aria-label="减少温度操作下限" @click.stop.prevent="stepParameterNumber('temperatureRangeMin', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
                   <label><span>操作上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureRangeMax" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度操作上限" aria-label="增加温度操作上限" @click.stop.prevent="stepParameterNumber('temperatureRangeMax', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作上限" aria-label="减少温度操作上限" @click.stop.prevent="stepParameterNumber('temperatureRangeMax', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
@@ -569,7 +624,7 @@
               </section>
 
               <section v-if="parameterTab === 'basic'" class="system-parameter-card">
-                <header><span>湿度操作范围</span><small>HUMIDITY / RANGE</small></header>
+                <header><span>湿度操作范围</span></header>
                 <div class="parameter-fields stacked-limit-fields">
                   <label><span>湿度操作上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMax" type="number" min="0" max="100" step="0.1" aria-label="湿度操作上限"><span class="hmi-number-steps"><button type="button" title="增加湿度操作上限" aria-label="增加湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作上限" aria-label="减少湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
                   <label><span>湿度操作下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMin" type="number" min="0" max="100" step="0.1" aria-label="湿度操作下限"><span class="hmi-number-steps"><button type="button" title="增加湿度操作下限" aria-label="增加湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作下限" aria-label="减少湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
@@ -577,14 +632,14 @@
               </section>
 
               <section v-if="parameterTab === 'basic'" class="system-parameter-card">
-                <header><span>再传送范围</span><small>RETRANSMISSION / RANGE</small></header>
-                <div class="parameter-fields transmission-fields">
-                  <label><span>温度传送上下限</span><div class="transmission-range-pair"><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMin" type="number" step="0.1" aria-label="温度传送下限"><span class="hmi-number-steps"><button type="button" title="增加温度传送下限" aria-label="增加温度传送下限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度传送下限" aria-label="减少温度传送下限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMax" type="number" step="0.1" aria-label="温度传送上限"><span class="hmi-number-steps"><button type="button" title="增加温度传送上限" aria-label="增加温度传送上限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度传送上限" aria-label="减少温度传送上限" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></div></label>
-                  <label><span>湿度传送上下限</span><div class="transmission-range-pair"><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityTransmissionMin" type="number" min="0" max="100" step="0.1" aria-label="湿度传送下限"><span class="hmi-number-steps"><button type="button" title="增加湿度传送下限" aria-label="增加湿度传送下限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMin', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度传送下限" aria-label="减少湿度传送下限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMin', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityTransmissionMax" type="number" min="0" max="100" step="0.1" aria-label="湿度传送上限"><span class="hmi-number-steps"><button type="button" title="增加湿度传送上限" aria-label="增加湿度传送上限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMax', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度传送上限" aria-label="减少湿度传送上限" @click.stop.prevent="stepParameterNumber('humidityTransmissionMax', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></div></label>
+                <header><span>湿度模式温度操作范围</span></header>
+                <div class="parameter-fields stacked-limit-fields">
+                  <label><span>温度操作上限值</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMax" type="number" step="0.1" aria-label="温度操作上限值"><span class="hmi-number-steps"><button type="button" title="增加温度操作上限值" aria-label="增加温度操作上限值" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作上限值" aria-label="减少温度操作上限值" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
+                  <label><span>温度操作下限值</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMin" type="number" step="0.1" aria-label="温度操作下限值"><span class="hmi-number-steps"><button type="button" title="增加温度操作下限值" aria-label="增加温度操作下限值" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作下限值" aria-label="减少温度操作下限值" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
                 </div>
               </section>
 
-              <section v-if="parameterTab === 'basic'" class="system-parameter-card">
+              <section v-if="parameterTab === 'frequency'" class="system-parameter-card">
                 <header><span>背光持续时间</span><small>DISPLAY / BACKLIGHT</small></header>
                 <div class="parameter-fields">
                   <label><span>背光持续时间</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.backlightDuration" type="number" min="0" max="3600" step="1"><span class="hmi-number-steps"><button type="button" title="增加背光持续时间" aria-label="增加背光持续时间" @click.stop.prevent="stepParameterNumber('backlightDuration', 1, 0, 3600)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少背光持续时间" aria-label="减少背光持续时间" @click.stop.prevent="stepParameterNumber('backlightDuration', -1, 0, 3600)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>秒</b></div></label>
@@ -653,6 +708,118 @@
       </section>
     </div>
 
+    <div v-if="isProgramEditorOpen" class="program-editor-backdrop" @click.self="closeProgramEditor">
+      <section class="program-editor-modal" role="dialog" aria-modal="true" aria-labelledby="program-editor-title">
+        <div class="program-editor-header"><div><h3 id="program-editor-title">{{ programEditorMode === 'create' ? '新建程序' : '编辑程序' }}</h3></div><button class="program-editor-close" type="button" title="关闭" aria-label="关闭" @click="closeProgramEditor"><AppIcon name="close" :size="17" /></button></div>
+        <form class="program-editor-form" @submit.prevent="saveProgram">
+          <div class="program-editor-group-fields"><label class="program-editor-name"><span>程序名称</span><input v-model.trim="programDraft.name" type="text" maxlength="128" required></label></div>
+          <div class="program-steps-editor-header"><h4>步骤明细</h4><button class="ghost-action" type="button" @click="addProgramStep">＋ 添加步骤</button></div>
+          <div class="program-steps-editor-wrap"><table class="program-steps-editor"><thead><tr><th>段号</th><th>时间（时:分:秒）</th><th>温度</th><th>湿度</th><th>气压</th><th>事件</th><th></th></tr></thead><tbody><tr v-for="(step, index) in programDraft.steps" :key="index"><td><span class="program-step-number">{{ index + 1 }}</span></td><td><input v-model.trim="step.timeText" type="time" step="1" required aria-label="步骤时间（时:分:秒）"></td><td><span class="program-step-value-with-unit"><input v-model.number="step.temp" type="number" step="0.1" required><small>°C</small></span></td><td><span class="program-step-value-with-unit"><input v-model.number="step.humi" type="number" step="0.1" required><small>%RH</small></span></td><td><input v-model.number="step.pressure" type="number" step="0.1" required aria-label="步骤气压"></td><td><input class="program-step-event-input" type="text" :value="formatEventBits(step.event_bits)" readonly @click="openProgramStepEventDialog(index)" @keydown.enter.prevent="openProgramStepEventDialog(index)" @keydown.space.prevent="openProgramStepEventDialog(index)" :aria-label="`步骤${index + 1}事件，点击选择`"></td><td><button class="table-icon-button" type="button" title="删除步骤" :disabled="programDraft.steps.length <= 1" @click="removeProgramStep(index)">×</button></td></tr><tr v-if="!programDraft.steps.length"><td colspan="7" class="program-empty-cell">请添加至少一个步骤</td></tr></tbody></table></div>
+          <section class="program-loop-section" aria-labelledby="program-loop-title">
+            <div class="program-loop-section-header"><h4 id="program-loop-title">循环</h4><div><button class="ghost-action" type="button" :disabled="programDraft.loopCount >= 4" @click="addProgramLoop">＋ 添加循环</button></div></div>
+            <div class="program-loop-layout">
+              <div class="program-loop-list">
+                <div class="program-loop-heading"><span>循环</span><span>起始段</span><span>结束段</span><span>次数</span><span></span></div>
+                <label v-for="loopIndex in programDraft.loopCount" :key="loopIndex" class="program-loop-row"><strong>循环{{ loopIndex }}</strong><select v-model.number="programDraft[`loop${loopIndex}_start`]" :aria-label="`循环${loopIndex}起始段`"><option :value="0">选择段号</option><option v-for="step in programDraft.steps" :key="`loop-${loopIndex}-start-${step.step_no}`" :value="Number(step.step_no)">{{ step.step_no }}</option></select><select v-model.number="programDraft[`loop${loopIndex}_end`]" :aria-label="`循环${loopIndex}结束段`"><option :value="0">选择段号</option><option v-for="step in programDraft.steps" :key="`loop-${loopIndex}-end-${step.step_no}`" :value="Number(step.step_no)">{{ step.step_no }}</option></select><input v-model.number="programDraft[`loop${loopIndex}_times`]" type="number" min="0" step="1" :aria-label="`循环${loopIndex}次数`"><button class="program-loop-remove" type="button" title="删除循环" :disabled="programDraft.loopCount <= 1" @click="removeProgramLoop(loopIndex)">×</button></label>
+              </div>
+              <div class="program-loop-extra">
+                <label class="program-loop-total-time"><span>总运行时间</span><output>{{ formatDuration(programCalculatedTotalTime) }}</output></label>
+                <label><span>总循环次数</span><input v-model.number="programDraft.full_cycle" type="number" min="0" step="1" aria-label="总循环次数"></label>
+                <label><span>链接</span><select v-model.number="programDraft.link_no" aria-label="链接程序号"><option :value="0">不链接</option><template v-for="program in programs" :key="`link-program-${program.pro_no}`"><option v-if="Number(program.pro_no) !== Number(programDraft.pro_no)" :value="Number(program.pro_no)">程序{{ program.pro_no }}：{{ program.name || '未命名程序' }}</option></template></select></label>
+              </div>
+            </div>
+          </section>
+          <div class="program-editor-footer"><span v-if="programFeedback" class="program-editor-feedback">{{ programFeedback }}</span><div><button class="ghost-action" type="button" @click="closeProgramEditor">取消</button><button class="primary-action" type="submit" :disabled="programSaving">{{ programSaving ? '保存中…' : '保存程序' }}</button></div></div>
+        </form>
+      </section>
+    </div>
+
+    <div v-if="isProgramPreviewOpen" class="program-preview-backdrop" @click.self="closeProgramPreview">
+      <section class="program-preview-modal" role="dialog" aria-modal="true" aria-labelledby="program-preview-title">
+        <header class="program-preview-header"><div><h3 id="program-preview-title">{{ programPreview?.name || '程序预览' }}</h3><span>程序组 {{ programPreview?.pro_no }}</span></div><button class="program-preview-close" type="button" title="关闭预览" aria-label="关闭预览" @click="closeProgramPreview"><AppIcon name="close" :size="17" /></button></header>
+        <div v-if="programPreview" class="program-preview-content">
+          <div class="program-detail-meta"><span>总运行时间 <strong>{{ formatDuration(programPreview.display_total_time) }}</strong></span><span>总循环次数 <strong>{{ programPreview.full_cycle || 0 }} 次</strong></span><span>链接 <strong>{{ programPreview.link_no || 0 }}</strong></span></div>
+          <section v-if="programPreviewChart.points.length" class="program-chart-panel" aria-label="程序运行趋势图">
+            <div class="program-chart-legend" aria-label="曲线图例">
+              <span v-for="series in programPreviewChart.series" :key="series.key"><i :style="{ backgroundColor: series.color }"></i>{{ series.label }}<b>{{ series.unit }}</b></span>
+            </div>
+            <svg class="program-preview-chart" viewBox="0 0 900 390" role="img" :aria-label="`${programPreview.name || '程序'}温度、湿度、气压随时间变化曲线`" @pointermove="handleProgramChartPointerMove" @pointerleave="handleProgramChartPointerLeave" @pointerdown="handleProgramChartPointerDown" @pointerup="handleProgramChartPointerUp" @pointercancel="handleProgramChartPointerUp">
+              <g class="program-chart-grid">
+                <line v-for="tick in programPreviewChart.yTicks" :key="`y-${tick.value}`" x1="72" :y1="tick.y" x2="866" :y2="tick.y"></line>
+                <line v-for="(tick, index) in programPreviewChart.xTicks" :key="`x-${index}`" :x1="tick.x" y1="28" :x2="tick.x" y2="322"></line>
+              </g>
+              <line class="program-chart-axis" x1="72" y1="322" x2="866" y2="322"></line>
+              <line class="program-chart-axis" x1="72" y1="28" x2="72" y2="322"></line>
+              <text class="program-chart-axis-title" x="72" y="17">温度 / 湿度 / 气压</text>
+              <text v-for="tick in programPreviewChart.yTicks" :key="`yl-${tick.value}`" class="program-chart-tick-label" x="60" :y="tick.y + 4" text-anchor="end">{{ tick.label }}</text>
+              <text v-for="(tick, index) in programPreviewChart.xTicks" :key="`xl-${index}`" class="program-chart-tick-label" :x="tick.x" y="344" text-anchor="middle">{{ tick.label }}</text>
+              <text class="program-chart-x-title" x="469" y="374" text-anchor="middle">时间（时:分:秒）</text>
+              <g v-for="series in programPreviewChart.series" :key="series.key">
+                <polyline v-for="(segment, segmentIndex) in series.segments" :key="`${series.key}-segment-${segmentIndex}`" class="program-chart-line" :stroke="series.color" :points="segment"></polyline>
+                <template v-for="point in series.coordinates" :key="`${series.key}-${point.index}`">
+                  <circle v-if="point.showPoint" class="program-chart-point" :fill="series.color" :cx="point.x" :cy="point.y" r="3.5"></circle>
+                </template>
+              </g>
+              <g v-if="programChartCursor" class="program-chart-cursor-group" aria-live="polite">
+                <line class="program-chart-cursor" :x1="programChartCursor.x" y1="28" :x2="programChartCursor.x" y2="322"></line>
+                <circle v-for="series in programPreviewChart.series" :key="`cursor-${series.key}`" class="program-chart-cursor-point" :fill="series.color" :cx="programChartCursor.x" :cy="programChartCursor.values[series.key].y" r="5"></circle>
+                <g :transform="`translate(${programChartCursor.tooltipX}, 40)`">
+                  <rect class="program-chart-tooltip" width="172" height="112" rx="5"></rect>
+                  <text class="program-chart-tooltip-title" x="12" y="20">时间 {{ programChartCursor.timeLabel }}</text>
+                  <text class="program-chart-tooltip-value temp" x="12" y="43">温度 {{ programChartCursor.values.temp.label }} °C</text>
+                  <text class="program-chart-tooltip-value humi" x="12" y="66">湿度 {{ programChartCursor.values.humi.label }} %RH</text>
+                  <text class="program-chart-tooltip-value pressure" x="12" y="89">气压 {{ programChartCursor.values.pressure.label }}</text>
+                </g>
+              </g>
+            </svg>
+            <div v-if="programPreviewChart.totalTime > programPreviewChart.windowDuration" class="program-chart-range">
+              <div class="program-chart-range-header"><span>时间范围</span><strong>{{ formatDuration(programPreviewChart.windowStart) }} - {{ formatDuration(programPreviewChart.windowEnd) }}</strong><small>拖动滑块查看更多</small></div>
+              <input v-model.number="programChartScrollStart" class="program-chart-range-slider" type="range" min="0" :max="programPreviewChart.maxScroll" step="1" aria-label="预览时间范围" @input="programChartCursor = null">
+              <div class="program-chart-range-labels"><span>00:00:00</span><span>{{ formatDuration(programPreviewChart.totalTime) }}</span></div>
+            </div>
+            <div class="program-chart-hint">移动或拖动图中的竖线，可查看任意时间点的温度、湿度和气压数据</div>
+          </section>
+          <section v-else class="program-chart-empty">该程序尚未配置可绘制的步骤数据</section>
+        </div>
+      </section>
+    </div>
+
+    <div v-if="isEventDialogOpen" class="event-dialog-backdrop" @click.self="cancelEventDialog">
+      <section class="event-dialog" role="dialog" aria-modal="true" aria-labelledby="event-dialog-title">
+        <div class="event-dialog-header">
+          <div>
+            <h3 id="event-dialog-title">{{ eventDialogStepIndex === null ? '选择事件' : `步骤${eventDialogStepIndex + 1}事件` }}</h3>
+            <span>点击按钮启用或关闭对应事件</span>
+          </div>
+          <button class="event-dialog-close" type="button" title="关闭" aria-label="关闭" @click="cancelEventDialog">
+            <AppIcon name="close" :size="17" />
+          </button>
+        </div>
+        <div class="event-dialog-grid" role="group" aria-label="16 个事件开关">
+          <button
+            v-for="eventIndex in 16"
+            :key="eventIndex"
+            type="button"
+            class="event-toggle"
+            :class="{ active: eventDraft[eventIndex - 1] === '1' }"
+            :aria-pressed="eventDraft[eventIndex - 1] === '1'"
+            @click="toggleEvent(eventIndex - 1)"
+          >
+            <span class="event-toggle-indicator" aria-hidden="true"></span>
+            <strong>事件{{ eventIndex }}</strong>
+            <small>{{ eventDraft[eventIndex - 1] === '1' ? '开启' : '关闭' }}</small>
+          </button>
+        </div>
+        <div class="event-dialog-footer">
+          <span>当前值：{{ eventDraft }}</span>
+          <div>
+            <button class="ghost-action" type="button" @click="cancelEventDialog">取消</button>
+            <button class="primary-action" type="button" @click="confirmEventDialog">确认</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <div v-if="isRunModeDialogOpen" class="run-mode-backdrop" @click.self="cancelRunModeSelection">
       <section class="run-mode-modal" role="dialog" aria-modal="true" aria-labelledby="run-mode-title">
         <div class="run-mode-header">
@@ -676,6 +843,18 @@
             <span><strong>{{ mode.label }}</strong></span>
             <i>{{ runModeSelection === mode.value ? "已选择" : "选择" }}</i>
           </button>
+        </div>
+        <div class="run-mode-preview" aria-live="polite">
+          <div class="run-mode-preview-heading"><span>当前模式预览</span><button v-if="runModeSelection === '1'" class="run-mode-preview-link" type="button" @click="openSetpointSettings">定制修改</button></div>
+          <div v-if="runModeSelection === '1'" class="run-mode-preview-grid">
+            <div><span>温度目标</span><strong>{{ operationForm.targetTemp }} °C</strong></div>
+            <div><span>湿度目标</span><strong>{{ operationForm.targetHum }} %RH</strong></div>
+            <div><span>运行时间</span><strong>{{ String(operationForm.runtimeHours).padStart(2, '0') }}:{{ String(operationForm.runtimeMinutes).padStart(2, '0') }}:{{ String(operationForm.runtimeSeconds).padStart(2, '0') }}</strong></div>
+          </div>
+          <div v-else class="run-mode-preview-grid program-mode-preview">
+            <div><span>程序名称</span><strong>{{ selectedProgram?.name || "尚未选择程序" }}</strong></div>
+            <div><span>总运行时间</span><strong>{{ selectedProgram?.display_total_time == null ? "--" : formatDuration(selectedProgram.display_total_time) }}</strong></div>
+          </div>
         </div>
         <div class="run-mode-footer">
           <div><button class="primary-action" type="button" @click="confirmRunModeSelection">确认启动</button></div>
@@ -793,15 +972,12 @@ const operationForm = ref({
   powerMemory: true,
   tempLimit: 85,
   humLimit: 95,
-  airTempUpper: 0,
-  airTempLower: 0,
-  airTempProtectionEnabled: true,
-  dutTempUpper: 0,
-  dutTempLower: 0,
-  dutTempProtectionEnabled: true,
-  dutControlAirUpper: 0,
-  dutControlAirLower: 0,
-  dutControlAirProtectionEnabled: true,
+  airTEMP_H: 0,
+  airTEMP_L: 0,
+  dutTEMP_H: 0,
+  dutTEMP_L: 0,
+  dutModeAir_H: 0,
+  dutModeAir_L: 0,
   targetTemp: 25,
   targetHum: 50,
   tempRamp: 1.5,
@@ -838,6 +1014,29 @@ const parameterForm = ref({
   temperatureGain: 1,
   humidityOffset: 0,
   humidityGain: 1,
+  TEMP_Area1: 0,
+  TEMP_Area2: 0,
+  TEMP_Area3: 0,
+  TEMP_Area4: 0,
+  TEMP_Corrected1: 0,
+  TEMP_Corrected2: 0,
+  TEMP_Corrected3: 0,
+  TEMP_Corrected4: 0,
+  TEMP_Correction: 0,
+  HUMI_Area1: 0,
+  HUMI_Area2: 0,
+  HUMI_Area3: 0,
+  HUMI_Area4: 0,
+  HUMI_Corrected1: 0,
+  HUMI_Corrected2: 0,
+  HUMI_Corrected3: 0,
+  HUMI_Corrected4: 0,
+  HUMI_Correction: 0,
+  ...Object.fromEntries(
+    Array.from({ length: 10 }, (_, index) =>
+      ["Collected", "Corrected", "Final"].map(stage => [`DUT${index + 1}_${stage}`, 0])
+    ).flat()
+  ),
   temperatureP: 1,
   temperatureI: 0.1,
   temperatureD: 0,
@@ -886,8 +1085,23 @@ const isLightCommandPending = ref(false);
 const isNotificationOpen = ref(false);
 const notificationTab = ref("operations");
 const isSaveConfirmOpen = ref(false);
+const isEventDialogOpen = ref(false);
+const eventDraft = ref("0000000000000000");
+const eventDialogStepIndex = ref(null);
 const isRunModeDialogOpen = ref(false);
 const runModeSelection = ref("1");
+const programs = ref([]);
+const selectedProgramDetail = ref(null);
+const isProgramPreviewOpen = ref(false);
+const programPreview = ref(null);
+const programChartCursor = ref(null);
+const isProgramChartPointerDown = ref(false);
+const programChartScrollStart = ref(0);
+const isProgramEditorOpen = ref(false);
+const programEditorMode = ref("create");
+const programSaving = ref(false);
+const programFeedback = ref("");
+const programDraft = ref(createProgramDraft());
 const pendingSaveTarget = ref(null);
 const deviceStartTimes = ref({});
 const visibleMonitorCards = ref(["trend"]);
@@ -942,22 +1156,63 @@ const parameterTabs = [
   { key: "pid", label: "PID 设定", description: "温湿度控制参数", icon: "activity" },
   { key: "frequency", label: "电机频率", description: "输出频率限制", icon: "chart" }
 ];
+const calibrationFields = {
+  temperature: [
+    { key: "TEMP_Area1", label: "温度区间1", unit: "°C" },
+    { key: "TEMP_Area2", label: "温度区间2", unit: "°C" },
+    { key: "TEMP_Area3", label: "温度区间3", unit: "°C" },
+    { key: "TEMP_Area4", label: "温度区间4", unit: "°C" },
+    { key: "TEMP_Corrected1", label: "温度校正1", unit: "°C" },
+    { key: "TEMP_Corrected2", label: "温度校正2", unit: "°C" },
+    { key: "TEMP_Corrected3", label: "温度校正3", unit: "°C" },
+    { key: "TEMP_Corrected4", label: "温度校正4", unit: "°C" },
+    { key: "TEMP_Correction", label: "温度定校", unit: "°C" }
+  ],
+  humidity: [
+    { key: "HUMI_Area1", label: "湿度区间1", unit: "%RH" },
+    { key: "HUMI_Area2", label: "湿度区间2", unit: "%RH" },
+    { key: "HUMI_Area3", label: "湿度区间3", unit: "%RH" },
+    { key: "HUMI_Area4", label: "湿度区间4", unit: "%RH" },
+    { key: "HUMI_Corrected1", label: "湿度校正1", unit: "%RH" },
+    { key: "HUMI_Corrected2", label: "湿度校正2", unit: "%RH" },
+    { key: "HUMI_Corrected3", label: "湿度校正3", unit: "%RH" },
+    { key: "HUMI_Corrected4", label: "湿度校正4", unit: "%RH" },
+    { key: "HUMI_Correction", label: "湿度定校", unit: "%RH" }
+  ]
+};
+const calibrationCards = [
+  { key: "temperature", title: "温度", code: "TEMPERATURE", unit: "°C", prefix: "TEMP" },
+  { key: "humidity", title: "湿度", code: "HUMIDITY", unit: "%RH", prefix: "HUMI" }
+].map(card => ({
+  ...card,
+  correction: calibrationFields[card.key][8],
+  rows: calibrationFields[card.key].slice(0, 4).map((area, index) => ({
+    number: index + 1,
+    area,
+    corrected: calibrationFields[card.key][index + 4]
+  }))
+}));
+const dutCalibrationGroups = [
+  Array.from({ length: 5 }, (_, index) => index + 1),
+  Array.from({ length: 5 }, (_, index) => index + 6)
+];
+const correctionFieldKeys = [
+  ...calibrationFields.temperature.map(({ key }) => key),
+  ...calibrationFields.humidity.map(({ key }) => key),
+  ...Array.from({ length: 10 }, (_, index) =>
+    ["Collected", "Corrected", "Final"].map(stage => `DUT${index + 1}_${stage}`)
+  ).flat()
+];
 const protectionItems = [
-  { key: "air-temperature", label: "空气温度保护", upper: "airTempUpper", lower: "airTempLower", enabled: "airTempProtectionEnabled" },
-  { key: "dut-temperature", label: "试品温度保护", upper: "dutTempUpper", lower: "dutTempLower", enabled: "dutTempProtectionEnabled" },
-  { key: "dut-control-air", label: "试品控温空气温度", upper: "dutControlAirUpper", lower: "dutControlAirLower", enabled: "dutControlAirProtectionEnabled" }
+  { key: "air-temperature", label: "空气温度保护", upper: "airTEMP_H", lower: "airTEMP_L" },
+  { key: "dut-temperature", label: "试品温度保护", upper: "dutTEMP_H", lower: "dutTEMP_L" },
+  { key: "dut-control-air", label: "试品控温空气温度", upper: "dutModeAir_H", lower: "dutModeAir_L" }
 ];
 const controlModes = [
   { key: "precise", label: "精准控制", description: "优先保持目标稳定" },
   { key: "balanced", label: "平衡模式", description: "稳定性与响应速度平衡" },
   { key: "rapid", label: "快速响应", description: "优先快速达到目标" }
 ];
-const programs = [
-  { id: "P-01", name: "高低温循环 A", steps: 8, duration: "02:30:00" },
-  { id: "P-02", name: "恒温恒湿验证", steps: 4, duration: "08:00:00" },
-  { id: "P-03", name: "快速温变测试", steps: 6, duration: "01:45:00" }
-];
-
 const titleMap = {
   dashboard: "设备列表",
   profile: "个人中心",
@@ -1005,7 +1260,9 @@ const currentDeviceSectionDescription = computed(() => {
   return descriptionMap[selectedDeviceSection.value] || "这里展示当前试验箱的实时温度、湿度、步骤、报警等运行数据。";
 });
 const activeOperationTab = computed(() => operationTabs.find(item => item.key === operationTab.value) || operationTabs[0]);
-const selectedProgram = computed(() => programs.find(item => item.id === operationForm.value.programId) || programs[0]);
+const selectedProgram = computed(() => programs.value.find(item => String(item.pro_no) === operationForm.value.programId) || programs.value[0] || null);
+const programCalculatedTotalTime = computed(() => calculateProgramTotalTime(programDraft.value));
+const programPreviewChart = computed(() => buildProgramPreviewChart(programPreview.value, programChartScrollStart.value));
 const selectedDeviceRunningMode = computed(() => {
   const mode = Number(firstDefined(selectedDevice.value?.run_mode, selectedDevice.value?.mainData?.runMode));
   return runModeOptions.find(item => item.value === String(mode))?.label || "未知";
@@ -1129,6 +1386,21 @@ function formatNumber(value) {
   return Number(value ?? 0).toFixed(1);
 }
 
+function formatCalibrationValue(value) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue.toFixed(2) : "--";
+}
+
+function calibrationReadings(card) {
+  const device = selectedDevice.value;
+  const measuredValue = firstDefined(device?.mainData?.[`${card.prefix}_PV`], device?.[`current_${card.key}`], 0);
+  return [
+    { label: "采集值", value: firstDefined(device?.[`${card.key}_collected`], device?.mainData?.[`${card.prefix}_RAW`], measuredValue) },
+    { label: "修正值", value: firstDefined(device?.[`${card.key}_corrected`], device?.mainData?.[`${card.prefix}_CORRECTED`], measuredValue) },
+    { label: "最终值", value: firstDefined(device?.[`${card.key}_final`], device?.mainData?.[`${card.prefix}_FINAL`], measuredValue) }
+  ];
+}
+
 const dutChannelOffset = computed(() => {
   const dut = selectedDevice.value?.DUT;
   if (!dut || typeof dut !== "object") return 1;
@@ -1140,6 +1412,11 @@ function dutValue(cardNumber) {
   if (!dut || typeof dut !== "object") return 0;
   const key = `DUT${cardNumber - dutChannelOffset.value}`;
   return dut[key] ?? 0;
+}
+
+function dutCalibrationValue(channel, stage) {
+  const suffix = stage.charAt(0).toUpperCase() + stage.slice(1);
+  return parameterForm.value[`DUT${channel}_${suffix}`];
 }
 
 function isDutSelected(cardNumber) {
@@ -1194,6 +1471,201 @@ function formatDurationSeconds(value) {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return [hours, minutes, seconds].map(part => String(part).padStart(2, "0")).join(":");
+}
+
+function formatDuration(value) {
+  return formatDurationValue(value);
+}
+
+function calculateProgramTotalTime(program) {
+  const steps = Array.isArray(program?.steps) ? program.steps : [];
+  const durations = steps.map(step => {
+    const parsed = parseDuration(step.timeText);
+    return parsed === null ? Math.max(0, Number(step.time) || 0) : parsed;
+  });
+  const loopCount = [1, 2, 3, 4].reduce((last, index) => ["start", "end", "times"].some(field => Number(program?.[`loop${index}_${field}`] ?? 0) !== 0) ? index : last, 1);
+  let cycleDuration = 0;
+  for (let loopIndex = 1; loopIndex <= loopCount; loopIndex += 1) {
+    const start = Number(program?.[`loop${loopIndex}_start`]) || 0;
+    const end = Number(program?.[`loop${loopIndex}_end`]) || 0;
+    const times = Number(program?.[`loop${loopIndex}_times`]) || 0;
+    if (start < 1 || end < 1 || times <= 0) continue;
+    const first = Math.max(0, Math.min(start, end) - 1);
+    const last = Math.min(durations.length - 1, Math.max(start, end) - 1);
+    if (last < first) continue;
+    cycleDuration += durations.slice(first, last + 1).reduce((sum, value) => sum + value, 0) * times;
+  }
+  return cycleDuration * Math.max(0, Number(program?.full_cycle) || 0);
+}
+
+function buildProgramPreviewChart(program, requestedWindowStart = 0) {
+  const PROGRAM_CHART_WINDOW_SECONDS = 2 * 60 * 60;
+  const steps = Array.isArray(program?.steps) ? program.steps : [];
+  const stepDuration = step => {
+    const parsed = parseDuration(step?.timeText);
+    return parsed === null ? Math.max(0, Number(step?.time) || 0) : parsed;
+  };
+  const loopDefinitions = [];
+  for (let loopIndex = 1; loopIndex <= 4; loopIndex += 1) {
+    const start = Number(program?.[`loop${loopIndex}_start`]) || 0;
+    const end = Number(program?.[`loop${loopIndex}_end`]) || 0;
+    const times = Number(program?.[`loop${loopIndex}_times`]) || 0;
+    if (start < 1 || end < 1 || times <= 0) continue;
+    const first = Math.max(0, Math.min(start, end) - 1);
+    const last = Math.min(steps.length - 1, Math.max(start, end) - 1);
+    if (last < first) continue;
+    loopDefinitions.push({ first, last, times });
+  }
+  const cycleSteps = [];
+  if (loopDefinitions.length) {
+    let cursor = 0;
+    for (const loop of loopDefinitions) {
+      cycleSteps.push(...steps.slice(cursor, loop.first));
+      for (let repeat = 0; repeat < loop.times; repeat += 1) cycleSteps.push(...steps.slice(loop.first, loop.last + 1));
+      cursor = Math.max(cursor, loop.last + 1);
+    }
+    cycleSteps.push(...steps.slice(cursor));
+  } else {
+    cycleSteps.push(...steps);
+  }
+  // ponytail: cap preview expansion at 100 cycles; add downsampling if very
+  // large programs need an exact visualisation without rendering thousands of points.
+  const cycleCount = Math.min(100, Math.max(1, Number(program?.full_cycle) || 0));
+  const timelineSteps = Array.from({ length: cycleCount }, () => cycleSteps).flat();
+  if (!timelineSteps.length) return { points: [], series: [], xTicks: [], yTicks: [], totalTime: 0, windowStart: 0, windowEnd: 0, windowDuration: PROGRAM_CHART_WINDOW_SECONDS, maxScroll: 0 };
+
+  const points = [];
+  let elapsed = 0;
+  timelineSteps.forEach((step, index) => {
+    const values = {
+      temp: Number(step?.temp) || 0,
+      humi: Number(step?.humi) || 0,
+      pressure: Number(step?.pressure) || 0
+    };
+    // Keep each step value flat for its duration.  Adding the next value at
+    // the same timestamp creates a vertical jump instead of an interpolated
+    // diagonal between two step targets.
+    if (index === 0) points.push({ time: 0, ...values });
+    else points.push({ time: elapsed, ...values });
+    elapsed += stepDuration(step);
+    points.push({ time: elapsed, ...values });
+  });
+
+  const totalTime = Math.max(0, elapsed);
+  const windowDuration = Math.min(PROGRAM_CHART_WINDOW_SECONDS, Math.max(1, totalTime));
+  const maxScroll = Math.max(0, totalTime - windowDuration);
+  const windowStart = Math.min(maxScroll, Math.max(0, Number(requestedWindowStart) || 0));
+  const windowEnd = Math.min(totalTime, windowStart + windowDuration);
+  let startIndex = 0;
+  points.forEach((point, index) => {
+    if (point.time <= windowStart) startIndex = index;
+  });
+  const visiblePoints = [{ ...points[startIndex], time: windowStart }];
+  points.forEach(point => {
+    if (point.time > windowStart && point.time < windowEnd) visiblePoints.push(point);
+  });
+  let endIndex = startIndex;
+  points.forEach((point, index) => {
+    if (point.time <= windowEnd) endIndex = index;
+  });
+  visiblePoints.push({ ...points[endIndex], time: windowEnd });
+
+  const values = visiblePoints.flatMap(point => [point.temp, point.humi, point.pressure]);
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  let min = Math.floor(rawMin / 10) * 10;
+  let max = Math.ceil(rawMax / 10) * 10;
+  if (min === max) {
+    min -= 10;
+    max += 10;
+  }
+  const maxTime = Math.max(1, windowDuration);
+  const plot = { left: 72, right: 866, top: 28, bottom: 322 };
+  const xFor = time => plot.left + ((time - windowStart) / maxTime) * (plot.right - plot.left);
+  const yFor = value => plot.bottom - ((value - min) / (max - min)) * (plot.bottom - plot.top);
+  const series = [
+    { key: "temp", label: "温度", unit: "°C", color: "#ef6c67" },
+    { key: "humi", label: "湿度", unit: "%RH", color: "#25b887" },
+    { key: "pressure", label: "气压", unit: "", color: "#4f8df7" }
+  ].map(definition => {
+    const coordinates = visiblePoints.map((point, index) => {
+      const previous = visiblePoints[index - 1];
+      const valueChangedAtBoundary = index > 0 && point.time === previous.time && point[definition.key] !== previous[definition.key];
+      return { index, x: xFor(point.time), y: yFor(point[definition.key]), showPoint: index === 0 || index === visiblePoints.length - 1 || valueChangedAtBoundary };
+    });
+    const segments = coordinates.slice(0, -1).flatMap((point, index) => {
+      const next = coordinates[index + 1];
+      return next.x > point.x && Math.abs(next.y - point.y) < 0.01
+        ? [`${point.x.toFixed(2)},${point.y.toFixed(2)} ${next.x.toFixed(2)},${next.y.toFixed(2)}`]
+        : [];
+    });
+    return { ...definition, coordinates, segments, points: segments.join(" ") };
+  });
+  const yTicks = [];
+  for (let value = max; value >= min; value -= 10) {
+    const ratio = (max - value) / (max - min);
+    yTicks.push({ value: String(value), label: String(value), y: plot.top + (plot.bottom - plot.top) * ratio });
+  }
+  const xStep = chooseProgramChartTimeStep(windowDuration);
+  const tickCandidates = [{ time: windowStart, priority: 3 }, { time: windowEnd, priority: 3 }];
+  for (let offset = xStep; offset < windowDuration; offset += xStep) tickCandidates.push({ time: windowStart + offset, priority: 1 });
+  visiblePoints.forEach((point, index) => {
+    if (index > 0 && point.time === visiblePoints[index - 1].time) tickCandidates.push({ time: point.time, priority: 2 });
+  });
+  const minimumLabelGap = 64;
+  const xTicks = tickCandidates
+    .map(tick => ({ ...tick, x: xFor(tick.time) }))
+    .sort((left, right) => right.priority - left.priority || left.time - right.time)
+    .reduce((selected, tick) => {
+      if (selected.every(item => Math.abs(item.x - tick.x) >= minimumLabelGap)) selected.push(tick);
+      return selected;
+    }, [])
+    .sort((left, right) => left.time - right.time)
+    .map(tick => ({ label: formatDuration(tick.time), x: tick.x }));
+  return { points: visiblePoints, series, xTicks, yTicks, min, max, maxTime, plot, totalTime, windowStart, windowEnd, windowDuration, maxScroll };
+}
+
+function chooseProgramChartTimeStep(totalSeconds) {
+  const base = 10 * 60;
+  if (totalSeconds <= base * 7) return base;
+  const target = totalSeconds / 7;
+  const candidates = [base, base * 2, base * 3, base * 6, base * 12, base * 24, base * 72];
+  return candidates.find(step => step >= target) || candidates[candidates.length - 1];
+}
+
+function formatEventBits(value) {
+  return Number(value ?? 0).toString(2).padStart(16, "0");
+}
+
+function parseDuration(value) {
+  const text = String(value ?? "").trim();
+  const match = /^(\d{1,4}):([0-5]\d):([0-5]\d)$/.exec(text);
+  if (!match) return null;
+  return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+}
+
+function createProgramStep(stepNo = 1) {
+  return { step_no: String(stepNo), timeText: "00:00:00", time: 0, temp: 0, humi: 0, pressure: 0, event_bits: 0, space: 0 };
+}
+
+function createProgramDraft(program = null) {
+  const source = program || {};
+  const steps = Array.isArray(source.steps) && source.steps.length
+    ? source.steps.map((step, index) => ({ ...step, step_no: String(index + 1), timeText: formatDuration(step.time) }))
+    : [createProgramStep()];
+  return {
+    pro_no: source.pro_no == null ? null : Number(source.pro_no),
+    name: source.name || "",
+    total_time: Number(source.total_time ?? 0),
+    loop1_start: Number(source.loop1_start ?? 0), loop1_end: Number(source.loop1_end ?? 0), loop1_times: Number(source.loop1_times ?? 0),
+    loop2_start: Number(source.loop2_start ?? 0), loop2_end: Number(source.loop2_end ?? 0), loop2_times: Number(source.loop2_times ?? 0),
+    loop3_start: Number(source.loop3_start ?? 0), loop3_end: Number(source.loop3_end ?? 0), loop3_times: Number(source.loop3_times ?? 0),
+    loop4_start: Number(source.loop4_start ?? 0), loop4_end: Number(source.loop4_end ?? 0), loop4_times: Number(source.loop4_times ?? 0),
+    full_cycle: Number(source.full_cycle ?? 0),
+    link_no: Number(source.link_no ?? 0),
+    loopCount: [1, 2, 3, 4].reduce((last, index) => ["start", "end", "times"].some(field => Number(source[`loop${index}_${field}`] ?? 0) !== 0) ? index : last, 1),
+    steps
+  };
 }
 
 function formatStartTime(value = new Date()) {
@@ -1365,11 +1837,292 @@ function closeSaveConfirm() {
   pendingSaveTarget.value = null;
 }
 
+function normalizeEventCode(value) {
+  const text = String(value ?? "").trim();
+  return /^[01]{1,16}$/.test(text) ? text.padStart(16, "0") : "0000000000000000";
+}
+
+function openEventDialog() {
+  eventDialogStepIndex.value = null;
+  eventDraft.value = normalizeEventCode(operationForm.value.eventCode);
+  isEventDialogOpen.value = true;
+}
+
+function openProgramStepEventDialog(index) {
+  const step = programDraft.value.steps[index];
+  if (!step) return;
+  eventDialogStepIndex.value = index;
+  eventDraft.value = normalizeEventCode(formatEventBits(step.event_bits));
+  isEventDialogOpen.value = true;
+}
+
+function cancelEventDialog() {
+  isEventDialogOpen.value = false;
+  eventDialogStepIndex.value = null;
+}
+
+function toggleEvent(index) {
+  if (index < 0 || index >= 16) return;
+  const bits = eventDraft.value.split("");
+  bits[index] = bits[index] === "1" ? "0" : "1";
+  eventDraft.value = bits.join("");
+}
+
+function confirmEventDialog() {
+  if (eventDialogStepIndex.value === null) {
+    operationForm.value.eventCode = eventDraft.value;
+  } else {
+    const step = programDraft.value.steps[eventDialogStepIndex.value];
+    if (step) step.event_bits = parseInt(eventDraft.value, 2) || 0;
+  }
+  isEventDialogOpen.value = false;
+  eventDialogStepIndex.value = null;
+}
+
 function confirmSaveSettings() {
   const target = pendingSaveTarget.value;
   closeSaveConfirm();
   if (target === "operation") saveOperationSettings();
+  if (target === "other") saveOtherSettings();
   if (target === "parameters") saveParameterSettings();
+}
+
+async function loadPrograms(selectFirst = true) {
+  try {
+    const response = await fetch("/api/programs", { headers: authHeaders() });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "程序读取失败");
+    const summaries = Array.isArray(result.programs) ? result.programs : [];
+    programs.value = await Promise.all(summaries.map(async summary => {
+      try {
+        const detailResponse = await fetch(`/api/programs/${encodeURIComponent(summary.pro_no)}`, { headers: authHeaders() });
+        const detailResult = await detailResponse.json().catch(() => ({}));
+        return detailResponse.ok && detailResult.program
+          ? { ...summary, display_total_time: calculateProgramTotalTime(detailResult.program) }
+          : { ...summary, display_total_time: null };
+      } catch {
+        return { ...summary, display_total_time: null };
+      }
+    }));
+    if (!programs.value.length) {
+      operationForm.value.programId = "";
+      selectedProgramDetail.value = null;
+      return;
+    }
+    const current = programs.value.find(item => String(item.pro_no) === operationForm.value.programId);
+    if (selectFirst && !current) operationForm.value.programId = String(programs.value[0].pro_no);
+    await selectProgram(Number(operationForm.value.programId));
+  } catch (error) {
+    programs.value = [];
+    selectedProgramDetail.value = null;
+    if (operationTab.value === "program") operationFeedback.value = `程序读取失败：${error.message || "数据库不可用"}`;
+  }
+}
+
+async function selectProgram(proNo) {
+  const number = Number(proNo);
+  if (!Number.isFinite(number)) return;
+  operationForm.value.programId = String(number);
+  try {
+    const response = await fetch(`/api/programs/${encodeURIComponent(number)}`, { headers: authHeaders() });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "程序读取失败");
+    selectedProgramDetail.value = normalizeProgramDetail(result.program);
+  } catch (error) {
+    selectedProgramDetail.value = null;
+    operationFeedback.value = `程序读取失败：${error.message || "数据库不可用"}`;
+  }
+}
+
+function normalizeProgramDetail(program) {
+  if (!program) return null;
+  const normalized = { ...program, steps: (program.steps || []).map((step, index) => ({ ...step, step_no: String(index + 1) })) };
+  // The UI derives runtime from step durations and loop configuration.  The
+  // persisted total_time remains a database value, but is not used as the
+  // display source so stale records cannot make the list/preview misleading.
+  normalized.display_total_time = calculateProgramTotalTime(normalized);
+  return normalized;
+}
+
+async function openProgramPreview(proNo) {
+  try {
+    const response = await fetch(`/api/programs/${encodeURIComponent(proNo)}`, { headers: authHeaders() });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "程序读取失败");
+    programPreview.value = normalizeProgramDetail(result.program);
+    programChartCursor.value = null;
+    programChartScrollStart.value = 0;
+    isProgramPreviewOpen.value = true;
+  } catch (error) {
+    operationFeedback.value = `程序读取失败：${error.message || "数据库不可用"}`;
+  }
+}
+
+function closeProgramPreview() {
+  isProgramPreviewOpen.value = false;
+  programPreview.value = null;
+  programChartCursor.value = null;
+  programChartScrollStart.value = 0;
+  isProgramChartPointerDown.value = false;
+}
+
+function updateProgramChartCursor(clientX, svg) {
+  const chart = programPreviewChart.value;
+  const coordinates = chart.series[0]?.coordinates || [];
+  if (!coordinates.length) return;
+  if (!svg) return;
+  const rect = svg.getBoundingClientRect();
+  const viewBoxX = ((clientX - rect.left) / Math.max(1, rect.width)) * 900;
+  const plotWidth = chart.plot.right - chart.plot.left;
+  const cursorX = Math.min(chart.plot.right, Math.max(chart.plot.left, viewBoxX));
+  const cursorTime = chart.windowStart + ((cursorX - chart.plot.left) / plotWidth) * chart.windowDuration;
+  let pointIndex = 0;
+  chart.points.forEach((candidate, index) => {
+    if (candidate.time <= cursorTime) pointIndex = index;
+  });
+  const point = chart.points[pointIndex];
+  if (!point) return;
+  const values = Object.fromEntries(chart.series.map(series => {
+    const value = Number(point[series.key]) || 0;
+    const y = chart.plot.bottom - ((value - chart.min) / (chart.max - chart.min)) * (chart.plot.bottom - chart.plot.top);
+    return [series.key, { y, label: value.toFixed(1) }];
+  }));
+  const x = cursorX;
+  programChartCursor.value = {
+    x,
+    timeLabel: formatDuration(cursorTime),
+    tooltipX: Math.min(682, Math.max(78, x + 12)),
+    values
+  };
+}
+
+function handleProgramChartPointerMove(event) {
+  updateProgramChartCursor(event.clientX, event.currentTarget);
+}
+
+function handleProgramChartPointerLeave() {
+  if (!isProgramChartPointerDown.value) programChartCursor.value = null;
+}
+
+function handleProgramChartPointerDown(event) {
+  isProgramChartPointerDown.value = true;
+  event.currentTarget?.setPointerCapture?.(event.pointerId);
+  updateProgramChartCursor(event.clientX, event.currentTarget);
+}
+
+function handleProgramChartPointerUp(event) {
+  isProgramChartPointerDown.value = false;
+  event.currentTarget?.releasePointerCapture?.(event.pointerId);
+}
+
+async function openProgramEditor(proNo = null) {
+  programFeedback.value = "";
+  if (proNo !== null && proNo !== undefined && proNo !== "") {
+    try {
+      const response = await fetch(`/api/programs/${encodeURIComponent(proNo)}`, { headers: authHeaders() });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.detail || "程序读取失败");
+      programDraft.value = createProgramDraft(result.program);
+      programEditorMode.value = "edit";
+    } catch (error) {
+      programFeedback.value = error.message || "程序读取失败";
+      return;
+    }
+  } else {
+    programDraft.value = createProgramDraft({ pro_no: null });
+    programEditorMode.value = "create";
+  }
+  isProgramEditorOpen.value = true;
+}
+
+function closeProgramEditor() {
+  if (programSaving.value) return;
+  isProgramEditorOpen.value = false;
+  programFeedback.value = "";
+}
+
+function addProgramStep() {
+  programDraft.value.steps.push(createProgramStep(programDraft.value.steps.length + 1));
+}
+
+function removeProgramStep(index) {
+  if (programDraft.value.steps.length <= 1) return;
+  programDraft.value.steps.splice(index, 1);
+}
+
+function addProgramLoop() {
+  if (programDraft.value.loopCount >= 4) return;
+  programDraft.value.loopCount += 1;
+}
+
+function removeProgramLoop(loopIndex) {
+  const count = programDraft.value.loopCount;
+  if (count <= 1 || loopIndex < 1 || loopIndex > count) return;
+  for (let index = loopIndex; index < count; index += 1) {
+    for (const field of ["start", "end", "times"]) {
+      programDraft.value[`loop${index}_${field}`] = Number(programDraft.value[`loop${index + 1}_${field}`]) || 0;
+    }
+  }
+  for (const field of ["start", "end", "times"]) programDraft.value[`loop${count}_${field}`] = 0;
+  programDraft.value.loopCount = count - 1;
+}
+
+async function saveProgram() {
+  programFeedback.value = "";
+  const draft = programDraft.value;
+  if (!String(draft.name || "").trim()) {
+    programFeedback.value = "请输入程序名称";
+    return;
+  }
+  const steps = [];
+  const seenStepNumbers = new Set();
+  for (const [index, step] of draft.steps.entries()) {
+    const stepNo = String(index + 1);
+    const seconds = parseDuration(step.timeText);
+    if (seconds === null) {
+      programFeedback.value = `步骤 ${stepNo} 的时间格式应为时:分:秒`;
+      return;
+    }
+    seenStepNumbers.add(stepNo);
+    steps.push({ step_no: stepNo, time: seconds, temp: Number(step.temp) || 0, humi: Number(step.humi) || 0, pressure: Number(step.pressure) || 0, event_bits: Math.min(65535, Math.max(0, Number(step.event_bits) || 0)), space: Number(step.space) || 0 });
+  }
+  const payload = {
+    pro_no: draft.pro_no == null ? null : Number(draft.pro_no), name: String(draft.name).trim(), total_time: programCalculatedTotalTime.value,
+    loop1_start: Number(draft.loop1_start) || 0, loop1_end: Number(draft.loop1_end) || 0, loop1_times: Number(draft.loop1_times) || 0,
+    loop2_start: Number(draft.loop2_start) || 0, loop2_end: Number(draft.loop2_end) || 0, loop2_times: Number(draft.loop2_times) || 0,
+    loop3_start: Number(draft.loop3_start) || 0, loop3_end: Number(draft.loop3_end) || 0, loop3_times: Number(draft.loop3_times) || 0,
+    loop4_start: Number(draft.loop4_start) || 0, loop4_end: Number(draft.loop4_end) || 0, loop4_times: Number(draft.loop4_times) || 0,
+    full_cycle: Number(draft.full_cycle) || 0, link_no: Number(draft.link_no) || 0, steps
+  };
+  programSaving.value = true;
+  try {
+    const path = programEditorMode.value === "create" ? "/api/programs" : `/api/programs/${encodeURIComponent(payload.pro_no)}`;
+    const response = await fetch(path, { method: programEditorMode.value === "create" ? "POST" : "PUT", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(payload) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "程序保存失败");
+    const savedProgram = result.program || {};
+    operationForm.value.programId = String(savedProgram.pro_no ?? payload.pro_no);
+    isProgramEditorOpen.value = false;
+    operationFeedback.value = "程序已保存到数据库";
+    await loadPrograms(false);
+  } catch (error) {
+    programFeedback.value = error.message || "程序保存失败";
+  } finally {
+    programSaving.value = false;
+  }
+}
+
+async function deleteProgram(proNo) {
+  if (!window.confirm(`确定删除程序组 ${proNo} 吗？该程序的全部步骤也会被删除。`)) return;
+  try {
+    const response = await fetch(`/api/programs/${encodeURIComponent(proNo)}`, { method: "DELETE", headers: authHeaders() });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "程序删除失败");
+    await loadPrograms(true);
+    operationFeedback.value = "程序已删除";
+  } catch (error) {
+    operationFeedback.value = `程序删除失败：${error.message || "数据库不可用"}`;
+  }
 }
 
 function handleSidebarSelect(item) {
@@ -1391,8 +2144,29 @@ async function saveOperationSettings() {
     runtime_minutes: Number(operationForm.value.runtimeMinutes),
     runtime_seconds: Number(operationForm.value.runtimeSeconds)
   };
+  const protectionPayload = {
+    airTEMP_H: Number(operationForm.value.airTEMP_H),
+    airTEMP_L: Number(operationForm.value.airTEMP_L),
+    dutTEMP_H: Number(operationForm.value.dutTEMP_H),
+    dutTEMP_L: Number(operationForm.value.dutTEMP_L),
+    dutModeAir_H: Number(operationForm.value.dutModeAir_H),
+    dutModeAir_L: Number(operationForm.value.dutModeAir_L)
+  };
+  const selectedDutSensor = Number(String(operationForm.value.dutTemperatureSource || "dut1").replace(/^dut/, "")) - 1;
+  const eventBits = normalizeEventCode(operationForm.value.eventCode);
+  const otherPayload = {
+    dutControl: operationForm.value.temperatureControlMode === "dut" ? 1 : 0,
+    dutSel: Math.min(7, Math.max(0, Number.isFinite(selectedDutSensor) ? selectedDutSensor : 0)),
+    waitTEMP: Number(operationForm.value.waitTemperatureUpper),
+    waitHUMI: Number(operationForm.value.waitHumidityUpper),
+    event: Number.parseInt(eventBits, 2) || 0,
+    powerRestoration: ({ stop: 0, cold: 1, warm: 2 })[operationForm.value.powerOnMode] ?? 0,
+    afterShutdow: ({ reset: 0, continue: 1 })[operationForm.value.stopResumeMode] ?? 0
+  };
   try {
-    const response = await fetch("/api/settings/fixed-value", {
+    const shouldNotifyFixedValue = operationTab.value === "setpoint";
+    const shouldNotifyOperation = operationTab.value === "protection" || operationTab.value === "other";
+    const response = await fetch(`/api/settings/fixed-value?notify_memory=${shouldNotifyFixedValue}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify(payload)
@@ -1400,6 +2174,14 @@ async function saveOperationSettings() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.detail || "数据库保存失败");
     applyFixedValueSettings(result.value || payload);
+    const protectionResponse = await fetch(`/api/settings/operation?notify_memory=${shouldNotifyOperation}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ ...protectionPayload, ...otherPayload })
+    });
+    const protectionResult = await protectionResponse.json().catch(() => ({}));
+    if (!protectionResponse.ok) throw new Error(protectionResult.detail || "保护设定保存失败");
+    applyOperationSettings(protectionResult.value || protectionPayload);
     operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
     operationFeedback.value = "已保存到数据库";
     addOperationLog({ title: "保存操作设定", message: `${selectedDevice.value?.name || selectedDeviceId.value} 已更新${activeOperationTab.value.label}`, tone: "success" });
@@ -1407,6 +2189,59 @@ async function saveOperationSettings() {
     operationFeedback.value = `保存失败：${error.message || "数据库不可用"}`;
   }
   window.setTimeout(() => { operationFeedback.value = ""; }, 3000);
+}
+
+async function saveOtherSettings() {
+  operationFeedback.value = "保存中…";
+  const selectedDutSensor = Number(String(operationForm.value.dutTemperatureSource || "dut1").replace(/^dut/, "")) - 1;
+  const eventBits = normalizeEventCode(operationForm.value.eventCode);
+  const payload = {
+    dutControl: operationForm.value.temperatureControlMode === "dut" ? 1 : 0,
+    dutSel: Math.min(7, Math.max(0, Number.isFinite(selectedDutSensor) ? selectedDutSensor : 0)),
+    waitTEMP: Number(operationForm.value.waitTemperatureUpper),
+    waitHUMI: Number(operationForm.value.waitHumidityUpper),
+    event: Number.parseInt(eventBits, 2) || 0,
+    powerRestoration: ({ stop: 0, cold: 1, warm: 2 })[operationForm.value.powerOnMode] ?? 0,
+    afterShutdow: ({ reset: 0, continue: 1 })[operationForm.value.stopResumeMode] ?? 0
+  };
+  try {
+    const response = await fetch("/api/settings/operation/other", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "其他设定保存失败");
+    applyOperationSettings(result.value || payload);
+    operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    operationFeedback.value = "已保存到数据库并通知应用层";
+    addOperationLog({ title: "保存其他设定", message: `${selectedDevice.value?.name || selectedDeviceId.value} 已更新其他设定`, tone: "success" });
+  } catch (error) {
+    operationFeedback.value = `保存失败：${error.message || "数据库不可用"}`;
+  }
+  window.setTimeout(() => { operationFeedback.value = ""; }, 3000);
+}
+
+function applyOperationSettings(value) {
+  if (!value) return;
+  const dutSelection = Number(value.dutSel);
+  const dutIndex = Number.isFinite(dutSelection) ? Math.min(7, Math.max(0, dutSelection)) + 1 : 1;
+  operationForm.value = {
+    ...operationForm.value,
+    airTEMP_H: value.airTEMP_H == null ? operationForm.value.airTEMP_H : Number(value.airTEMP_H),
+    airTEMP_L: value.airTEMP_L == null ? operationForm.value.airTEMP_L : Number(value.airTEMP_L),
+    dutTEMP_H: value.dutTEMP_H == null ? operationForm.value.dutTEMP_H : Number(value.dutTEMP_H),
+    dutTEMP_L: value.dutTEMP_L == null ? operationForm.value.dutTEMP_L : Number(value.dutTEMP_L),
+    dutModeAir_H: value.dutModeAir_H == null ? operationForm.value.dutModeAir_H : Number(value.dutModeAir_H),
+    dutModeAir_L: value.dutModeAir_L == null ? operationForm.value.dutModeAir_L : Number(value.dutModeAir_L),
+    temperatureControlMode: value.dutControl == null ? operationForm.value.temperatureControlMode : (Number(value.dutControl) === 1 ? "dut" : "air"),
+    dutTemperatureSource: value.dutSel == null ? operationForm.value.dutTemperatureSource : `dut${dutIndex}`,
+    waitTemperatureUpper: value.waitTEMP == null ? operationForm.value.waitTemperatureUpper : Number(value.waitTEMP),
+    waitHumidityUpper: value.waitHUMI == null ? operationForm.value.waitHumidityUpper : Number(value.waitHUMI),
+    eventCode: value.event == null ? operationForm.value.eventCode : Number(value.event).toString(2).padStart(16, "0"),
+    powerOnMode: value.powerRestoration == null ? operationForm.value.powerOnMode : (({ 0: "stop", 1: "cold", 2: "warm" })[Number(value.powerRestoration)] || operationForm.value.powerOnMode),
+    stopResumeMode: value.afterShutdow == null ? operationForm.value.stopResumeMode : (({ 0: "reset", 1: "continue" })[Number(value.afterShutdow)] || operationForm.value.stopResumeMode)
+  };
 }
 
 function applyFixedValueSettings(value) {
@@ -1425,10 +2260,35 @@ function applyFixedValueSettings(value) {
 
 async function loadFixedValueSettings() {
   try {
-    const response = await fetch("/api/settings/fixed-value");
-    if (!response.ok) return;
-    const result = await response.json();
-    applyFixedValueSettings(result.value);
+    const response = await fetch("/api/settings/fixed-value", { headers: authHeaders() });
+    if (response.ok) {
+      const result = await response.json();
+      applyFixedValueSettings(result.value);
+    }
+  } catch {
+  }
+  try {
+    const response = await fetch("/api/settings/operation", { headers: authHeaders() });
+    if (response.ok) {
+      const result = await response.json();
+      applyOperationSettings(result.value);
+    }
+  } catch {
+  }
+  try {
+    const response = await fetch("/api/settings/system-basic", { headers: authHeaders() });
+    if (response.ok) {
+      const result = await response.json();
+      applySystemBasicSettings(result.value);
+    }
+  } catch {
+  }
+  try {
+    const response = await fetch("/api/settings/correction", { headers: authHeaders() });
+    if (response.ok) {
+      const result = await response.json();
+      applyCorrectionSettings(result.value);
+    }
   } catch {
   }
 }
@@ -1462,9 +2322,87 @@ function stepParameterNumber(field, delta, min = null, max = null) {
   parameterForm.value[field] = nextValue;
 }
 
-function saveParameterSettings() {
-  operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
-  addOperationLog({ title: "保存系统参数", message: `${selectedDevice.value?.name || selectedDeviceId.value} 已更新系统参数`, tone: "success" });
+function applySystemBasicSettings(value) {
+  if (!value) return;
+  parameterForm.value = {
+    ...parameterForm.value,
+    temperatureRangeMax: Number(value.TEMP_OP_H ?? parameterForm.value.temperatureRangeMax),
+    temperatureRangeMin: Number(value.TEMP_OP_L ?? parameterForm.value.temperatureRangeMin),
+    humidityRangeMax: Number(value.HUMI_OP_H ?? parameterForm.value.humidityRangeMax),
+    humidityRangeMin: Number(value.HUMI_OP_L ?? parameterForm.value.humidityRangeMin),
+    temperatureTransmissionMax: Number(value.HUMI_AirOP_H ?? parameterForm.value.temperatureTransmissionMax),
+    temperatureTransmissionMin: Number(value.HUMI_AirOP_L ?? parameterForm.value.temperatureTransmissionMin),
+    compressorFrequency: Number(value.heatingUpDownHz ?? parameterForm.value.compressorFrequency),
+    circulationFanFrequency: Number(value.constantTEMPHz ?? parameterForm.value.circulationFanFrequency),
+    humidifierFrequency: Number(value.HumiHeatHz ?? parameterForm.value.humidifierFrequency),
+    frequencyLimit: Number(value.otherHz ?? parameterForm.value.frequencyLimit)
+  };
+}
+
+function correctionPayload() {
+  return Object.fromEntries(
+    correctionFieldKeys.map(key => [key, Number(parameterForm.value[key])])
+  );
+}
+
+function applyCorrectionSettings(value) {
+  if (!value) return;
+  for (const key of correctionFieldKeys) {
+    if (value[key] != null) parameterForm.value[key] = Number(value[key]);
+  }
+}
+
+async function saveParameterSettings() {
+  if (parameterTab.value === "calibration") {
+    await saveCorrectionSettings();
+    return;
+  }
+  const payload = {
+    TEMP_OP_H: Number(parameterForm.value.temperatureRangeMax),
+    TEMP_OP_L: Number(parameterForm.value.temperatureRangeMin),
+    HUMI_OP_H: Number(parameterForm.value.humidityRangeMax),
+    HUMI_OP_L: Number(parameterForm.value.humidityRangeMin),
+    HUMI_AirOP_H: Number(parameterForm.value.temperatureTransmissionMax),
+    HUMI_AirOP_L: Number(parameterForm.value.temperatureTransmissionMin),
+    heatingUpDownHz: Number(parameterForm.value.compressorFrequency),
+    constantTEMPHz: Number(parameterForm.value.circulationFanFrequency),
+    HumiHeatHz: Number(parameterForm.value.humidifierFrequency),
+    otherHz: Number(parameterForm.value.frequencyLimit)
+  };
+  const deviceName = selectedDevice.value?.name || selectedDeviceId.value;
+  try {
+    const response = await fetch("/api/settings/system-basic", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "系统参数保存失败");
+    applySystemBasicSettings(result.value || payload);
+    operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    addOperationLog({ title: "保存系统参数", message: `${deviceName} 已保存基础信息并通知应用层`, tone: "success" });
+  } catch (error) {
+    addOperationLog({ title: "保存系统参数失败", message: `${deviceName}：${error.message || "数据库不可用"}`, tone: "danger" });
+  }
+}
+
+async function saveCorrectionSettings() {
+  const payload = correctionPayload();
+  const deviceName = selectedDevice.value?.name || selectedDeviceId.value;
+  try {
+    const response = await fetch("/api/settings/correction", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "测量校正参数保存失败");
+    applyCorrectionSettings(result.value || payload);
+    operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    addOperationLog({ title: "保存测量校正", message: `${deviceName} 已保存温湿度及试品温度校正参数并通知应用层`, tone: "success" });
+  } catch (error) {
+    addOperationLog({ title: "保存测量校正失败", message: `${deviceName}：${error.message || "数据库不可用"}`, tone: "danger" });
+  }
 }
 
 function resetParameterForm() {
@@ -1476,6 +2414,29 @@ function resetParameterForm() {
     temperatureGain: 1,
     humidityOffset: 0,
     humidityGain: 1,
+    TEMP_Area1: 0,
+    TEMP_Area2: 0,
+    TEMP_Area3: 0,
+    TEMP_Area4: 0,
+    TEMP_Corrected1: 0,
+    TEMP_Corrected2: 0,
+    TEMP_Corrected3: 0,
+    TEMP_Corrected4: 0,
+    TEMP_Correction: 0,
+    HUMI_Area1: 0,
+    HUMI_Area2: 0,
+    HUMI_Area3: 0,
+    HUMI_Area4: 0,
+    HUMI_Corrected1: 0,
+    HUMI_Corrected2: 0,
+    HUMI_Corrected3: 0,
+    HUMI_Corrected4: 0,
+    HUMI_Correction: 0,
+    ...Object.fromEntries(
+      Array.from({ length: 10 }, (_, index) =>
+        ["Collected", "Corrected", "Final"].map(stage => [`DUT${index + 1}_${stage}`, 0])
+      ).flat()
+    ),
     temperatureP: 1,
     temperatureI: 0.1,
     temperatureD: 0,
@@ -1505,14 +2466,15 @@ function resetOperationForm() {
   operationForm.value = {
     ...operationForm.value,
     overTempEnabled: true, overHumEnabled: true, powerMemory: true,
-    tempLimit: 85, humLimit: 95, airTempUpper: 0, airTempLower: 0, airTempProtectionEnabled: true, dutTempUpper: 0, dutTempLower: 0, dutTempProtectionEnabled: true, dutControlAirUpper: 0, dutControlAirLower: 0, dutControlAirProtectionEnabled: true, targetTemp: 25, targetHum: 50,
-    tempRamp: 1.5, humRamp: 2, runtimeHours: 0, runtimeMinutes: 30, runtimeSeconds: 0, controlMode: "balanced", programId: "P-01",
+    tempLimit: 85, humLimit: 95, airTEMP_H: 0, airTEMP_L: 0, dutTEMP_H: 0, dutTEMP_L: 0, dutModeAir_H: 0, dutModeAir_L: 0, targetTemp: 25, targetHum: 50,
+    tempRamp: 1.5, humRamp: 2, runtimeHours: 0, runtimeMinutes: 30, runtimeSeconds: 0, controlMode: "balanced", programId: programs.value[0] ? String(programs.value[0].pro_no) : "",
     soundEnabled: true, doorLock: true, autoSave: true, precision: "0.1", brightness: 80,
     powerOnMode: "stop", stopResumeMode: "reset", temperatureControlMode: "air", dutTemperatureSource: "dut1",
     waitTemperatureUpper: 0, waitHumidityUpper: 0, eventCode: "0000000000000000",
     scheduledStartEnabled: false, scheduledStartDate: "2026-07-31", scheduledStartTime: "16:34",
     scheduledStopEnabled: false, scheduledStopDate: "2026-07-31", scheduledStopTime: "16:34"
   };
+  if (operationTab.value === "program" && programs.value[0]) selectProgram(programs.value[0].pro_no);
   operationFeedback.value = "已恢复默认值";
   window.setTimeout(() => { operationFeedback.value = ""; }, 2200);
 }
@@ -1619,7 +2581,6 @@ async function stopSelectedDevice() {
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         command: "Stop",
-        operator_id: "web-admin",
         reason: "stop requested from Vue dashboard"
       })
     });
@@ -1649,6 +2610,13 @@ function cancelRunModeSelection() {
   isRunModeDialogOpen.value = false;
 }
 
+function openSetpointSettings() {
+  isRunModeDialogOpen.value = false;
+  activeView.value = "device-detail";
+  selectedDeviceSection.value = "operation";
+  operationTab.value = "setpoint";
+}
+
 function waitForCommandPollingWindow() {
   return new Promise(resolve => window.setTimeout(resolve, 350));
 }
@@ -1657,7 +2625,7 @@ async function postDeviceCommand(deviceId, command, reason, payload = {}) {
   const response = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/commands`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ command, time: formatStartTime(), operator_id: "web-admin", reason, payload })
+    body: JSON.stringify({ command, time: formatStartTime(), reason, payload })
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.detail || result.message || `${command}命令下发失败`);
@@ -1728,7 +2696,6 @@ async function holdSelectedDevice() {
       body: JSON.stringify({
         command,
         time: formatStartTime(),
-        operator_id: "web-admin",
         reason: `${commandLabel} requested from Vue dashboard`
       })
     });
@@ -1759,7 +2726,6 @@ async function skipSelectedDeviceStep() {
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         command: "Jump",
-        operator_id: "web-admin",
         reason: "step skip requested from Vue dashboard"
       })
     });
@@ -1778,7 +2744,8 @@ async function skipSelectedDeviceStep() {
 
 function connectSocket() {
   const protocol = location.protocol === "https:" ? "wss" : "ws";
-  socket = new WebSocket(`${protocol}://${location.host}/ws/memory`);
+  const token = window.localStorage.getItem("industrial-auth-token");
+  socket = new WebSocket(`${protocol}://${location.host}/ws/memory?access_token=${encodeURIComponent(token || "")}`);
 
   socket.onopen = () => {
     connectionText.value = "已连接";
@@ -2104,6 +3071,7 @@ function handleTrendResize() {
 onMounted(() => {
   loadMonitorLayout();
   loadFixedValueSettings();
+  loadPrograms();
   connectSocket();
   window.addEventListener("resize", handleTrendResize);
   clockTimer = window.setInterval(() => {

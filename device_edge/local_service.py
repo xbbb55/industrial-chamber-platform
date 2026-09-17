@@ -7,22 +7,30 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
 
-from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .config import EdgeConfig
-from .mysql_store import FixedValueStore
+from .mysql_store import FixedValueStore, OperationSettingStore, ProgramStore
 from .runtime import DeviceEdgeRuntime
 from .websocket_client import WebSocketEdgeClient
-from backend.auth import build_auth_router, current_account, record_operation
+from backend.auth import (
+    PERMISSION_DEVICE_COMMAND,
+    PERMISSION_DEVICE_VIEW,
+    PERMISSION_SETTINGS_WRITE,
+    account_for_token,
+    build_auth_router,
+    has_permission,
+    record_operation,
+    require_permission,
+)
 
 
 class LocalCommandRequest(BaseModel):
     command: str
     time: str | None = None
-    operator_id: str = "web-admin"
     reason: str = "command from local Vue dashboard"
     payload: dict[str, Any] = Field(default_factory=dict)
 
@@ -37,9 +45,140 @@ class FixedValueRequest(BaseModel):
     runtime_seconds: int = Field(ge=0, le=59)
 
 
+class OperationSettingRequest(BaseModel):
+    airTEMP_H: float
+    airTEMP_L: float
+    dutTEMP_H: float
+    dutTEMP_L: float
+    dutModeAir_H: float
+    dutModeAir_L: float
+    dutControl: int = Field(ge=0, le=1)
+    dutSel: int = Field(ge=0, le=7)
+    DM9: float | None = None
+    waitTEMP: float
+    waitHUMI: float
+    event: int = Field(ge=0, le=65535)
+    powerRestoration: int = Field(ge=0, le=2)
+    afterShutdow: int = Field(ge=0, le=1)
+
+
+class OtherSettingRequest(BaseModel):
+    dutControl: int = Field(ge=0, le=1)
+    dutSel: int = Field(ge=0, le=7)
+    DM9: float | None = None
+    waitTEMP: float
+    waitHUMI: float
+    event: int = Field(ge=0, le=65535)
+    powerRestoration: int = Field(ge=0, le=2)
+    afterShutdow: int = Field(ge=0, le=1)
+
+
+class SystemBasicSettingRequest(BaseModel):
+    TEMP_OP_H: float
+    TEMP_OP_L: float
+    HUMI_OP_H: float
+    HUMI_OP_L: float
+    HUMI_AirOP_H: float
+    HUMI_AirOP_L: float
+    heatingUpDownHz: float
+    constantTEMPHz: float
+    HumiHeatHz: float
+    otherHz: float
+
+
+class CorrectionSettingRequest(BaseModel):
+    TEMP_Area1: float
+    TEMP_Area2: float
+    TEMP_Area3: float
+    TEMP_Area4: float
+    TEMP_Corrected1: float
+    TEMP_Corrected2: float
+    TEMP_Corrected3: float
+    TEMP_Corrected4: float
+    TEMP_Correction: float
+    HUMI_Area1: float
+    HUMI_Area2: float
+    HUMI_Area3: float
+    HUMI_Area4: float
+    HUMI_Corrected1: float
+    HUMI_Corrected2: float
+    HUMI_Corrected3: float
+    HUMI_Corrected4: float
+    HUMI_Correction: float
+    DUT1_Collected: float
+    DUT1_Corrected: float
+    DUT1_Final: float
+    DUT2_Collected: float
+    DUT2_Corrected: float
+    DUT2_Final: float
+    DUT3_Collected: float
+    DUT3_Corrected: float
+    DUT3_Final: float
+    DUT4_Collected: float
+    DUT4_Corrected: float
+    DUT4_Final: float
+    DUT5_Collected: float
+    DUT5_Corrected: float
+    DUT5_Final: float
+    DUT6_Collected: float
+    DUT6_Corrected: float
+    DUT6_Final: float
+    DUT7_Collected: float
+    DUT7_Corrected: float
+    DUT7_Final: float
+    DUT8_Collected: float
+    DUT8_Corrected: float
+    DUT8_Final: float
+    DUT9_Collected: float
+    DUT9_Corrected: float
+    DUT9_Final: float
+    DUT10_Collected: float
+    DUT10_Corrected: float
+    DUT10_Final: float
+
+
+class ProgramStepRequest(BaseModel):
+    step_no: str | None = Field(default=None, max_length=16)
+    time: float = Field(ge=0)
+    temp: float
+    humi: float
+    pressure: float
+    event_bits: int = Field(ge=0, le=65535)
+    space: float = 0
+
+
+class ProgramGroupRequest(BaseModel):
+    pro_no: int | None = Field(default=None, ge=1, le=65535)
+    name: str = Field(min_length=1, max_length=128)
+    total_time: float | None = Field(default=None, ge=0)
+    loop1_start: int | None = Field(default=None, ge=0)
+    loop1_end: int | None = Field(default=None, ge=0)
+    loop1_times: int | None = Field(default=None, ge=0)
+    loop2_start: int | None = Field(default=None, ge=0)
+    loop2_end: int | None = Field(default=None, ge=0)
+    loop2_times: int | None = Field(default=None, ge=0)
+    loop3_start: int | None = Field(default=None, ge=0)
+    loop3_end: int | None = Field(default=None, ge=0)
+    loop3_times: int | None = Field(default=None, ge=0)
+    loop4_start: int | None = Field(default=None, ge=0)
+    loop4_end: int | None = Field(default=None, ge=0)
+    loop4_times: int | None = Field(default=None, ge=0)
+    full_cycle: int | None = Field(default=None, ge=0)
+    link_no: int | None = Field(default=None, ge=0)
+    steps: list[ProgramStepRequest] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def assign_step_numbers(self) -> "ProgramGroupRequest":
+        for index, step in enumerate(self.steps, start=1):
+            step.step_no = str(index)
+        return self
+
+
 def create_app(config: EdgeConfig) -> FastAPI:
     runtime = DeviceEdgeRuntime(config)
     fixed_value_store = FixedValueStore(config) if config.database_enabled else None
+    operation_setting_store = OperationSettingStore(config) if config.database_enabled else None
+    program_store = ProgramStore(config) if config.database_enabled else None
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -79,7 +218,7 @@ def create_app(config: EdgeConfig) -> FastAPI:
         return runtime.health()
 
     @app.get("/api/settings/fixed-value")
-    async def get_fixed_value() -> dict[str, Any]:
+    async def get_fixed_value(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
         if fixed_value_store is None:
             raise HTTPException(status_code=503, detail="数据库存储未启用")
         try:
@@ -88,18 +227,209 @@ def create_app(config: EdgeConfig) -> FastAPI:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     @app.put("/api/settings/fixed-value")
-    async def save_fixed_value(request: FixedValueRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
+    async def save_fixed_value(request: FixedValueRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE)), notify_memory: bool = Query(default=True)) -> dict[str, Any]:
         if fixed_value_store is None:
             raise HTTPException(status_code=503, detail="数据库存储未启用")
         try:
             value = fixed_value_store.save_fixed_value(request.model_dump())
+            command = None
+            if notify_memory:
+                # Publish only after commit and read-back confirmation so HDNet
+                # never receives a notification for an uncommitted value.
+                try:
+                    command = runtime.submit_command({
+                        "command": "fixed_value",
+                        "device_id": config.edge_id,
+                        "operator_id": account["username"],
+                        "reason": "fixed value settings saved",
+                    })
+                except (RuntimeError, ValueError) as exc:
+                    raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
             record_operation(account, "FIXED_VALUE_SETTINGS_UPDATED", target_type="settings", target_id="fixed-value")
-            return {"value": value}
+            return {"value": value, "command": command}
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
+    @app.get("/api/settings/operation")
+    async def get_operation_setting(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
+        if operation_setting_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            return {"value": operation_setting_store.get_operation_setting()}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.put("/api/settings/operation")
+    async def save_operation_setting(request: OperationSettingRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE)), notify_memory: bool = Query(default=True)) -> dict[str, Any]:
+        if operation_setting_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            value = operation_setting_store.save_operation_setting(request.model_dump())
+            command = None
+            if notify_memory:
+                # Only publish to FE_W after the database transaction has been
+                # committed and the saved row has been read back successfully.
+                try:
+                    command = runtime.submit_command({
+                        "command": "operation_setting",
+                        "device_id": config.edge_id,
+                        "operator_id": account["username"],
+                        "reason": "operation settings saved",
+                    })
+                except (RuntimeError, ValueError) as exc:
+                    raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
+            record_operation(account, "OPERATION_SETTINGS_UPDATED", target_type="settings", target_id="operation", details=request.model_dump())
+            return {"value": value, "command": command}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.put("/api/settings/operation/other")
+    async def save_other_setting(request: OtherSettingRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE)), notify_memory: bool = Query(default=True)) -> dict[str, Any]:
+        if operation_setting_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            value = operation_setting_store.save_other_setting(request.model_dump())
+            command = None
+            if notify_memory:
+                try:
+                    command = runtime.submit_command({
+                        "command": "operation_setting",
+                        "device_id": config.edge_id,
+                        "operator_id": account["username"],
+                        "reason": "other operation settings saved",
+                    })
+                except (RuntimeError, ValueError) as exc:
+                    raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
+            record_operation(account, "OTHER_OPERATION_SETTINGS_UPDATED", target_type="settings", target_id="operation-other", details=request.model_dump())
+            return {"value": value, "command": command}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.get("/api/settings/system-basic")
+    async def get_system_basic_setting(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
+        if operation_setting_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            return {"value": operation_setting_store.get_system_basic_setting()}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.put("/api/settings/system-basic")
+    async def save_system_basic_setting(request: SystemBasicSettingRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE)), notify_memory: bool = Query(default=True)) -> dict[str, Any]:
+        if operation_setting_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            value = operation_setting_store.save_system_basic_setting(request.model_dump())
+            command = None
+            if notify_memory:
+                try:
+                    command = runtime.submit_command({
+                        "command": "operation_setting",
+                        "device_id": config.edge_id,
+                        "operator_id": account["username"],
+                        "reason": "system basic settings saved",
+                    })
+                except (RuntimeError, ValueError) as exc:
+                    raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
+            record_operation(account, "SYSTEM_BASIC_SETTINGS_UPDATED", target_type="settings", target_id="system-basic", details=request.model_dump())
+            return {"value": value, "command": command}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.get("/api/settings/correction")
+    async def get_correction_setting(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
+        if operation_setting_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            return {"value": operation_setting_store.get_correction_setting()}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.put("/api/settings/correction")
+    async def save_correction_setting(request: CorrectionSettingRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE)), notify_memory: bool = Query(default=True)) -> dict[str, Any]:
+        if operation_setting_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            value = operation_setting_store.save_correction_setting(request.model_dump())
+            command = None
+            if notify_memory:
+                try:
+                    command = runtime.submit_command({
+                        "command": "correction",
+                        "device_id": config.edge_id,
+                        "operator_id": account["username"],
+                        "reason": "measurement correction settings saved",
+                    })
+                except (RuntimeError, ValueError) as exc:
+                    raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
+            record_operation(account, "CORRECTION_SETTINGS_UPDATED", target_type="settings", target_id="correction", details=request.model_dump())
+            return {"value": value, "command": command}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.get("/api/programs")
+    async def list_programs(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
+        if program_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            return {"programs": program_store.list_program_groups()}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.get("/api/programs/{pro_no}")
+    async def get_program(pro_no: int, _: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
+        if program_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            value = program_store.get_program(pro_no)
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        if value is None:
+            raise HTTPException(status_code=404, detail="程序组不存在")
+        return {"program": value}
+
+    @app.post("/api/programs", status_code=201)
+    async def create_program(request: ProgramGroupRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE))) -> dict[str, Any]:
+        if program_store is not None:
+            request.pro_no = program_store.next_program_number()
+        return await _save_program(request, account, creating=True)
+
+    @app.put("/api/programs/{pro_no}")
+    async def update_program(pro_no: int, request: ProgramGroupRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE))) -> dict[str, Any]:
+        if request.pro_no is not None and request.pro_no != pro_no:
+            raise HTTPException(status_code=422, detail="路径中的程序组号与请求体不一致")
+        request.pro_no = pro_no
+        return await _save_program(request, account, creating=False)
+
+    async def _save_program(request: ProgramGroupRequest, account: dict[str, Any], *, creating: bool) -> dict[str, Any]:
+        if program_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            if creating and program_store.get_program(request.pro_no) is not None:
+                raise HTTPException(status_code=409, detail="程序组号已存在")
+            value = program_store.save_program(request.model_dump())
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        record_operation(account, "PROGRAM_CREATED" if creating else "PROGRAM_UPDATED", target_type="program", target_id=str(request.pro_no), details={"step_count": len(request.steps)})
+        return {"program": value}
+
+    @app.delete("/api/programs/{pro_no}")
+    async def delete_program(pro_no: int, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE))) -> dict[str, str]:
+        if program_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            program_store.delete_program(pro_no)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        record_operation(account, "PROGRAM_DELETED", target_type="program", target_id=str(pro_no))
+        return {"message": "程序已删除"}
+
     @app.post("/api/devices/{device_id}/commands")
-    async def submit_command(device_id: str, request: LocalCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
+    async def submit_command(device_id: str, request: LocalCommandRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_COMMAND))) -> dict[str, Any]:
         try:
             record_operation(account, "DEVICE_COMMAND_REQUESTED", target_type="device", target_id=device_id, details={"command": request.command})
             command = runtime.submit_command({**request.model_dump(), "operator_id": account["username"], "device_id": device_id})
@@ -117,6 +447,14 @@ def create_app(config: EdgeConfig) -> FastAPI:
 
     @app.websocket("/ws/memory")
     async def memory_socket(websocket: WebSocket) -> None:
+        try:
+            account = account_for_token(websocket.query_params.get("access_token", ""))
+        except HTTPException:
+            await websocket.close(code=1008, reason="请先登录")
+            return
+        if not has_permission(account, PERMISSION_DEVICE_VIEW):
+            await websocket.close(code=1008, reason="当前权限组无权查看设备数据")
+            return
         await websocket.accept()
         queue = runtime.subscribe()
         try:

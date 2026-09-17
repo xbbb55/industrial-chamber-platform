@@ -5,9 +5,20 @@ import { ref } from "vue";
 import DashboardApp from "./DashboardApp.vue";
 import LoginView from "./LoginView.vue";
 
-const authenticated = ref(Boolean(localStorage.getItem("industrial-auth-token")));
 const fallbackUser = { username: "admin", display_name: "Admin User", role: "ADMIN", role_label: "管理员" };
-const currentUser = ref(readStoredUser());
+
+// Authentication is intentionally page-session scoped.  A full page reload
+// must never reopen the previous control-center view on a shared industrial
+// workstation, even when an old token was left in localStorage.
+function clearPersistedSession() {
+  localStorage.removeItem("industrial-auth-token");
+  localStorage.removeItem("industrial-auth-user");
+}
+
+clearPersistedSession();
+
+const authenticated = ref(false);
+const currentUser = ref(fallbackUser);
 
 function normalizeUser(user) {
   const role = ["ADMIN", "工程师", "ENGINEER", "销售", "SALES"].includes(user?.role) ? user.role : "ADMIN";
@@ -16,22 +27,13 @@ function normalizeUser(user) {
   return { ...fallbackUser, ...user, role: normalizedRole, role_label: labels[normalizedRole] };
 }
 
-function readStoredUser() {
-  try {
-    return normalizeUser(JSON.parse(localStorage.getItem("industrial-auth-user") || "{}"));
-  } catch {
-    return fallbackUser;
-  }
-}
-
 function handleAuthenticated(user) {
   currentUser.value = normalizeUser(user);
   authenticated.value = true;
 }
 
 function handleLogout() {
-  localStorage.removeItem("industrial-auth-token");
-  localStorage.removeItem("industrial-auth-user");
+  clearPersistedSession();
   currentUser.value = fallbackUser;
   authenticated.value = false;
 }

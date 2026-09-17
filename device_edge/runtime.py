@@ -110,8 +110,11 @@ class DeviceEdgeRuntime:
             if self._request_memory is None:
                 raise RuntimeError("Command request memory is not initialized.")
             operator_id = str(payload.get("operator_id") or "").strip()
-            if not operator_id or (self.config.allowed_operator_ids and operator_id not in self.config.allowed_operator_ids):
-                raise PermissionError("Operator is not authorized for local device commands.")
+            # Authorization is performed by the authenticated API layer.  The
+            # runtime only requires an audit identity and handles the wire
+            # protocol; it must not maintain a second, stale user allow-list.
+            if not operator_id:
+                raise ValueError("operator_id is required")
             wire_command, command_type = normalize_command(payload.get("command"))
             if command_type == "UNKNOWN":
                 raise ValueError(f"Unsupported FE_W command: {payload.get('command')}")

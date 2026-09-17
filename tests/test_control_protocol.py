@@ -35,10 +35,13 @@ class ControlProtocolTests(unittest.TestCase):
         self.assertEqual(normalize_command("RunMode=1")[1], "SET_RUN_MODE")
         self.assertEqual(normalize_command("DownloadProgram=3")[1], "DOWNLOAD_PROGRAM")
         self.assertEqual(normalize_command("fixed_value")[1], "FIXED_VALUE")
+        self.assertEqual(normalize_command("operationsetting")[1], "UNKNOWN")
+        self.assertEqual(normalize_command("operation_setting")[1], "OPERATION_SETTING")
 
     def test_fe_w_and_be_r_shapes(self) -> None:
         when = "2026-07-22 15:30:53"
         self.assertEqual(build_fe_w("Run", when), {"command": "Run", "time": when})
+        self.assertEqual(build_fe_w("operation_setting", when), {"command": "operation_setting", "time": when})
         self.assertEqual(build_be_r("Run", when), {"successMessage": "Run", "time": when})
 
     def test_command_result_is_recorded(self) -> None:

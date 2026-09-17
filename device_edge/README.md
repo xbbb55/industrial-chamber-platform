@@ -77,8 +77,21 @@ POST /api/devices/{device_id}/commands
 WS  /ws/memory
 GET /api/settings/fixed-value
 PUT /api/settings/fixed-value
+GET /api/settings/operation
+PUT /api/settings/operation
+GET /api/programs
+GET /api/programs/{pro_no}
+POST /api/programs
+PUT /api/programs/{pro_no}
+DELETE /api/programs/{pro_no}
 
-定值模式参数保存到本机 MySQL `HDQC.fixed_value`，固定使用 `id=1` 保存当前配置，重复保存会更新该记录。数据库密码不写入配置文件，启动服务前设置配置中 `password_env` 指定的环境变量，例如：
+定值模式参数保存到本机 MySQL `HDQC.fixed_value`，固定使用 `id=1` 保存当前配置，重复保存会更新该记录。数据库提交并回读确认成功后，服务会向 `FE_W` 写入 `{"command":"fixed_value","time":"..."}`，通知 HDNet 读取新的定值数据。接口的 `notify_memory=false` 查询参数可在批量保存时只落库而不发送通知，避免单邮箱命令互相覆盖。数据库密码不写入配置文件，启动服务前设置配置中 `password_env` 指定的环境变量，例如：
+
+保护设定的六个阈值（`airTEMP_H`、`airTEMP_L`、`dutTEMP_H`、`dutTEMP_L`、`dutModeAir_H`、`dutModeAir_L`）保存到现有的本机 MySQL `HDQC.operationsetting` 表。服务只更新这六列，不创建或重建表，也不会修改其他操作设定字段；空表时插入一条记录，已有记录时更新首条记录。
+
+其他设定使用同一个接口和同一张表：`dutControl`、`dutSel`、`waitTEMP`、`waitHUMI`、`event`、`powerRestoration`、`afterShutdow` 按界面值转换为设备协议中的整数或浮点数后保存。`DM9` 为备用字段，当前界面不提交，服务会保留数据库中的原值。`event` 使用 16 位二进制事件码（例如 `0000000000000001` 对应整数 `1`）。
+
+程序模式使用现有 MySQL `program_group` 和 `program_step` 两张表。程序组保存循环及链接配置，步骤保存段号、目标温湿度、气压和事件。界面统一使用 `h:m:s`，数据库的 `total_time` 和步骤 `time` 统一按秒（非负 `double`）保存；保存程序只写入数据库，不发送共享内存命令。
 
 ```powershell
 $env:MYSQL_PWD = "你的数据库密码"
@@ -98,13 +111,19 @@ $env:AUTH_SEED_USERNAME = "admin"          # 可选，默认 admin
 $env:AUTH_SEED_PASSWORD = "12345"          # 可选，默认 12345，仅用于本地开发
 ```
 
-连接参数可通过 `MYSQL_HOST`、`MYSQL_PORT`、`MYSQL_DATABASE`、`MYSQL_USER` 配置。当前密码规则为至少 5 位数字；管理员可创建用户并分配管理员、工程师或销售权限组，三种权限组目前拥有相同的设备业务权限。
+连接参数可通过 `MYSQL_HOST`、`MYSQL_PORT`、`MYSQL_DATABASE`、`MYSQL_USER` 配置。当前密码规则为至少 5 位数字；管理员可创建用户并分配管理员、工程师或销售权限组。权限在登录后由后端根据账户权限组统一鉴权；当前三个权限组均暂时拥有管理员的完整业务权限。
 
 ## 命令协议
 
-`device_edge` 接收前端或总控命令后，先进行本地操作员白名单校验，再向 `FE_W` 写入当前 C++ 协议的命令。C++ 每 200ms 读取一次，读取后必须清空命令内容，再执行设备动作。C++ 不负责用户权限判断，但必须自行完成命令码、设备状态和参数范围的安全校验。
+`device_edge` 接收已通过登录鉴权的前端命令后，向 `FE_W` 写入当前 C++ 协议的命令。C++ 每 200ms 读取一次，读取后必须清空命令内容，再执行设备动作。C++ 不负责用户权限判断，但必须自行完成命令码、设备状态和参数范围的安全校验。
 
-当前 `FE_W` 与 `BE_R` 维持既有协议：
+当前 `FE_W` 与 `BE_R` 维持既有协议。保存保护设定时，数据库确认成功后向 `FE_W` 写入：
+
+```json
+{"command":"operation_setting","time":"2026-07-22 15:30:53"}
+```
+
+其他控制命令仍按既有协议处理：
 
 保持时写入 `HoldON`，继续时写入 `HoldOFF`；跳步时写入 `Jump`。
 

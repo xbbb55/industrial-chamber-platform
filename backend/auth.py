@@ -23,6 +23,22 @@ ROLE_LABELS = {
     ROLE_ENGINEER: "工程师",
     ROLE_SALES: "销售",
 }
+# Authorization is derived from the authenticated account's permission group.
+# Keep this matrix in one place so every API enforces the same policy.
+PERMISSION_DEVICE_VIEW = "device.view"
+PERMISSION_DEVICE_COMMAND = "device.command"
+PERMISSION_SETTINGS_WRITE = "settings.write"
+PERMISSION_USER_MANAGE = "user.manage"
+ADMIN_PERMISSIONS = frozenset({
+    PERMISSION_DEVICE_VIEW,
+    PERMISSION_DEVICE_COMMAND,
+    PERMISSION_SETTINGS_WRITE,
+    PERMISSION_USER_MANAGE,
+})
+# 当前阶段所有权限组沿用管理员业务权限；保留独立角色，便于后续收紧矩阵。
+ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
+    role: ADMIN_PERMISSIONS for role in ROLE_LABELS
+}
 _tokens: dict[str, dict[str, Any]] = {}
 
 
@@ -163,6 +179,7 @@ def _public_account(row: dict[str, Any] | tuple[Any, ...]) -> dict[str, Any]:
         "display_name": row["display_name"],
         "role": role,
         "role_label": ROLE_LABELS[role],
+        "permissions": sorted(ROLE_PERMISSIONS[role]),
         "created_at": row.get("created_at"),
     }
 
@@ -212,17 +229,33 @@ def _token_from_authorization(authorization: Optional[str]) -> str:
     return token
 
 
-def current_account(authorization: Optional[str] = Header(default=None)) -> dict[str, Any]:
-    account = _tokens.get(_token_from_authorization(authorization))
+def account_for_token(token: str) -> dict[str, Any]:
+    account = _tokens.get(token)
     if account is None:
         raise HTTPException(status_code=401, detail="登录已失效，请重新登录")
     return account
 
 
+def has_permission(account: dict[str, Any], permission: str) -> bool:
+    return permission in ROLE_PERMISSIONS.get(account.get("role"), set())
+
+
+def current_account(authorization: Optional[str] = Header(default=None)) -> dict[str, Any]:
+    return account_for_token(_token_from_authorization(authorization))
+
+
+def require_permission(permission: str):
+    """Create a FastAPI dependency enforcing the logged-in account's role."""
+    def dependency(account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
+        if not has_permission(account, permission):
+            raise HTTPException(status_code=403, detail="当前权限组无权执行此操作")
+        return account
+
+    return dependency
+
+
 def _require_admin(account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
-    if account["role"] != ROLE_ADMIN:
-        raise HTTPException(status_code=403, detail="仅管理员可以管理用户")
-    return account
+    return require_permission(PERMISSION_USER_MANAGE)(account)
 
 
 def _invalidate_user_tokens(username: str) -> None:

@@ -10,7 +10,15 @@ from pydantic import BaseModel, Field
 from device_edge.control_protocol import build_fe_w, normalize_command, protocol_time
 from .shared_memory_store import SharedMemoryNotReady, attach_existing, inspect_memory, read_snapshot
 from device_edge.snapshot_normalizer import normalize_snapshot
-from backend.auth import build_auth_router, current_account, record_operation
+from backend.auth import (
+    PERMISSION_DEVICE_COMMAND,
+    PERMISSION_DEVICE_VIEW,
+    account_for_token,
+    build_auth_router,
+    has_permission,
+    record_operation,
+    require_permission,
+)
 
 
 app = FastAPI(title="Industrial Chamber Control Center")
@@ -31,22 +39,18 @@ DEVICE_DATA_STALE_SECONDS = max(float(os.getenv("DEVICE_DATA_STALE_SECONDS", "15
 
 
 class StopCommandRequest(BaseModel):
-    operator_id: str = "web-admin"
     reason: str = "manual stop from Vue dashboard"
 
 
 class HoldCommandRequest(BaseModel):
-    operator_id: str = "web-admin"
     reason: str = "manual hold from Vue dashboard"
 
 
 class SkipStepCommandRequest(BaseModel):
-    operator_id: str = "web-admin"
     reason: str = "manual step skip from Vue dashboard"
 
 
 class StartCommandRequest(BaseModel):
-    operator_id: str = "web-admin"
     reason: str = "manual start from Vue dashboard"
     target_temperature: float = 25.0
     target_humidity: float = 60.0
@@ -68,7 +72,6 @@ class CommandResultUpload(BaseModel):
 class ControllerCommandRequest(BaseModel):
     command: str
     time: Optional[str] = None
-    operator_id: str = "web-admin"
     reason: str = "command from Vue dashboard"
     payload: dict[str, Any] = Field(default_factory=dict)
 
@@ -307,7 +310,7 @@ def make_edge_command(
     command: str,
     *,
     account: Optional[dict[str, Any]] = None,
-    operator_id: str = "web-admin",
+    operator_id: str,
     reason: str = "command from Vue dashboard",
     payload: Optional[dict[str, Any]] = None,
     when: Optional[str] = None,
@@ -345,7 +348,7 @@ def make_edge_command(
 
 
 @app.get("/api/memory/snapshot")
-async def memory_snapshot() -> dict[str, Any]:
+async def memory_snapshot(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
     try:
         return get_realtime_snapshot()
     except SharedMemoryNotReady as exc:
@@ -353,13 +356,13 @@ async def memory_snapshot() -> dict[str, Any]:
 
 
 @app.get("/api/memory/devices")
-async def memory_devices() -> list[dict[str, Any]]:
+async def memory_devices(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> list[dict[str, Any]]:
     snapshot = await memory_snapshot()
     return snapshot["devices"]
 
 
 @app.post("/api/devices/{device_id}/commands")
-async def controller_command(device_id: str, request: ControllerCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
+async def controller_command(device_id: str, request: ControllerCommandRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_COMMAND))) -> dict[str, Any]:
     item = make_edge_command(
         device_id,
         request.command,
@@ -380,7 +383,7 @@ async def controller_command(device_id: str, request: ControllerCommandRequest, 
 
 
 @app.post("/api/devices/{device_id}/stop-requests")
-async def stop_device(device_id: str, request: StopCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
+async def stop_device(device_id: str, request: StopCommandRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_COMMAND))) -> dict[str, Any]:
     edge_id = find_edge_id_for_device(device_id)
     if not edge_id:
         raise HTTPException(status_code=404, detail=f"No uploaded edge found for device: {device_id}")
@@ -411,7 +414,7 @@ async def stop_device(device_id: str, request: StopCommandRequest, account: dict
 
 
 @app.post("/api/devices/{device_id}/start-requests")
-async def start_device(device_id: str, request: StartCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
+async def start_device(device_id: str, request: StartCommandRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_COMMAND))) -> dict[str, Any]:
     edge_id = find_edge_id_for_device(device_id)
     if not edge_id:
         raise HTTPException(status_code=404, detail=f"No uploaded edge found for device: {device_id}")
@@ -444,7 +447,7 @@ async def start_device(device_id: str, request: StartCommandRequest, account: di
 
 
 @app.post("/api/devices/{device_id}/hold-requests")
-async def hold_device(device_id: str, request: HoldCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
+async def hold_device(device_id: str, request: HoldCommandRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_COMMAND))) -> dict[str, Any]:
     edge_id = find_edge_id_for_device(device_id)
     if not edge_id:
         raise HTTPException(status_code=404, detail=f"No uploaded edge found for device: {device_id}")
@@ -475,7 +478,7 @@ async def hold_device(device_id: str, request: HoldCommandRequest, account: dict
 
 
 @app.post("/api/devices/{device_id}/skip-step-requests")
-async def skip_step_device(device_id: str, request: SkipStepCommandRequest, account: dict[str, Any] = Depends(current_account)) -> dict[str, Any]:
+async def skip_step_device(device_id: str, request: SkipStepCommandRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_COMMAND))) -> dict[str, Any]:
     edge_id = find_edge_id_for_device(device_id)
     if not edge_id:
         raise HTTPException(status_code=404, detail=f"No uploaded edge found for device: {device_id}")
@@ -623,7 +626,7 @@ async def edge_websocket(websocket: WebSocket) -> None:
 
 
 @app.get("/api/memory/debug")
-async def memory_debug() -> dict[str, Any]:
+async def memory_debug(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
     try:
         shm = attach_existing()
         try:
@@ -651,6 +654,14 @@ async def memory_debug() -> dict[str, Any]:
 
 @app.websocket("/ws/memory")
 async def memory_websocket(websocket: WebSocket) -> None:
+    try:
+        account = account_for_token(websocket.query_params.get("access_token", ""))
+    except HTTPException:
+        await websocket.close(code=1008, reason="请先登录")
+        return
+    if not has_permission(account, PERMISSION_DEVICE_VIEW):
+        await websocket.close(code=1008, reason="当前权限组无权查看设备数据")
+        return
     await websocket.accept()
     command_status_websockets.add(websocket)
     try:

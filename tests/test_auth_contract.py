@@ -2,7 +2,19 @@ import unittest
 
 from pydantic import ValidationError
 
-from backend.auth import ChangePasswordRequest, CreateAccountRequest, ROLE_ADMIN, ROLE_ENGINEER, _insert_operation_log, normalize_role, validate_numeric_password
+from backend.auth import (
+    ChangePasswordRequest,
+    CreateAccountRequest,
+    PERMISSION_DEVICE_COMMAND,
+    ROLE_ADMIN,
+    ROLE_ENGINEER,
+    ROLE_SALES,
+    ROLE_PERMISSIONS,
+    _insert_operation_log,
+    normalize_role,
+    require_permission,
+    validate_numeric_password,
+)
 
 
 class CapturingCursor:
@@ -40,6 +52,13 @@ class AuthContractTests(unittest.TestCase):
         self.assertEqual(cursor.parameters[0], 42)
         self.assertEqual(cursor.parameters[1], "DEVICE_COMMAND_QUEUED")
         self.assertNotIn("password", str(cursor.parameters).lower())
+
+    def test_all_roles_temporarily_share_administrator_permissions(self) -> None:
+        account = {"username": "engineer", "role": ROLE_ENGINEER}
+        self.assertIs(require_permission(PERMISSION_DEVICE_COMMAND)(account), account)
+        sales_account = {"username": "sales", "role": ROLE_SALES}
+        self.assertIs(require_permission(PERMISSION_DEVICE_COMMAND)(sales_account), sales_account)
+        self.assertEqual(ROLE_PERMISSIONS[ROLE_SALES], ROLE_PERMISSIONS[ROLE_ADMIN])
 
 
 if __name__ == "__main__":

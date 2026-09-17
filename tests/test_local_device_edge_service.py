@@ -55,9 +55,21 @@ async def _exercise_runtime(tmp_path):
         assert snapshot is not None
         assert snapshot["devices"][0]["device_id"] == "CH-LOCAL-001"
 
-        runtime.submit_command({"command": "Run", "operator_id": "web-admin", "device_id": "CH-LOCAL-001"})
-        command = runtime.submit_command({"command": "Stop", "operator_id": "web-admin", "device_id": "CH-LOCAL-001"})
+        runtime.submit_command({"command": "fixed_value", "operator_id": "engineer", "device_id": "CH-LOCAL-001", "time": "2026-07-22 15:30:52"})
         request = attach_existing(config.command_request_memory_name)
+        assert read_snapshot(request, protocol=config.shared_memory_protocol) == {
+            "command": "fixed_value",
+            "time": "2026-07-22 15:30:52",
+        }
+
+        runtime.submit_command({"command": "operation_setting", "operator_id": "engineer", "device_id": "CH-LOCAL-001", "time": "2026-07-22 15:30:53"})
+        assert read_snapshot(request, protocol=config.shared_memory_protocol) == {
+            "command": "operation_setting",
+            "time": "2026-07-22 15:30:53",
+        }
+
+        runtime.submit_command({"command": "Run", "operator_id": "engineer", "device_id": "CH-LOCAL-001"})
+        command = runtime.submit_command({"command": "Stop", "operator_id": "engineer", "device_id": "CH-LOCAL-001"})
         assert read_snapshot(request)["command"] == "Stop"
         assert "command_id" not in read_snapshot(request)
 

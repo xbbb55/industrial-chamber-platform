@@ -31,7 +31,6 @@ class EdgeConfig:
     database_user: str = "root"
     database_password_env: str = "MYSQL_PWD"
     control_center_enabled: bool = False
-    allowed_operator_ids: tuple[str, ...] = ("web-admin",)
 
     @property
     def websocket_endpoint(self) -> str:
@@ -52,7 +51,6 @@ def load_config(path: Union[str, Path]) -> EdgeConfig:
     control_center = data.get("control_center", {})
     local_api = data.get("local_api", {})
     database = data.get("database", {})
-    allowed_operator_ids = auth.get("allowed_operator_ids", ["web-admin"])
     return EdgeConfig(
         edge_id=data["edge_id"],
         device_ip=str(data.get("device_ip", "")).strip(),
@@ -79,7 +77,6 @@ def load_config(path: Union[str, Path]) -> EdgeConfig:
         database_user=str(database.get("user", "root")),
         database_password_env=str(database.get("password_env", "MYSQL_PWD")),
         control_center_enabled=bool(control_center.get("enabled", False)),
-        allowed_operator_ids=tuple(str(item) for item in allowed_operator_ids if str(item).strip()),
     )
 
 

@@ -68,20 +68,20 @@
         </div>
         <div class="security-item">
           <AppIcon name="shield" :size="17" />
-          <div><strong>权限组</strong><span>管理员、工程师和销售当前拥有相同业务权限</span></div>
+          <div><strong>权限组</strong><span>权限在登录后按权限组统一生效</span></div>
           <strong class="role-value">{{ user.role_label }}</strong>
         </div>
-        <div v-if="isAdmin" class="security-item">
+        <div v-if="canManageUsers" class="security-item">
           <AppIcon name="users" :size="17" />
-          <div><strong>用户管理</strong><span>管理员可创建用户并调整权限组</span></div>
+          <div><strong>用户管理</strong><span>可创建用户并调整权限组</span></div>
           <button type="button" @click="loadUsers">刷新</button>
         </div>
       </section>
     </div>
 
-    <section v-if="isAdmin" class="panel profile-users-panel">
+    <section v-if="canManageUsers" class="panel profile-users-panel">
       <div class="panel-title profile-users-title">
-        <div><h3>用户管理</h3><span>仅管理员可访问；角色当前共享设备业务权限</span></div>
+        <div><h3>用户管理</h3><span>当前所有权限组均可访问；可调整账户权限组</span></div>
         <div class="profile-users-actions">
           <div class="profile-user-count" aria-label="账户统计"><strong>{{ users.length }}</strong><span>个账户</span></div>
         <button class="profile-primary-button" type="button" @click="openCreateUserDialog">
@@ -90,7 +90,7 @@
         </button>
         </div>
       </div>
-      <div class="profile-role-note"><AppIcon name="shield" :size="15" /><span>管理员可管理用户；工程师与销售的设备业务权限一致。</span></div>
+      <div class="profile-role-note"><AppIcon name="shield" :size="15" /><span>当前管理员、工程师与销售拥有相同业务权限。</span></div>
       <p v-if="usersError" class="profile-error" role="alert">{{ usersError }}</p>
       <div v-else-if="usersLoading" class="profile-loading">正在读取用户列表…</div>
       <div v-else-if="users.length" class="user-list" role="table" aria-label="用户列表">
@@ -170,7 +170,7 @@ const creatingUser = ref(false);
 const createUserError = ref("");
 const newUserForm = ref({ display_name: "", username: "", password: "", role: "ENGINEER" });
 
-const isAdmin = computed(() => props.user.role === "ADMIN");
+const canManageUsers = computed(() => props.user.permissions?.includes("user.manage") ?? true);
 const avatarText = computed(() => String(props.user.display_name || props.user.username || "A").slice(0, 1).toUpperCase());
 
 function authHeaders() {
@@ -222,7 +222,7 @@ async function changePassword() {
 }
 
 async function loadUsers() {
-  if (!isAdmin.value) return;
+  if (!canManageUsers.value) return;
   usersLoading.value = true;
   usersError.value = "";
   try {
@@ -276,7 +276,7 @@ async function createUser() {
   }
 }
 
-watch(isAdmin, allowed => {
+watch(canManageUsers, allowed => {
   if (allowed) loadUsers();
 }, { immediate: true });
 </script>
