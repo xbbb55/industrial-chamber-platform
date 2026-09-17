@@ -1825,8 +1825,8 @@ textarea:focus-visible {
   transition: opacity .16s ease;
 }
 
-.nav-list button::before { top: -1px; left: -1px; border-top: 2px solid #42d9ff; border-left: 2px solid #42d9ff; }
-.nav-list button::after { right: -1px; bottom: -1px; border-right: 2px solid #42d9ff; border-bottom: 2px solid #42d9ff; }
+.nav-list button::before { top: -1px; left: -1px; border-top: 2px solid #1686b8; border-left: 2px solid #1686b8; }
+.nav-list button::after { right: -1px; bottom: -1px; border-right: 2px solid #1686b8; border-bottom: 2px solid #1686b8; }
 .nav-list button.active {
   border-color: rgba(31, 169, 255, .7);
   background: linear-gradient(90deg, rgba(20, 116, 222, .78), rgba(13, 70, 134, .52));
@@ -2267,8 +2267,8 @@ textarea:focus-visible {
 .operation-nav button { position: relative; display: flex; align-items: center; width: 100%; gap: 9px; min-height: 56px; padding: 9px 12px; border: 1px solid transparent; border-radius: 2px; background: transparent; color: #86a9bf; text-align: left; overflow: hidden; transition: border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease; }
 .operation-nav button::before,
 .operation-nav button::after { content: ""; position: absolute; width: 9px; height: 9px; opacity: 0; transition: opacity .16s ease; pointer-events: none; }
-.operation-nav button::before { top: -1px; left: -1px; border-top: 2px solid #42d9ff; border-left: 2px solid #42d9ff; }
-.operation-nav button::after { right: -1px; bottom: -1px; border-right: 2px solid #42d9ff; border-bottom: 2px solid #42d9ff; }
+.operation-nav button::before { top: -1px; left: -1px; border-top: 2px solid #1686b8; border-left: 2px solid #1686b8; }
+.operation-nav button::after { right: -1px; bottom: -1px; border-right: 2px solid #1686b8; border-bottom: 2px solid #1686b8; }
 .operation-nav button > span { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
 .operation-nav button strong { color: #c4dfef; font-size: 13px; }
 .operation-nav button small { color: #648399; font-size: 10px; }
@@ -4514,4 +4514,117 @@ body,
 /* Keep the hidden mobile sidebar from reserving the compact desktop column. */
 @media (max-width: 860px) {
   .app-shell { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Selection frame: keep each component's own fill and text colours, while
+   using the same corner-bracket treatment as the active sidebar item. */
+:is(
+  .operation-nav button.active,
+  .choice-group button.active,
+  .program-card.active,
+  .event-toggle.active,
+  .run-mode-option.active,
+  .view-toggle button.active,
+  .layout-config-button.active,
+  .notification-tabs button.active,
+  .command-layout-button.active,
+  .program-card-selection.selected,
+  .dut-temperature-item.dut-selected-card
+) {
+  position: relative;
+  border-color: rgba(31, 169, 255, .7);
+  border-radius: 2px;
+}
+
+:is(
+  .operation-nav button.active,
+  .choice-group button.active,
+  .program-card.active,
+  .event-toggle.active,
+  .run-mode-option.active,
+  .view-toggle button.active,
+  .layout-config-button.active,
+  .notification-tabs button.active,
+  .command-layout-button.active,
+  .program-card-selection.selected,
+  .dut-temperature-item.dut-selected-card
+)::before,
+:is(
+  .operation-nav button.active,
+  .choice-group button.active,
+  .program-card.active,
+  .event-toggle.active,
+  .run-mode-option.active,
+  .view-toggle button.active,
+  .layout-config-button.active,
+  .notification-tabs button.active,
+  .command-layout-button.active,
+  .program-card-selection.selected,
+  .dut-temperature-item.dut-selected-card
+)::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  width: 9px;
+  height: 9px;
+  opacity: 1;
+  pointer-events: none;
+}
+
+:is(
+  .operation-nav button.active,
+  .choice-group button.active,
+  .program-card.active,
+  .event-toggle.active,
+  .run-mode-option.active,
+  .view-toggle button.active,
+  .layout-config-button.active,
+  .notification-tabs button.active,
+  .command-layout-button.active,
+  .program-card-selection.selected,
+  .dut-temperature-item.dut-selected-card
+)::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid #1686b8;
+  border-left: 2px solid #1686b8;
+}
+
+:is(
+  .operation-nav button.active,
+  .choice-group button.active,
+  .program-card.active,
+  .event-toggle.active,
+  .run-mode-option.active,
+  .view-toggle button.active,
+  .layout-config-button.active,
+  .notification-tabs button.active,
+  .command-layout-button.active,
+  .program-card-selection.selected,
+  .dut-temperature-item.dut-selected-card
+)::after {
+  right: -1px;
+  bottom: -1px;
+  border-right: 2px solid #1686b8;
+  border-bottom: 2px solid #1686b8;
+}
+
+/* The light operation surface has a more specific rule that previously hid
+   these brackets and clipped them inside the tab. */
+.app-shell:has(.operation-settings) .operation-nav button.active,
+.app-shell:not(:has(.monitor-layout)) .operation-nav button.active {
+  overflow: visible;
+}
+.app-shell:has(.operation-settings) .operation-nav button.active::before,
+.app-shell:has(.operation-settings) .operation-nav button.active::after,
+.app-shell:not(:has(.monitor-layout)) .operation-nav button.active::before,
+.app-shell:not(:has(.monitor-layout)) .operation-nav button.active::after {
+  opacity: 1;
+}
+
+/* Match the outline to the corner brackets without the extra left rail. */
+.app-shell:has(.operation-settings) .operation-nav button.active,
+.app-shell:not(:has(.monitor-layout)) .operation-nav button.active {
+  border-color: #1686b8;
+  box-shadow: none;
 }
