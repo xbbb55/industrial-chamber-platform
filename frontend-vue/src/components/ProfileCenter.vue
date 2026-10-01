@@ -2,16 +2,20 @@
   <section class="page-stack profile-page">
     <div class="section-head profile-section-head profile-page-head">
       <div>
-        <span class="profile-kicker">账户与权限</span>
         <h2>个人中心</h2>
         <span>查看账户资料、维护登录凭据和管理平台账户</span>
       </div>
+      <nav class="profile-tabs" aria-label="个人中心页面">
+        <button type="button" :class="{ active: activeTab === 'profile' }" @click="selectTab('profile')">个人中心</button>
+        <button type="button" :class="{ active: activeTab === 'logs' }" @click="selectTab('logs')">操作日志</button>
+      </nav>
       <button class="profile-back-button" type="button" @click="emit('back')">
         <AppIcon name="gauge" :size="16" />
         <span>返回</span>
       </button>
     </div>
 
+    <template v-if="activeTab === 'profile'">
     <section class="profile-hero panel" aria-label="当前账户概览">
       <div class="profile-identity-block">
         <div class="profile-avatar">{{ avatarText }}</div>
@@ -111,6 +115,47 @@
         <span>退出登录</span>
       </button>
     </div>
+    </template>
+
+    <section v-else class="panel operation-log-panel" aria-labelledby="operation-log-title">
+      <div class="panel-title operation-log-title">
+        <div><h3 id="operation-log-title">操作日志</h3><span>记录账户登录、设备控制与参数修改等操作</span></div>
+        <button class="profile-secondary-button" type="button" :disabled="logsLoading" @click="loadOperationLogs(1)">刷新</button>
+      </div>
+
+      <form class="operation-log-filters" @submit.prevent="loadOperationLogs(1)">
+        <label v-if="canViewAllLogs"><span>用户</span><input v-model.trim="logFilters.username" type="search" placeholder="全部用户"></label>
+        <label><span>操作分类</span><select v-model="logFilters.category"><option value="">全部分类</option><option v-for="category in logCategories" :key="category.value" :value="category.value">{{ category.label }}</option></select></label>
+        <label><span>操作结果</span><select v-model="logFilters.status"><option value="">全部结果</option><option value="SUCCESS">成功</option><option value="FAILED">失败</option><option value="PENDING">处理中</option></select></label>
+        <label><span>开始时间</span><input v-model="logFilters.startTime" type="datetime-local"></label>
+        <label><span>结束时间</span><input v-model="logFilters.endTime" type="datetime-local"></label>
+        <div class="operation-log-filter-actions"><button class="profile-secondary-button" type="button" @click="resetLogFilters">重置</button><button class="profile-primary-button" type="submit">查询</button></div>
+      </form>
+
+      <p v-if="logsError" class="profile-error" role="alert">{{ logsError }}</p>
+      <div v-else-if="logsLoading" class="profile-loading operation-log-state">正在读取操作日志…</div>
+      <div v-else-if="operationLogs.length" class="operation-log-table-wrap">
+        <div class="operation-log-table" role="table" aria-label="用户操作日志">
+          <div class="operation-log-head" role="row"><span role="columnheader">用户</span><span role="columnheader">时间</span><span role="columnheader">操作</span><span role="columnheader">结果</span></div>
+          <div v-for="log in operationLogs" :key="log.id" class="operation-log-row" role="row">
+            <div role="cell"><strong>{{ log.display_name }}</strong><small>{{ log.username }}</small></div>
+            <time role="cell" :datetime="new Date(log.created_at * 1000).toISOString()">{{ formatLogTime(log.created_at) }}</time>
+            <div class="operation-log-action" role="cell">
+              <strong>{{ log.action_summary }}</strong>
+              <small>{{ log.action_category_label }}</small>
+              <details v-if="log.details"><summary>查看详情</summary><pre>{{ formatLogDetails(log.details) }}</pre></details>
+            </div>
+            <span role="cell" class="operation-log-status" :class="log.result_status.toLowerCase()">{{ logStatusLabel(log.result_status) }}</span>
+          </div>
+        </div>
+      </div>
+      <div v-else class="profile-loading operation-log-state">当前筛选条件下暂无操作日志。</div>
+
+      <footer class="operation-log-pagination">
+        <span>共 {{ logsTotal }} 条，第 {{ logsPage }} / {{ logsTotalPages }} 页</span>
+        <div><button class="profile-secondary-button" type="button" :disabled="logsLoading || logsPage <= 1" @click="loadOperationLogs(logsPage - 1)">上一页</button><button class="profile-secondary-button" type="button" :disabled="logsLoading || logsPage >= logsTotalPages" @click="loadOperationLogs(logsPage + 1)">下一页</button></div>
+      </footer>
+    </section>
   </section>
 
   <div v-if="isPasswordDialogOpen" class="profile-modal-backdrop" @click.self="closePasswordDialog">
@@ -169,8 +214,25 @@ const isCreateUserDialogOpen = ref(false);
 const creatingUser = ref(false);
 const createUserError = ref("");
 const newUserForm = ref({ display_name: "", username: "", password: "", role: "ENGINEER" });
+const activeTab = ref("profile");
+const operationLogs = ref([]);
+const logsLoading = ref(false);
+const logsError = ref("");
+const logsPage = ref(1);
+const logsTotal = ref(0);
+const logsTotalPages = ref(1);
+const logCategories = ref([
+  { value: "AUTH", label: "登录认证" },
+  { value: "DEVICE", label: "设备控制" },
+  { value: "SETTINGS", label: "参数设置" },
+  { value: "PROGRAM", label: "程序管理" },
+  { value: "DOWNLOAD", label: "下载导出" },
+  { value: "ACCOUNT", label: "账户管理" }
+]);
+const logFilters = ref({ username: "", category: "", status: "", startTime: "", endTime: "" });
 
 const canManageUsers = computed(() => props.user.permissions?.includes("user.manage") ?? true);
+const canViewAllLogs = computed(() => props.user.role === "ADMIN");
 const avatarText = computed(() => String(props.user.display_name || props.user.username || "A").slice(0, 1).toUpperCase());
 
 function authHeaders() {
@@ -185,6 +247,51 @@ async function request(path, options = {}) {
     throw new Error(body.detail || "请求失败，请稍后重试");
   }
   return body;
+}
+
+function selectTab(tab) {
+  activeTab.value = tab;
+  if (tab === "logs" && !operationLogs.value.length) loadOperationLogs(1);
+}
+
+async function loadOperationLogs(page = logsPage.value) {
+  logsLoading.value = true;
+  logsError.value = "";
+  const parameters = new URLSearchParams({ page: String(page), page_size: "20" });
+  if (canViewAllLogs.value && logFilters.value.username) parameters.set("username", logFilters.value.username);
+  if (logFilters.value.category) parameters.set("category", logFilters.value.category);
+  if (logFilters.value.status) parameters.set("status", logFilters.value.status);
+  if (logFilters.value.startTime) parameters.set("start_time", String(new Date(logFilters.value.startTime).getTime() / 1000));
+  if (logFilters.value.endTime) parameters.set("end_time", String(new Date(logFilters.value.endTime).getTime() / 1000));
+  try {
+    const result = await request(`/api/operation-logs?${parameters}`);
+    operationLogs.value = result.items || [];
+    logsPage.value = result.page || page;
+    logsTotal.value = result.total || 0;
+    logsTotalPages.value = result.total_pages || 1;
+    if (result.categories?.length) logCategories.value = result.categories;
+  } catch (error) {
+    logsError.value = error.message;
+  } finally {
+    logsLoading.value = false;
+  }
+}
+
+function resetLogFilters() {
+  logFilters.value = { username: "", category: "", status: "", startTime: "", endTime: "" };
+  loadOperationLogs(1);
+}
+
+function formatLogTime(timestamp) {
+  return new Date(Number(timestamp) * 1000).toLocaleString("zh-CN", { hour12: false });
+}
+
+function formatLogDetails(details) {
+  return JSON.stringify(details, null, 2);
+}
+
+function logStatusLabel(status) {
+  return ({ SUCCESS: "成功", FAILED: "失败", PENDING: "处理中" })[status] || status;
 }
 
 function resetPasswordForm() {
@@ -285,7 +392,10 @@ watch(canManageUsers, allowed => {
 .profile-page { gap: 16px; padding-bottom: 28px; }
 .profile-page-head { min-height: 52px; }
 .profile-page-head h2 { margin-top: 2px; }
-.profile-kicker { color: #56cdf8 !important; font-size: 10px !important; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.profile-tabs { display: flex; align-self: center; gap: 4px; margin-right: auto; margin-left: 28px; padding: 0; border: 1px solid transparent; border-radius: 5px; background: transparent; }
+.profile-tabs button { min-width: 92px; min-height: 34px; padding: 7px 14px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--ink-muted, #80a7bd); font-size: 12px; font-weight: 700; cursor: pointer; }
+.profile-tabs button:hover { color: var(--ink-strong, #e2f7ff); }
+.profile-tabs button.active { border-color: #2787b4; background: transparent; color: var(--ink-strong, #e2f7ff); }
 .profile-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; min-height: 154px; padding: 24px 28px; border-color: rgba(65, 196, 255, .5); background: linear-gradient(90deg, rgba(14, 68, 107, .3) 1px, transparent 1px) 0 0 / 36px 36px, linear-gradient(rgba(14, 68, 107, .2) 1px, transparent 1px) 0 0 / 36px 36px, radial-gradient(circle at 10% 0%, rgba(39, 184, 244, .28), transparent 32%), linear-gradient(115deg, #0a2a47, #07192c 66%, #061422); }
 .profile-hero::after { left: 28px; right: 28px; bottom: 14px; }
 .profile-identity-block { position: relative; z-index: 1; display: flex; align-items: center; gap: 16px; min-width: 0; }
@@ -345,6 +455,39 @@ watch(canManageUsers, allowed => {
 .profile-loading { color: #8fb2c9; }
 .profile-error { color: #ffadb4; }
 .profile-success { color: #72eb92; }
+.operation-log-panel { display: grid; gap: 16px; padding: 20px; }
+.operation-log-title > div { display: grid; gap: 5px; }
+.operation-log-title h3 { margin: 0; }
+.operation-log-title span { color: var(--ink-muted, #7396ad); font-size: 11px; }
+.operation-log-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 12px; align-items: end; padding: 14px; border: 1px solid var(--card-divider, rgba(42, 164, 239, .18)); border-radius: 5px; background: var(--card-surface-muted, rgba(5, 31, 52, .5)); }
+.operation-log-filters label { display: grid; gap: 6px; color: var(--ink-muted, #8fb2c9); font-size: 11px; font-weight: 700; }
+.operation-log-filters input,
+.operation-log-filters select { width: 100%; min-height: 36px; box-sizing: border-box; padding: 7px 9px; border: 1px solid var(--field-border, rgba(42, 164, 239, .3)); border-radius: 4px; outline: none; background: var(--field-surface, rgba(4, 26, 45, .9)); color: var(--ink, #e5f8ff); font: inherit; }
+.operation-log-filters input:focus,
+.operation-log-filters select:focus { border-color: #36a9d5; box-shadow: 0 0 0 2px rgba(54, 169, 213, .14); }
+.operation-log-filter-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.operation-log-table-wrap { overflow-x: auto; border: 1px solid var(--card-divider, rgba(42, 164, 239, .22)); border-radius: 5px; }
+.operation-log-table { min-width: 760px; }
+.operation-log-head,
+.operation-log-row { display: grid; grid-template-columns: minmax(150px, .8fr) minmax(180px, .9fr) minmax(260px, 1.7fr) 78px; gap: 16px; align-items: center; padding: 11px 14px; }
+.operation-log-head { background: var(--card-surface-muted, rgba(10, 57, 91, .68)); color: var(--ink-muted, #91bad0); font-size: 11px; font-weight: 800; }
+.operation-log-row { border-top: 1px solid var(--card-divider, rgba(42, 164, 239, .14)); color: var(--ink, #cae8f5); font-size: 12px; }
+.operation-log-row:hover { background: rgba(39, 135, 180, .05); }
+.operation-log-row > div:first-child,
+.operation-log-action { display: grid; gap: 3px; min-width: 0; }
+.operation-log-row strong { color: var(--ink-strong, #d8f2fc); }
+.operation-log-row small { color: var(--ink-muted, #7396ad); font-size: 10px; }
+.operation-log-row time { color: var(--ink, #8bc3dd); font-family: "Roboto Mono", Consolas, monospace; font-size: 11px; }
+.operation-log-action details { margin-top: 4px; }
+.operation-log-action summary { width: max-content; color: #2787b4; font-size: 10px; cursor: pointer; }
+.operation-log-action pre { max-height: 220px; margin: 7px 0 0; overflow: auto; padding: 10px; border-radius: 4px; background: #eef4f6; color: #35596d; font: 10px/1.55 "Roboto Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-all; }
+.operation-log-status { justify-self: start; padding: 4px 7px; border-radius: 3px; font-size: 10px; font-weight: 800; }
+.operation-log-status.success { background: #e3f4e8; color: #278245; }
+.operation-log-status.failed { background: #fbe7e8; color: #b43c47; }
+.operation-log-status.pending { background: #fff3d8; color: #996817; }
+.operation-log-state { min-height: 160px; display: grid; place-items: center; margin: 0; }
+.operation-log-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink-muted, #7396ad); font-size: 11px; }
+.operation-log-pagination > div { display: flex; gap: 8px; }
 .profile-modal-backdrop { position: fixed; inset: 0; z-index: 32; display: grid; place-items: center; padding: 24px; background: rgba(4, 10, 20, .72); }
 .profile-modal { width: min(440px, 100%); overflow: hidden; border: 1px solid rgba(42, 164, 239, .5); border-radius: 8px; background: #0b1b2f; box-shadow: 0 20px 65px rgba(0, 0, 0, .45); }
 .profile-modal-header, .profile-modal-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 18px; }
@@ -360,6 +503,6 @@ watch(canManageUsers, allowed => {
 .profile-modal-footer { justify-content: flex-end; margin-top: 4px; border-top: 1px solid rgba(42, 164, 239, .18); background: rgba(4, 24, 42, .5); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 960px) { .profile-hero { grid-template-columns: 1fr; gap: 18px; } .profile-hero-summary { grid-template-columns: repeat(3, 1fr); min-height: 74px; } }
-@media (max-width: 760px) { .profile-page { gap: 14px; } .profile-hero { padding: 20px; } .profile-identity-block { align-items: flex-start; } .profile-avatar { width: 62px; height: 62px; font-size: 24px; } .profile-name-row { flex-wrap: wrap; } .profile-name-row h3 { font-size: 20px; } .profile-hero-summary { grid-template-columns: 1fr; } .profile-summary-item { min-height: 54px; grid-template-columns: 1fr auto; align-items: center; padding: 10px 12px; border-top: 1px solid rgba(92, 206, 255, .16); border-left: 0; } .profile-summary-item:first-child { border-top: 0; } .profile-users-title { align-items: flex-start; flex-direction: column; } .profile-users-actions { width: 100%; justify-content: space-between; } .user-list { overflow-x: auto; } .user-list-head, .user-list-row { min-width: 560px; } .profile-logout-row { justify-content: stretch; } .profile-logout-button { width: 100%; } }
+@media (max-width: 760px) { .profile-page { gap: 14px; } .profile-page-head { flex-wrap: wrap; } .profile-tabs { order: 3; width: 100%; margin: 8px 0 0; } .profile-tabs button { flex: 1; } .profile-hero { padding: 20px; } .profile-identity-block { align-items: flex-start; } .profile-avatar { width: 62px; height: 62px; font-size: 24px; } .profile-name-row { flex-wrap: wrap; } .profile-name-row h3 { font-size: 20px; } .profile-hero-summary { grid-template-columns: 1fr; } .profile-summary-item { min-height: 54px; grid-template-columns: 1fr auto; align-items: center; padding: 10px 12px; border-top: 1px solid rgba(92, 206, 255, .16); border-left: 0; } .profile-summary-item:first-child { border-top: 0; } .profile-users-title { align-items: flex-start; flex-direction: column; } .profile-users-actions { width: 100%; justify-content: space-between; } .user-list { overflow-x: auto; } .user-list-head, .user-list-row { min-width: 560px; } .profile-logout-row { justify-content: stretch; } .profile-logout-button { width: 100%; } .operation-log-panel { padding: 14px; } .operation-log-pagination { align-items: flex-start; flex-direction: column; } }
 @media (prefers-reduced-motion: reduce) { .user-list-row { transition: none; } }
 </style>

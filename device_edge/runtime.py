@@ -12,6 +12,7 @@ from typing import Any
 
 from .config import EdgeConfig
 from .control_protocol import normalize_command, protocol_time
+from .mysql_store import EnvironmentalHistoryStore
 from .shared_memory_store import SharedMemoryNotReady, attach_existing, create_or_attach, read_snapshot_with_version, write_snapshot
 from .snapshot_normalizer import normalize_snapshot
 from .sqlite_store import SqliteStore
@@ -28,6 +29,7 @@ class DeviceEdgeRuntime:
         self._status_memory: shared_memory.SharedMemory | None = None
         self._request_memory: shared_memory.SharedMemory | None = None
         self._store: SqliteStore | None = None
+        self._history_store: EnvironmentalHistoryStore | None = EnvironmentalHistoryStore(config) if config.database_enabled else None
         self._latest_snapshot: dict[str, Any] | None = None
         self._latest_realtime_version: int | None = None
         self._latest_status_version: int | None = None
@@ -181,6 +183,12 @@ class DeviceEdgeRuntime:
                 self._last_realtime_error = None
             if self._store is not None:
                 self._store.record_snapshot(version, snapshot)
+            if self._history_store is not None:
+                try:
+                    self._history_store.record_snapshot(snapshot, self.config.edge_id)
+                except Exception:
+                    # History persistence must not interrupt realtime telemetry.
+                    pass
             self._publish_threadsafe({"type": "snapshot", "snapshot": snapshot, "router_read_at": time.time()})
         except Exception as exc:
             with self._lock:

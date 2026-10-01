@@ -4,8 +4,10 @@ from device_edge.mysql_store import (
     CORRECTION_SETTING_COLUMNS,
     OPERATION_SETTING_COLUMNS,
     OTHER_SETTING_COLUMNS,
+    PID_SETTING_COLUMNS,
     SYSTEM_BASIC_SETTING_COLUMNS,
     OperationSettingStore,
+    setting_changes,
 )
 
 
@@ -73,3 +75,31 @@ def test_correction_row_maps_database_column_names():
     assert value["DUT10_Collected"] == 46.0
     assert value["DUT10_Corrected"] == 47.0
     assert value["DUT10_Final"] == 48.0
+    assert value["TEMP_Collected"] == 49.0
+    assert value["TEMP_Corrected"] == 50.0
+    assert value["TEMP_Final"] == 51.0
+    assert value["HUMI_Collected"] == 52.0
+    assert value["HUMI_Corrected"] == 53.0
+    assert value["HUMI_Final"] == 54.0
+
+
+def test_pid_row_maps_axes_and_all_group_fields():
+    row = tuple(Decimal(str(index + 1)) for index in range(len(PID_SETTING_COLUMNS)))
+
+    value = OperationSettingStore._as_value(row, PID_SETTING_COLUMNS)
+
+    assert len(PID_SETTING_COLUMNS) == 101
+    assert tuple(value) == PID_SETTING_COLUMNS
+    assert value["HUMI_T1"] == 1.0
+    assert value["TEMP_T4"] == 11.0
+    assert value["TEMP1_P"] == 12.0
+    assert value["TEMP4_MQ"] == 31.0
+    assert value["HUMI1_T_P"] == 32.0
+    assert value["HUMI7_H_MQ"] == 101.0
+
+
+def test_setting_changes_keeps_only_modified_fields():
+    assert setting_changes(
+        {"TEMP1_P": 1.0, "TEMP1_I": 20.0},
+        {"TEMP1_P": 1.5, "TEMP1_I": 20.0},
+    ) == {"TEMP1_P": {"before": 1.0, "after": 1.5}}

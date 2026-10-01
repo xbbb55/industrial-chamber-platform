@@ -1,0 +1,17 @@
+{
+  "name": "industrial-chamber-platform-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron portable shell for the Industrial Chamber Platform",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "build:frontend": "npm --prefix frontend-vue run build",
+    "build:backend": "powershell -NoProfile -ExecutionPolicy Bypass -File packaging/build-backend.ps1",
+    "build:electron": "electron-builder --config packaging/electron-builder.yml --win dir",
+    "package:portable": "npm run build:frontend && npm run build:backend && powershell -NoProfile -ExecutionPolicy Bypass -File packaging/create-portable-manual.ps1"
+  },
+  "devDependencies": {
+    "electron": "^37.3.1",
+    "electron-builder": "^26.0.12"
+  }
+}

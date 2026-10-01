@@ -495,6 +495,13 @@
                   </section>
 
                   <section class="other-settings-card">
+                    <header>数据保存时间</header>
+                    <div class="other-value-list single-value">
+                      <label><span>温湿度历史数据</span><select v-model.number="operationForm.historyRetentionDays" aria-label="温湿度历史数据保存时间"><option :value="30">30天</option><option :value="60">60天</option><option :value="90">90天</option><option :value="200">200天</option><option :value="300">300天</option></select></label>
+                    </div>
+                  </section>
+
+                  <section class="other-settings-card">
                     <header>预约启动设定</header>
                     <div class="schedule-list">
                       <label class="schedule-row"><input v-model="operationForm.scheduledStartEnabled" type="checkbox"><span>启动</span><input v-model="operationForm.scheduledStartDate" type="date" aria-label="预约启动日期"><input v-model="operationForm.scheduledStartTime" type="time" aria-label="预约启动时间"></label>
@@ -530,7 +537,7 @@
 
               <template v-if="parameterTab === 'calibration'">
                 <section v-for="card in calibrationCards" :key="card.key" class="system-parameter-card calibration-card measurement-calibration-card">
-                  <header><span>{{ card.title }}</span><small>{{ card.code }}</small></header>
+                  <header><span>{{ card.title }}</span></header>
                   <div class="calibration-card-content">
                     <div class="calibration-readings" :aria-label="`当前${card.title}测量值`">
                       <div v-for="reading in calibrationReadings(card)" :key="reading.label" class="calibration-reading">
@@ -562,7 +569,7 @@
               </template>
 
               <section v-if="parameterTab === 'calibration'" class="system-parameter-card calibration-card dut-calibration-card">
-                <header><span>试品温度</span><small>DUT TEMPERATURE</small></header>
+                <header><span>试品温度</span></header>
                 <div class="dut-calibration-content" role="table" aria-label="试品温度测量值">
                   <div v-for="(group, groupIndex) in dutCalibrationGroups" :key="groupIndex" class="dut-calibration-group" role="rowgroup">
                     <div class="dut-calibration-head" role="row">
@@ -583,17 +590,50 @@
                 </div>
               </section>
 
-              <section v-if="parameterTab === 'pid'" class="system-parameter-card">
-                <header><span>PID 设定</span><small>CONTROL / PID</small></header>
-                <div class="parameter-fields parameter-fields-three">
-                  <div class="parameter-group-title">温度回路</div>
-                  <label><span>P 比例</span><input v-model.number="parameterForm.temperatureP" type="number" step="0.1"></label>
-                  <label><span>I 积分</span><input v-model.number="parameterForm.temperatureI" type="number" step="0.1"></label>
-                  <label><span>D 微分</span><input v-model.number="parameterForm.temperatureD" type="number" step="0.1"></label>
-                  <div class="parameter-group-title">湿度回路</div>
-                  <label><span>P 比例</span><input v-model.number="parameterForm.humidityP" type="number" step="0.1"></label>
-                  <label><span>I 积分</span><input v-model.number="parameterForm.humidityI" type="number" step="0.1"></label>
-                  <label><span>D 微分</span><input v-model.number="parameterForm.humidityD" type="number" step="0.1"></label>
+              <section v-if="parameterTab === 'pid'" class="system-parameter-card pid-setting-card">
+                <header><span>PID 设定</span></header>
+                <div class="pid-setting-layout">
+                  <div class="pid-coordinate-modes">
+                    <fieldset v-for="mode in pidModes" :key="mode.key" class="pid-coordinate-panel" :class="{ active: selectedPidMode === mode.key }">
+                      <legend>{{ mode.title }}</legend>
+                      <div class="pid-coordinate-map" :class="`pid-coordinate-map-${mode.key}`">
+                        <label v-for="(axis, axisIndex) in mode.yAxes" :key="axis.key" class="pid-axis-input pid-axis-y" :style="{ gridRow: axisIndex + 1, gridColumn: 1 }">
+                          <span>{{ axis.label }}</span>
+                          <input v-model.number="parameterForm[axis.key]" type="number" step="any" :aria-label="`${mode.title}${axis.label}坐标`">
+                        </label>
+                        <button
+                          v-for="group in mode.groupCount"
+                          :key="group"
+                          type="button"
+                          class="pid-coordinate-point"
+                          :class="{ active: selectedPidMode === mode.key && selectedPidGroup === group }"
+                          :style="pidGroupPosition(mode.key, group)"
+                          :aria-label="`编辑${mode.title}${pidDisplayGroupNumber(mode, group)}组参数`"
+                          @click="selectPidGroup(mode.key, group)"
+                        >{{ pidDisplayGroupNumber(mode, group) }}</button>
+                        <label v-for="(axis, axisIndex) in mode.xAxes" :key="axis.key" class="pid-axis-input pid-axis-x" :style="{ gridRow: 5, gridColumn: axisIndex + 2 }">
+                          <span>{{ axis.label }}</span>
+                          <input v-model.number="parameterForm[axis.key]" type="number" step="any" :aria-label="`${mode.title}${axis.label}坐标`">
+                        </label>
+                      </div>
+                    </fieldset>
+                  </div>
+
+                  <fieldset class="pid-group-editor">
+                    <legend>设定序号：{{ selectedPidDisplayNumber }}</legend>
+                    <div class="pid-editor-head" aria-hidden="true">
+                      <span></span>
+                      <strong v-for="category in pidCategories" :key="category.key">{{ category.label }}</strong>
+                    </div>
+                    <div v-for="metric in pidMetrics" :key="metric.key" class="pid-editor-row">
+                      <span>{{ metric.label }}<small v-if="metric.unit">（{{ metric.unit }}）</small></span>
+                      <label v-for="category in pidCategories" :key="category.key">
+                        <span class="pid-equals" aria-hidden="true">=</span>
+                        <span v-if="selectedPidModeConfig.categories.some(item => item.key === category.key)" class="hmi-number-control"><input v-model.number="parameterForm[pidParameterKey(selectedPidMode, selectedPidGroup, category.key, metric.key)]" type="number" step="any" :aria-label="`${selectedPidModeConfig.title}${selectedPidDisplayNumber}组${category.label}${metric.label}`"><span class="hmi-number-steps"><button type="button" :title="`增加${category.label}${metric.label}`" :aria-label="`增加${category.label}${metric.label}`" @click.stop.prevent="stepParameterNumber(pidParameterKey(selectedPidMode, selectedPidGroup, category.key, metric.key), 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少${category.label}${metric.label}`" :aria-label="`减少${category.label}${metric.label}`" @click.stop.prevent="stepParameterNumber(pidParameterKey(selectedPidMode, selectedPidGroup, category.key, metric.key), -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                        <output v-else class="pid-unavailable" :aria-label="`${selectedPidModeConfig.title}无${category.label}${metric.label}参数`">---</output>
+                      </label>
+                    </div>
+                  </fieldset>
                 </div>
               </section>
 
@@ -604,14 +644,6 @@
                   <label><span>恒温频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.circulationFanFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高恒温频率" aria-label="提高恒温频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低恒温频率" aria-label="降低恒温频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
                   <label><span>湿度频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidifierFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高湿度频率" aria-label="提高湿度频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低湿度频率" aria-label="降低湿度频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
                   <label><span>其他频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.frequencyLimit" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高其他频率" aria-label="提高其他频率" @click.stop.prevent="stepParameterNumber('frequencyLimit', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低其他频率" aria-label="降低其他频率" @click.stop.prevent="stepParameterNumber('frequencyLimit', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
-                </div>
-              </section>
-
-              <section v-if="parameterTab === 'frequency'" class="system-parameter-card">
-                <header><span>历史记录</span><small>HISTORY / RECORD</small></header>
-                <div class="parameter-fields">
-                  <label><span>记录周期</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.historyRecordInterval" type="number" min="1" step="1"><span class="hmi-number-steps"><button type="button" title="增加记录周期" aria-label="增加记录周期" @click.stop.prevent="stepParameterNumber('historyRecordInterval', 1, 1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少记录周期" aria-label="减少记录周期" @click.stop.prevent="stepParameterNumber('historyRecordInterval', -1, 1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>秒</b></div></label>
-                  <label><span>导出保存路径</span><input v-model="parameterForm.exportSavePath" type="text" placeholder="请输入保存路径"></label>
                 </div>
               </section>
 
@@ -639,14 +671,40 @@
                 </div>
               </section>
 
-              <section v-if="parameterTab === 'frequency'" class="system-parameter-card">
-                <header><span>背光持续时间</span><small>DISPLAY / BACKLIGHT</small></header>
-                <div class="parameter-fields">
-                  <label><span>背光持续时间</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.backlightDuration" type="number" min="0" max="3600" step="1"><span class="hmi-number-steps"><button type="button" title="增加背光持续时间" aria-label="增加背光持续时间" @click.stop.prevent="stepParameterNumber('backlightDuration', 1, 0, 3600)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少背光持续时间" aria-label="减少背光持续时间" @click.stop.prevent="stepParameterNumber('backlightDuration', -1, 0, 3600)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>秒</b></div></label>
-                </div>
-              </section>
             </div>
             <div class="system-parameters-footer"><span>参数修改仅作用于当前设备</span><div><button class="ghost-action" type="button" @click="resetParameterForm">恢复默认</button><button class="primary-action" type="button" @click="openSaveConfirm('parameters')">保存参数</button></div></div>
+          </section>
+
+          <section v-else-if="selectedDevice && selectedDeviceSection === 'history'" class="history-page page-stack">
+            <div class="section-head history-page-head">
+              <div><h2>历史记录</h2><span>{{ selectedDevice.name || selectedDevice.device_id }} · 温湿度历史曲线</span></div>
+              <span class="history-record-count">{{ historyItems.length }} 条记录</span>
+            </div>
+            <section class="panel history-query-panel">
+              <div class="history-query-row">
+                <label><span>快捷范围</span><select v-model="historyQuery.range" @change="applyHistoryRange"><option value="1h">最近1小时</option><option value="6h">最近6小时</option><option value="24h">最近24小时</option><option value="7d">最近7天</option><option value="custom">自定义</option></select></label>
+                <label><span>开始时间</span><input v-model="historyQuery.startTime" type="datetime-local" :disabled="historyQuery.range !== 'custom'"></label>
+                <label><span>结束时间</span><input v-model="historyQuery.endTime" type="datetime-local" :disabled="historyQuery.range !== 'custom'"></label>
+                <label><span>运行状态</span><select v-model="historyQuery.runState"><option value="">全部状态</option><option value="RUNNING">运行中</option><option value="HOLDING">保持中</option><option value="PAUSED">已暂停</option><option value="STOPPED">已停止</option><option value="IDLE">空闲</option><option value="ALARM">报警</option></select></label>
+                <button class="primary-action history-query-button" type="button" :disabled="historyLoading" @click="loadEnvironmentalHistory">{{ historyLoading ? '查询中…' : '查询历史' }}</button>
+              </div>
+              <p v-if="historyError" class="history-error" role="alert">{{ historyError }}</p>
+            </section>
+            <section class="panel history-chart-panel">
+              <div class="panel-title"><div><h3>温湿度曲线</h3><span>{{ historyRangeLabel }}</span></div><div class="history-legend"><span><i class="history-temp-line"></i>温度 °C</span><span><i class="history-hum-line"></i>湿度 %RH</span></div></div>
+              <div v-if="historyLoading" class="history-state">正在读取历史数据…</div>
+              <div v-else-if="!historyItems.length" class="history-state">当前时间范围内暂无历史数据。</div>
+              <svg v-else class="history-chart" viewBox="0 0 1000 320" role="img" aria-label="温湿度历史曲线">
+                <g class="history-grid-lines"><line v-for="y in historyGridLines" :key="`y-${y}`" x1="58" :y1="y" x2="978" :y2="y"></line><line v-for="x in historyXAxis" :key="`x-${x}`" :x1="x" y1="20" :x2="x" y2="268"></line></g>
+                <polyline class="history-temp-path" :points="historyTempPoints"></polyline><polyline class="history-hum-path" :points="historyHumPoints"></polyline>
+                <g class="history-axis-labels"><text v-for="label in historyYAxisLabels" :key="label.text" :x="label.x" :y="label.y">{{ label.text }}</text><text v-for="label in historyXAxisLabels" :key="label.text" :x="label.x" y="294" text-anchor="middle">{{ label.text }}</text></g>
+              </svg>
+            </section>
+            <section class="panel history-table-panel">
+              <div class="panel-title"><div><h3>采样明细</h3><span>按采样时间倒序显示最近 50 条</span></div><span>{{ historyItems.length ? formatHistoryTime(historyItems[historyItems.length - 1].recorded_at) : '--' }} 至 {{ historyItems.length ? formatHistoryTime(historyItems[0].recorded_at) : '--' }}</span></div>
+              <div v-if="historyItems.length" class="history-table-wrap"><table class="history-table"><thead><tr><th>采样时间</th><th>温度（°C）</th><th>湿度（%RH）</th><th>温度目标</th><th>湿度目标</th><th>运行状态</th></tr></thead><tbody><tr v-for="item in historyRecentItems" :key="`${item.recorded_at}-${item.device_id}`"><td>{{ formatHistoryTime(item.recorded_at) }}</td><td>{{ formatHistoryNumber(item.temperature) }}</td><td>{{ formatHistoryNumber(item.humidity) }}</td><td>{{ formatHistoryNumber(item.temperature_target) }}</td><td>{{ formatHistoryNumber(item.humidity_target) }}</td><td>{{ historyRunStateLabel(item.run_state) }}</td></tr></tbody></table></div>
+              <div v-else-if="!historyLoading" class="history-state history-table-empty">暂无可展示的采样明细。</div>
+            </section>
           </section>
 
           <section v-else-if="selectedDevice" class="panel empty-panel">
@@ -941,6 +999,51 @@ const TREND_HISTORY_RETENTION_MS = 2 * 60 * 60 * 1000;
 const TREND_Y_MIN_SCALE = 0.18;
 const TREND_Y_MAX_SCALE = 3.5;
 const MONITOR_LAYOUT_STORAGE_KEY = "industrial-chamber-monitor-layout-v1";
+const CORRECTION_REFRESH_MS = 1000;
+const pidMetrics = [
+  { key: "P", label: "比例", unit: "%" },
+  { key: "I", label: "积分", unit: "S" },
+  { key: "D", label: "微分", unit: "S" },
+  { key: "LBL", label: "冷比例", unit: "%" },
+  { key: "MQ", label: "盲区", unit: "" }
+];
+const pidCategories = [{ key: "T", label: "温度" }, { key: "H", label: "湿度" }];
+const pidModes = [
+  {
+    key: "humidity",
+    title: "湿热模式",
+    groupCount: 7,
+    displayOffset: 0,
+    xAxes: Array.from({ length: 3 }, (_, index) => ({ key: `HUMI_T${index + 1}`, label: `X${index + 1}` })),
+    yAxes: Array.from({ length: 4 }, (_, index) => ({ key: `HUMI_H${index + 1}`, label: `Y${index + 1}` })),
+    categories: pidCategories
+  },
+  {
+    key: "temperature",
+    title: "温度模式",
+    groupCount: 4,
+    displayOffset: 7,
+    xAxes: [],
+    yAxes: Array.from({ length: 4 }, (_, index) => ({ key: `TEMP_T${index + 1}`, label: `Y${index + 1}` })),
+    categories: [{ key: "T", label: "温度" }]
+  }
+];
+const pidGroupPositions = {
+  humidity: {
+    1: [4, 2], 2: [3, 2], 3: [2, 2],
+    4: [4, 3], 5: [3, 3], 6: [2, 3], 7: [3, 4]
+  },
+  temperature: {
+    1: [4, 2], 2: [3, 2], 3: [2, 2], 4: [3, 3]
+  }
+};
+const pidSettingFieldKeys = [
+  ...pidModes.flatMap(mode => [...mode.xAxes, ...mode.yAxes].map(axis => axis.key)),
+  ...Array.from({ length: 4 }, (_, index) => pidMetrics.map(metric => `TEMP${index + 1}_${metric.key}`)).flat(),
+  ...Array.from({ length: 7 }, (_, index) =>
+    ["T", "H"].flatMap(category => pidMetrics.map(metric => `HUMI${index + 1}_${category}_${metric.key}`))
+  ).flat()
+];
 
 const activeView = ref("device-detail");
 const devices = ref([{
@@ -964,6 +1067,8 @@ const selectedDeviceId = ref("EDGE-CHAMBER-001");
 const selectedDeviceSection = ref("monitor");
 const operationTab = ref("protection");
 const parameterTab = ref("basic");
+const selectedPidMode = ref("humidity");
+const selectedPidGroup = ref(1);
 const operationFeedback = ref("");
 const operationLastSaved = ref("尚未保存");
 const operationForm = ref({
@@ -998,6 +1103,7 @@ const operationForm = ref({
   dutTemperatureSource: "dut1",
   waitTemperatureUpper: 0,
   waitHumidityUpper: 0,
+  historyRetentionDays: 90,
   eventCode: "0000000000000000",
   scheduledStartEnabled: false,
   scheduledStartDate: "2026-07-31",
@@ -1032,23 +1138,22 @@ const parameterForm = ref({
   HUMI_Corrected3: 0,
   HUMI_Corrected4: 0,
   HUMI_Correction: 0,
+  TEMP_Collected: 0,
+  TEMP_Corrected: 0,
+  TEMP_Final: 0,
+  HUMI_Collected: 0,
+  HUMI_Corrected: 0,
+  HUMI_Final: 0,
   ...Object.fromEntries(
     Array.from({ length: 10 }, (_, index) =>
       ["Collected", "Corrected", "Final"].map(stage => [`DUT${index + 1}_${stage}`, 0])
     ).flat()
   ),
-  temperatureP: 1,
-  temperatureI: 0.1,
-  temperatureD: 0,
-  humidityP: 1,
-  humidityI: 0.1,
-  humidityD: 0,
+  ...Object.fromEntries(pidSettingFieldKeys.map(key => [key, 0])),
   compressorFrequency: 50,
   circulationFanFrequency: 50,
   humidifierFrequency: 50,
   frequencyLimit: 60,
-  historyRecordInterval: 60,
-  exportSavePath: "./exports",
   temperatureRangeMin: -40,
   temperatureRangeMax: 100,
   humidityRangeMin: 0,
@@ -1056,12 +1161,15 @@ const parameterForm = ref({
   temperatureTransmissionMin: -40,
   temperatureTransmissionMax: 100,
   humidityTransmissionMin: 0,
-  humidityTransmissionMax: 100,
-  backlightDuration: 60
+  humidityTransmissionMax: 100
 });
 const deviceDisplayMode = ref("list");
 const selectedTrendCanvas = ref(null);
 const trendHistory = ref({});
+const historyItems = ref([]);
+const historyLoading = ref(false);
+const historyError = ref("");
+const historyQuery = ref({ range: "24h", startTime: toDateTimeInput(Date.now() - 24 * 60 * 60 * 1000), endTime: toDateTimeInput(Date.now()), runState: "" });
 const currentTimeText = ref(new Date().toLocaleTimeString());
 const commandStatusById = ref({});
 const sessionUser = ref({ ...props.initialUser });
@@ -1112,6 +1220,8 @@ const previousDeviceStates = ref({});
 let socket = null;
 let reconnectTimer = null;
 let clockTimer = null;
+let correctionRefreshTimer = null;
+let correctionRequestPending = false;
 let lastTrendDragX = 0;
 
 const navItems = [
@@ -1153,8 +1263,7 @@ const runModeOptions = [
 const parameterTabs = [
   { key: "basic", label: "基础信息", description: "设备身份与版本", icon: "settings" },
   { key: "calibration", label: "测量校正", description: "温湿度测量修正", icon: "sliders" },
-  { key: "pid", label: "PID 设定", description: "温湿度控制参数", icon: "activity" },
-  { key: "frequency", label: "电机频率", description: "输出频率限制", icon: "chart" }
+  { key: "pid", label: "PID 设定", description: "温湿度控制参数", icon: "activity" }
 ];
 const calibrationFields = {
   temperature: [
@@ -1181,8 +1290,8 @@ const calibrationFields = {
   ]
 };
 const calibrationCards = [
-  { key: "temperature", title: "温度", code: "TEMPERATURE", unit: "°C", prefix: "TEMP" },
-  { key: "humidity", title: "湿度", code: "HUMIDITY", unit: "%RH", prefix: "HUMI" }
+  { key: "temperature", title: "温度", unit: "°C", prefix: "TEMP" },
+  { key: "humidity", title: "湿度", unit: "%RH", prefix: "HUMI" }
 ].map(card => ({
   ...card,
   correction: calibrationFields[card.key][8],
@@ -1196,9 +1305,13 @@ const dutCalibrationGroups = [
   Array.from({ length: 5 }, (_, index) => index + 1),
   Array.from({ length: 5 }, (_, index) => index + 6)
 ];
+const correctionReadingFieldKeys = ["TEMP", "HUMI"].flatMap(prefix =>
+  ["Collected", "Corrected", "Final"].map(stage => `${prefix}_${stage}`)
+);
 const correctionFieldKeys = [
   ...calibrationFields.temperature.map(({ key }) => key),
   ...calibrationFields.humidity.map(({ key }) => key),
+  ...correctionReadingFieldKeys,
   ...Array.from({ length: 10 }, (_, index) =>
     ["Collected", "Corrected", "Final"].map(stage => `DUT${index + 1}_${stage}`)
   ).flat()
@@ -1330,6 +1443,31 @@ const activeNotifications = computed(() => {
   }
   return deviceNotifications.value;
 });
+const historyRangeLabel = computed(() => `${historyQuery.value.startTime.replace("T", " ")} 至 ${historyQuery.value.endTime.replace("T", " ")}`);
+const historyRecentItems = computed(() => [...historyItems.value].reverse().slice(0, 50));
+const historyChartValues = computed(() => {
+  const values = historyItems.value.flatMap(item => [Number(item.temperature), Number(item.humidity)]).filter(Number.isFinite);
+  if (!values.length) return { min: 0, max: 100 };
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const padding = Math.max((max - min) * 0.12, 1);
+  return { min: min - padding, max: max + padding };
+});
+const historyTempPoints = computed(() => historySeriesPoints("temperature"));
+const historyHumPoints = computed(() => historySeriesPoints("humidity"));
+const historyGridLines = [20, 82, 144, 206, 268];
+const historyXAxis = [58, 288, 518, 748, 978];
+const historyYAxisLabels = computed(() => {
+  const { min, max } = historyChartValues.value;
+  return historyGridLines.map((y, index) => ({ x: 50, y: y + 4, text: formatHistoryNumber(max - (max - min) * index / 4) }));
+});
+const historyXAxisLabels = computed(() => {
+  const times = historyItems.value.map(item => historyTimestamp(item.recorded_at)).filter(Number.isFinite);
+  if (!times.length) return [];
+  const start = Math.min(...times);
+  const end = Math.max(...times);
+  return historyXAxis.map((x, index) => ({ x, text: formatHistoryTime(new Date(start + (end - start) * index / 4).toISOString()) }));
+});
 const selectedDeviceAlarmState = computed(() => {
   const status = selectedDevice.value?.status || {};
   return String(status.state || selectedDevice.value?.status_text || "正常").trim() || "正常";
@@ -1392,12 +1530,10 @@ function formatCalibrationValue(value) {
 }
 
 function calibrationReadings(card) {
-  const device = selectedDevice.value;
-  const measuredValue = firstDefined(device?.mainData?.[`${card.prefix}_PV`], device?.[`current_${card.key}`], 0);
   return [
-    { label: "采集值", value: firstDefined(device?.[`${card.key}_collected`], device?.mainData?.[`${card.prefix}_RAW`], measuredValue) },
-    { label: "修正值", value: firstDefined(device?.[`${card.key}_corrected`], device?.mainData?.[`${card.prefix}_CORRECTED`], measuredValue) },
-    { label: "最终值", value: firstDefined(device?.[`${card.key}_final`], device?.mainData?.[`${card.prefix}_FINAL`], measuredValue) }
+    { label: "采集值", value: parameterForm.value[`${card.prefix}_Collected`] },
+    { label: "修正值", value: parameterForm.value[`${card.prefix}_Corrected`] },
+    { label: "最终值", value: parameterForm.value[`${card.prefix}_Final`] }
   ];
 }
 
@@ -1816,10 +1952,15 @@ function returnToMonitoring() {
   isSidebarCollapsed.value = false;
 }
 
-function logoutToLogin() {
-  window.localStorage.removeItem("industrial-auth-token");
-  window.localStorage.removeItem("industrial-auth-user");
-  emit("logout");
+async function logoutToLogin() {
+  try {
+    await fetch("/api/auth/logout", { method: "POST", headers: authHeaders() });
+  } catch {
+  } finally {
+    window.localStorage.removeItem("industrial-auth-token");
+    window.localStorage.removeItem("industrial-auth-user");
+    emit("logout");
+  }
 }
 
 function authHeaders() {
@@ -2200,6 +2341,7 @@ async function saveOtherSettings() {
     dutSel: Math.min(7, Math.max(0, Number.isFinite(selectedDutSensor) ? selectedDutSensor : 0)),
     waitTEMP: Number(operationForm.value.waitTemperatureUpper),
     waitHUMI: Number(operationForm.value.waitHumidityUpper),
+    history_retention_days: Number(operationForm.value.historyRetentionDays),
     event: Number.parseInt(eventBits, 2) || 0,
     powerRestoration: ({ stop: 0, cold: 1, warm: 2 })[operationForm.value.powerOnMode] ?? 0,
     afterShutdow: ({ reset: 0, continue: 1 })[operationForm.value.stopResumeMode] ?? 0
@@ -2238,6 +2380,7 @@ function applyOperationSettings(value) {
     dutTemperatureSource: value.dutSel == null ? operationForm.value.dutTemperatureSource : `dut${dutIndex}`,
     waitTemperatureUpper: value.waitTEMP == null ? operationForm.value.waitTemperatureUpper : Number(value.waitTEMP),
     waitHumidityUpper: value.waitHUMI == null ? operationForm.value.waitHumidityUpper : Number(value.waitHUMI),
+    historyRetentionDays: value.history_retention_days == null ? operationForm.value.historyRetentionDays : Number(value.history_retention_days),
     eventCode: value.event == null ? operationForm.value.eventCode : Number(value.event).toString(2).padStart(16, "0"),
     powerOnMode: value.powerRestoration == null ? operationForm.value.powerOnMode : (({ 0: "stop", 1: "cold", 2: "warm" })[Number(value.powerRestoration)] || operationForm.value.powerOnMode),
     stopResumeMode: value.afterShutdow == null ? operationForm.value.stopResumeMode : (({ 0: "reset", 1: "continue" })[Number(value.afterShutdow)] || operationForm.value.stopResumeMode)
@@ -2276,6 +2419,14 @@ async function loadFixedValueSettings() {
   } catch {
   }
   try {
+    const response = await fetch("/api/settings/history-retention", { headers: authHeaders() });
+    if (response.ok) {
+      const result = await response.json();
+      operationForm.value.historyRetentionDays = Number(result.retention_days || 90);
+    }
+  } catch {
+  }
+  try {
     const response = await fetch("/api/settings/system-basic", { headers: authHeaders() });
     if (response.ok) {
       const result = await response.json();
@@ -2283,14 +2434,140 @@ async function loadFixedValueSettings() {
     }
   } catch {
   }
+  await loadCorrectionSettings();
+  await loadPidSettings();
+}
+
+function toDateTimeInput(timestamp) {
+  const date = new Date(timestamp);
+  const pad = value => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function applyHistoryRange() {
+  if (historyQuery.value.range === "custom") return;
+  const durations = { "1h": 60 * 60 * 1000, "6h": 6 * 60 * 60 * 1000, "24h": 24 * 60 * 60 * 1000, "7d": 7 * 24 * 60 * 60 * 1000 };
+  const end = Date.now();
+  historyQuery.value.startTime = toDateTimeInput(end - (durations[historyQuery.value.range] || durations["24h"]));
+  historyQuery.value.endTime = toDateTimeInput(end);
+  loadEnvironmentalHistory();
+}
+
+function historyTimestamp(value) {
+  if (value == null) return NaN;
+  const text = String(value).trim().replace(" ", "T");
+  const timestamp = Date.parse(/Z$|[+-]\d\d:?\d\d$/.test(text) ? text : `${text}Z`);
+  return Number.isFinite(timestamp) ? timestamp : NaN;
+}
+
+function formatHistoryTime(value) {
+  const timestamp = historyTimestamp(value);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString("zh-CN", { hour12: false }) : "--";
+}
+
+function formatHistoryNumber(value) {
+  return value == null || value === "" || !Number.isFinite(Number(value)) ? "--" : Number(value).toFixed(2);
+}
+
+function historyRunStateLabel(value) {
+  return stateTextMap[String(value || "").toUpperCase()] || value || "--";
+}
+
+function historySeriesPoints(field) {
+  const items = historyItems.value;
+  if (!items.length) return "";
+  const times = items.map(item => historyTimestamp(item.recorded_at));
+  const validTimes = times.filter(Number.isFinite);
+  const start = Math.min(...validTimes);
+  const end = Math.max(...validTimes);
+  const range = Math.max(end - start, 1);
+  const { min, max } = historyChartValues.value;
+  return items.map((item, index) => {
+    const time = times[index];
+    const value = Number(item[field]);
+    if (!Number.isFinite(time) || !Number.isFinite(value)) return null;
+    const x = 58 + ((time - start) / range) * 920;
+    const y = 268 - ((value - min) / Math.max(max - min, 1)) * 248;
+    return `${x.toFixed(1)},${Math.max(20, Math.min(268, y)).toFixed(1)}`;
+  }).filter(Boolean).join(" ");
+}
+
+async function loadEnvironmentalHistory() {
+  if (!selectedDeviceId.value) return;
+  historyLoading.value = true;
+  historyError.value = "";
   try {
-    const response = await fetch("/api/settings/correction", { headers: authHeaders() });
-    if (response.ok) {
-      const result = await response.json();
-      applyCorrectionSettings(result.value);
-    }
+    const start = new Date(historyQuery.value.startTime).getTime();
+    const end = new Date(historyQuery.value.endTime).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw new Error("请选择有效的时间范围");
+    const params = new URLSearchParams({ device_id: selectedDeviceId.value, start_time: String(start / 1000), end_time: String(end / 1000), limit: "20000" });
+    if (historyQuery.value.runState) params.set("run_state", historyQuery.value.runState);
+    const response = await fetch(`/api/environmental-history?${params}`, { headers: authHeaders() });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "历史数据读取失败");
+    historyItems.value = Array.isArray(result.items) ? result.items : [];
+  } catch (error) {
+    historyItems.value = [];
+    historyError.value = error.message || "历史数据读取失败";
+  } finally {
+    historyLoading.value = false;
+  }
+}
+
+function applyPidSettings(value) {
+  if (!value) return;
+  for (const key of pidSettingFieldKeys) {
+    if (value[key] != null) parameterForm.value[key] = Number(value[key]);
+  }
+}
+
+async function loadPidSettings() {
+  try {
+    const response = await fetch("/api/settings/pid", {
+      headers: authHeaders(),
+      cache: "no-store"
+    });
+    if (!response.ok) return;
+    const result = await response.json();
+    applyPidSettings(result.value);
   } catch {
   }
+}
+
+function pidPayload() {
+  return Object.fromEntries(
+    pidSettingFieldKeys.map(key => [key, Number(parameterForm.value[key])])
+  );
+}
+
+async function loadCorrectionSettings(fields = correctionFieldKeys) {
+  if (correctionRequestPending) return;
+  correctionRequestPending = true;
+  try {
+    const response = await fetch("/api/settings/correction", {
+      headers: authHeaders(),
+      cache: "no-store"
+    });
+    if (!response.ok) return;
+    const result = await response.json();
+    applyCorrectionSettings(result.value, fields);
+  } catch {
+  } finally {
+    correctionRequestPending = false;
+  }
+}
+
+function syncCorrectionRefresh() {
+  if (correctionRefreshTimer) {
+    window.clearInterval(correctionRefreshTimer);
+    correctionRefreshTimer = null;
+  }
+  if (activeView.value !== "device-detail" || selectedDeviceSection.value !== "parameters" || parameterTab.value !== "calibration") return;
+  loadCorrectionSettings();
+  correctionRefreshTimer = window.setInterval(
+    () => loadCorrectionSettings(correctionReadingFieldKeys),
+    CORRECTION_REFRESH_MS
+  );
 }
 
 function stepOperationNumber(field, delta, min = null, max = null) {
@@ -2322,6 +2599,33 @@ function stepParameterNumber(field, delta, min = null, max = null) {
   parameterForm.value[field] = nextValue;
 }
 
+const selectedPidModeConfig = computed(() =>
+  pidModes.find(mode => mode.key === selectedPidMode.value) || pidModes[0]
+);
+const selectedPidDisplayNumber = computed(() =>
+  pidDisplayGroupNumber(selectedPidModeConfig.value, selectedPidGroup.value)
+);
+
+function selectPidGroup(mode, group) {
+  selectedPidMode.value = mode;
+  selectedPidGroup.value = group;
+}
+
+function pidDisplayGroupNumber(mode, group) {
+  return mode.displayOffset + group;
+}
+
+function pidGroupPosition(mode, group) {
+  const [row, column] = pidGroupPositions[mode][group];
+  return { gridRow: row, gridColumn: column };
+}
+
+function pidParameterKey(mode, group, category, metric) {
+  return mode === "temperature"
+    ? `TEMP${group}_${metric}`
+    : `HUMI${group}_${category}_${metric}`;
+}
+
 function applySystemBasicSettings(value) {
   if (!value) return;
   parameterForm.value = {
@@ -2345,9 +2649,9 @@ function correctionPayload() {
   );
 }
 
-function applyCorrectionSettings(value) {
+function applyCorrectionSettings(value, fields = correctionFieldKeys) {
   if (!value) return;
-  for (const key of correctionFieldKeys) {
+  for (const key of fields) {
     if (value[key] != null) parameterForm.value[key] = Number(value[key]);
   }
 }
@@ -2355,6 +2659,10 @@ function applyCorrectionSettings(value) {
 async function saveParameterSettings() {
   if (parameterTab.value === "calibration") {
     await saveCorrectionSettings();
+    return;
+  }
+  if (parameterTab.value === "pid") {
+    await savePidSettings();
     return;
   }
   const payload = {
@@ -2383,6 +2691,25 @@ async function saveParameterSettings() {
     addOperationLog({ title: "保存系统参数", message: `${deviceName} 已保存基础信息并通知应用层`, tone: "success" });
   } catch (error) {
     addOperationLog({ title: "保存系统参数失败", message: `${deviceName}：${error.message || "数据库不可用"}`, tone: "danger" });
+  }
+}
+
+async function savePidSettings() {
+  const payload = pidPayload();
+  const deviceName = selectedDevice.value?.name || selectedDeviceId.value;
+  try {
+    const response = await fetch("/api/settings/pid", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || "PID 参数保存失败");
+    applyPidSettings(result.value || payload);
+    operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    addOperationLog({ title: "保存 PID 参数", message: `${deviceName} 已保存温度及湿热模式参数并通知应用层`, tone: "success" });
+  } catch (error) {
+    addOperationLog({ title: "保存 PID 参数失败", message: `${deviceName}：${error.message || "数据库不可用"}`, tone: "danger" });
   }
 }
 
@@ -2432,23 +2759,22 @@ function resetParameterForm() {
     HUMI_Corrected3: 0,
     HUMI_Corrected4: 0,
     HUMI_Correction: 0,
+    TEMP_Collected: 0,
+    TEMP_Corrected: 0,
+    TEMP_Final: 0,
+    HUMI_Collected: 0,
+    HUMI_Corrected: 0,
+    HUMI_Final: 0,
     ...Object.fromEntries(
       Array.from({ length: 10 }, (_, index) =>
         ["Collected", "Corrected", "Final"].map(stage => [`DUT${index + 1}_${stage}`, 0])
       ).flat()
     ),
-    temperatureP: 1,
-    temperatureI: 0.1,
-    temperatureD: 0,
-    humidityP: 1,
-    humidityI: 0.1,
-    humidityD: 0,
+    ...Object.fromEntries(pidSettingFieldKeys.map(key => [key, 0])),
     compressorFrequency: 50,
     circulationFanFrequency: 50,
     humidifierFrequency: 50,
     frequencyLimit: 60,
-    historyRecordInterval: 60,
-    exportSavePath: "./exports",
     temperatureRangeMin: -40,
     temperatureRangeMax: 100,
     humidityRangeMin: 0,
@@ -2456,9 +2782,10 @@ function resetParameterForm() {
     temperatureTransmissionMin: -40,
     temperatureTransmissionMax: 100,
     humidityTransmissionMin: 0,
-    humidityTransmissionMax: 100,
-    backlightDuration: 60
+    humidityTransmissionMax: 100
   };
+  selectedPidMode.value = "humidity";
+  selectedPidGroup.value = 1;
   operationLastSaved.value = "已恢复默认";
 }
 
@@ -3073,6 +3400,7 @@ onMounted(() => {
   loadFixedValueSettings();
   loadPrograms();
   connectSocket();
+  syncCorrectionRefresh();
   window.addEventListener("resize", handleTrendResize);
   clockTimer = window.setInterval(() => {
     currentTimeText.value = new Date().toLocaleTimeString();
@@ -3085,8 +3413,16 @@ onBeforeUnmount(() => {
   if (socket) socket.close();
   if (reconnectTimer) window.clearTimeout(reconnectTimer);
   if (clockTimer) window.clearInterval(clockTimer);
+  if (correctionRefreshTimer) window.clearInterval(correctionRefreshTimer);
   window.removeEventListener("resize", handleTrendResize);
 });
 
 watch([activeView, selectedDeviceId, selectedDeviceSection, visibleMonitorCards], () => nextTick(drawSelectedTrend));
+watch([activeView, selectedDeviceId, selectedDeviceSection], ([view, deviceId, section], previous) => {
+  if (view === "device-detail" && deviceId && section === "history" && (section !== previous?.[2] || deviceId !== previous?.[1])) loadEnvironmentalHistory();
+});
+watch([activeView, selectedDeviceSection, parameterTab], syncCorrectionRefresh);
+watch([selectedDeviceSection, parameterTab], ([section, tab]) => {
+  if (section === "parameters" && tab === "pid") loadPidSettings();
+});
 </script>

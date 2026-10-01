@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import sys
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -10,10 +12,10 @@ from typing import Any, AsyncIterator
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, create_model, model_validator
 
 from .config import EdgeConfig
-from .mysql_store import FixedValueStore, OperationSettingStore, ProgramStore
+from .mysql_store import HISTORY_RETENTION_OPTIONS, PID_SETTING_COLUMNS, EnvironmentalHistoryStore, FixedValueStore, OperationSettingStore, ProgramStore, setting_changes
 from .runtime import DeviceEdgeRuntime
 from .websocket_client import WebSocketEdgeClient
 from backend.auth import (
@@ -22,6 +24,7 @@ from backend.auth import (
     PERMISSION_SETTINGS_WRITE,
     account_for_token,
     build_auth_router,
+    build_operation_log_router,
     has_permission,
     record_operation,
     require_permission,
@@ -71,6 +74,11 @@ class OtherSettingRequest(BaseModel):
     event: int = Field(ge=0, le=65535)
     powerRestoration: int = Field(ge=0, le=2)
     afterShutdow: int = Field(ge=0, le=1)
+    history_retention_days: int = Field(default=90)
+
+
+class HistoryRetentionRequest(BaseModel):
+    retention_days: int = Field(default=90)
 
 
 class SystemBasicSettingRequest(BaseModel):
@@ -135,6 +143,18 @@ class CorrectionSettingRequest(BaseModel):
     DUT10_Collected: float
     DUT10_Corrected: float
     DUT10_Final: float
+    TEMP_Collected: float
+    TEMP_Corrected: float
+    TEMP_Final: float
+    HUMI_Collected: float
+    HUMI_Corrected: float
+    HUMI_Final: float
+
+
+PidSettingRequest = create_model(
+    "PidSettingRequest",
+    **{column: (float, ...) for column in PID_SETTING_COLUMNS},
+)
 
 
 class ProgramStepRequest(BaseModel):
@@ -179,10 +199,17 @@ def create_app(config: EdgeConfig) -> FastAPI:
     fixed_value_store = FixedValueStore(config) if config.database_enabled else None
     operation_setting_store = OperationSettingStore(config) if config.database_enabled else None
     program_store = ProgramStore(config) if config.database_enabled else None
+    history_store = EnvironmentalHistoryStore(config) if config.database_enabled else None
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await runtime.start()
+        if history_store is not None:
+            try:
+                history_store.ensure_tables()
+            except Exception:
+                # Database availability must not prevent the realtime service from starting.
+                pass
         if config.control_center_enabled:
             if not config.server_url:
                 raise RuntimeError("control_center.server_url is required when control_center.enabled is true")
@@ -199,8 +226,18 @@ def create_app(config: EdgeConfig) -> FastAPI:
 
     app = FastAPI(title="Industrial Chamber Device Edge", lifespan=lifespan)
     app.include_router(build_auth_router())
+    app.include_router(build_operation_log_router())
     app.state.runtime = runtime
-    dist_dir = Path(__file__).resolve().parents[1] / "frontend-vue" / "dist"
+    # In a PyInstaller build the Vue assets live under ``_MEIPASS``.  Keep
+    # the source-tree path for development and allow an explicit override for
+    # diagnostics or custom deployments.
+    configured_web_root = os.environ.get("DEVICE_EDGE_WEB_ROOT", "").strip()
+    if configured_web_root:
+        dist_dir = Path(configured_web_root).resolve()
+    elif getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        dist_dir = Path(sys._MEIPASS) / "frontend-vue" / "dist"
+    else:
+        dist_dir = Path(__file__).resolve().parents[1] / "frontend-vue" / "dist"
 
     @app.get("/api/memory/snapshot")
     async def memory_snapshot() -> dict[str, Any]:
@@ -231,6 +268,7 @@ def create_app(config: EdgeConfig) -> FastAPI:
         if fixed_value_store is None:
             raise HTTPException(status_code=503, detail="数据库存储未启用")
         try:
+            previous_value = fixed_value_store.get_fixed_value()
             value = fixed_value_store.save_fixed_value(request.model_dump())
             command = None
             if notify_memory:
@@ -245,7 +283,7 @@ def create_app(config: EdgeConfig) -> FastAPI:
                     })
                 except (RuntimeError, ValueError) as exc:
                     raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
-            record_operation(account, "FIXED_VALUE_SETTINGS_UPDATED", target_type="settings", target_id="fixed-value")
+            record_operation(account, "FIXED_VALUE_SETTINGS_UPDATED", target_type="settings", target_id="fixed-value", details={"changes": setting_changes(previous_value, value)})
             return {"value": value, "command": command}
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -264,6 +302,7 @@ def create_app(config: EdgeConfig) -> FastAPI:
         if operation_setting_store is None:
             raise HTTPException(status_code=503, detail="数据库存储未启用")
         try:
+            previous_value = operation_setting_store.get_operation_setting()
             value = operation_setting_store.save_operation_setting(request.model_dump())
             command = None
             if notify_memory:
@@ -278,7 +317,7 @@ def create_app(config: EdgeConfig) -> FastAPI:
                     })
                 except (RuntimeError, ValueError) as exc:
                     raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
-            record_operation(account, "OPERATION_SETTINGS_UPDATED", target_type="settings", target_id="operation", details=request.model_dump())
+            record_operation(account, "OPERATION_SETTINGS_UPDATED", target_type="settings", target_id="operation", details={"changes": setting_changes(previous_value, value)})
             return {"value": value, "command": command}
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -288,7 +327,12 @@ def create_app(config: EdgeConfig) -> FastAPI:
         if operation_setting_store is None:
             raise HTTPException(status_code=503, detail="数据库存储未启用")
         try:
-            value = operation_setting_store.save_other_setting(request.model_dump())
+            previous_value = operation_setting_store.get_other_setting()
+            if history_store is not None:
+                previous_value = {**(previous_value or {}), "history_retention_days": history_store.get_retention_days()}
+            value = operation_setting_store.save_other_setting(request.model_dump(exclude={"history_retention_days"}))
+            if history_store is not None:
+                value["history_retention_days"] = history_store.save_retention_days(request.history_retention_days)
             command = None
             if notify_memory:
                 try:
@@ -300,8 +344,49 @@ def create_app(config: EdgeConfig) -> FastAPI:
                     })
                 except (RuntimeError, ValueError) as exc:
                     raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
-            record_operation(account, "OTHER_OPERATION_SETTINGS_UPDATED", target_type="settings", target_id="operation-other", details=request.model_dump())
+            record_operation(account, "OTHER_OPERATION_SETTINGS_UPDATED", target_type="settings", target_id="operation-other", details={"changes": setting_changes(previous_value, value)})
             return {"value": value, "command": command}
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.get("/api/settings/history-retention")
+    async def get_history_retention(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
+        if history_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            return {"retention_days": history_store.get_retention_days(), "options": list(HISTORY_RETENTION_OPTIONS)}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.put("/api/settings/history-retention")
+    async def save_history_retention(request: HistoryRetentionRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE))) -> dict[str, Any]:
+        if history_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            previous = history_store.get_retention_days()
+            value = history_store.save_retention_days(request.retention_days)
+            record_operation(account, "HISTORY_RETENTION_UPDATED", target_type="settings", target_id="environmental-history", details={"before": previous, "after": value})
+            return {"retention_days": value, "options": list(HISTORY_RETENTION_OPTIONS)}
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.get("/api/environmental-history")
+    async def get_environmental_history(
+        device_id: str,
+        start_time: float | None = None,
+        end_time: float | None = None,
+        run_state: str | None = None,
+        limit: int = Query(default=5000, ge=1, le=20000),
+        _: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW)),
+    ) -> dict[str, Any]:
+        if history_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            return {"device_id": device_id, "items": history_store.list_history(device_id, start_time, end_time, run_state, limit)}
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -319,6 +404,7 @@ def create_app(config: EdgeConfig) -> FastAPI:
         if operation_setting_store is None:
             raise HTTPException(status_code=503, detail="数据库存储未启用")
         try:
+            previous_value = operation_setting_store.get_system_basic_setting()
             value = operation_setting_store.save_system_basic_setting(request.model_dump())
             command = None
             if notify_memory:
@@ -331,7 +417,7 @@ def create_app(config: EdgeConfig) -> FastAPI:
                     })
                 except (RuntimeError, ValueError) as exc:
                     raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
-            record_operation(account, "SYSTEM_BASIC_SETTINGS_UPDATED", target_type="settings", target_id="system-basic", details=request.model_dump())
+            record_operation(account, "SYSTEM_BASIC_SETTINGS_UPDATED", target_type="settings", target_id="system-basic", details={"changes": setting_changes(previous_value, value)})
             return {"value": value, "command": command}
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -350,6 +436,7 @@ def create_app(config: EdgeConfig) -> FastAPI:
         if operation_setting_store is None:
             raise HTTPException(status_code=503, detail="数据库存储未启用")
         try:
+            previous_value = operation_setting_store.get_correction_setting()
             value = operation_setting_store.save_correction_setting(request.model_dump())
             command = None
             if notify_memory:
@@ -362,7 +449,39 @@ def create_app(config: EdgeConfig) -> FastAPI:
                     })
                 except (RuntimeError, ValueError) as exc:
                     raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
-            record_operation(account, "CORRECTION_SETTINGS_UPDATED", target_type="settings", target_id="correction", details=request.model_dump())
+            record_operation(account, "CORRECTION_SETTINGS_UPDATED", target_type="settings", target_id="correction", details={"changes": setting_changes(previous_value, value)})
+            return {"value": value, "command": command}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.get("/api/settings/pid")
+    async def get_pid_setting(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
+        if operation_setting_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            return {"value": operation_setting_store.get_pid_setting()}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.put("/api/settings/pid")
+    async def save_pid_setting(request: PidSettingRequest, account: dict[str, Any] = Depends(require_permission(PERMISSION_SETTINGS_WRITE)), notify_memory: bool = Query(default=True)) -> dict[str, Any]:
+        if operation_setting_store is None:
+            raise HTTPException(status_code=503, detail="数据库存储未启用")
+        try:
+            previous_value = operation_setting_store.get_pid_setting()
+            value = operation_setting_store.save_pid_setting(request.model_dump())
+            command = None
+            if notify_memory:
+                try:
+                    command = runtime.submit_command({
+                        "command": "pid_set",
+                        "device_id": config.edge_id,
+                        "operator_id": account["username"],
+                        "reason": "PID settings saved",
+                    })
+                except (RuntimeError, ValueError) as exc:
+                    raise HTTPException(status_code=503, detail=f"数据库已保存，但内存通知失败：{exc}") from exc
+            record_operation(account, "PID_SETTINGS_UPDATED", target_type="settings", target_id="pid", details={"changes": setting_changes(previous_value, value)})
             return {"value": value, "command": command}
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc

@@ -50,7 +50,9 @@ class AuthContractTests(unittest.TestCase):
         _insert_operation_log(cursor, 42, "DEVICE_COMMAND_QUEUED", target_type="device", target_id="CHAMBER-01", details={"command": "Run"})
         self.assertIn("operation_logs", cursor.statement)
         self.assertEqual(cursor.parameters[0], 42)
-        self.assertEqual(cursor.parameters[1], "DEVICE_COMMAND_QUEUED")
+        self.assertEqual(cursor.parameters[3], "DEVICE_COMMAND_QUEUED")
+        self.assertEqual(cursor.parameters[4], "DEVICE")
+        self.assertEqual(cursor.parameters[5], "下发设备命令：CHAMBER-01")
         self.assertNotIn("password", str(cursor.parameters).lower())
 
     def test_all_roles_temporarily_share_administrator_permissions(self) -> None:

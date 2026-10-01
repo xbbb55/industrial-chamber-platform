@@ -1,0 +1,23 @@
+appId: com.industrialchamber.platform
+productName: Industrial Chamber Platform
+artifactName: Industrial-Chamber-Platform-${version}-${arch}.${ext}
+directories:
+  output: artifacts/electron
+  buildResources: packaging/resources
+files:
+  - electron/**
+  - package.json
+extraResources:
+  - from: dist/device_edge
+    to: device_edge
+    filter:
+      - "**/*"
+  - from: packaging/device-edge.config.sample.json
+    to: device-edge.config.sample.json
+win:
+  target:
+    - target: dir
+      arch:
+        - x64
+  signAndEditExecutable: false
+  verifyUpdateCodeSignature: false

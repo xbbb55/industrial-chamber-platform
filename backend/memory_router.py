@@ -15,6 +15,7 @@ from backend.auth import (
     PERMISSION_DEVICE_VIEW,
     account_for_token,
     build_auth_router,
+    build_operation_log_router,
     has_permission,
     record_operation,
     require_permission,
@@ -23,6 +24,7 @@ from backend.auth import (
 
 app = FastAPI(title="Industrial Chamber Control Center")
 app.include_router(build_auth_router())
+app.include_router(build_operation_log_router())
 
 uploaded_edge_snapshots: dict[str, dict[str, Any]] = {}
 pending_edge_commands: dict[str, list[dict[str, Any]]] = {}
