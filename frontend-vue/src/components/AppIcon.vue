@@ -7,16 +7,22 @@ import {
   Activity,
   AlertTriangle,
   Bell,
+  Box,
   ChartNoAxesCombined,
+  Check,
   ChevronsLeft,
   ChevronsRight,
+  Database,
   X,
+  Factory,
   FileText,
   Gauge,
   History,
   LayoutDashboard,
   Lightbulb,
+  Network,
   RotateCcw,
+  RefreshCw,
   Settings2,
   SlidersHorizontal,
   ShieldCheck,
@@ -35,7 +41,10 @@ import {
   LogOut,
   KeyRound,
   UsersRound,
-  Plus
+  Plus,
+  UserRound,
+  Wifi,
+  WifiOff
 } from "lucide-vue-next";
 import { computed } from "vue";
 
@@ -47,17 +56,23 @@ const props = defineProps({
 
 const icons = {
   activity: Activity,
+  check: Check,
   alarms: AlertTriangle,
   bell: Bell,
+  box: Box,
   chart: ChartNoAxesCombined,
   collapse: ChevronsLeft,
+  database: Database,
   dashboard: LayoutDashboard,
+  factory: Factory,
   humidity: Droplets,
   light: Lightbulb,
   gauge: Gauge,
   history: History,
+  network: Network,
   reports: FileText,
   reset: RotateCcw,
+  refresh: RefreshCw,
   expand: ChevronsRight,
   settings: Settings2,
   sliders: SlidersHorizontal,
@@ -77,7 +92,10 @@ const icons = {
   logout: LogOut,
   key: KeyRound,
   users: UsersRound,
-  plus: Plus
+  plus: Plus,
+  user: UserRound,
+  wifi: Wifi,
+  wifiOff: WifiOff
 };
 
 const iconComponent = computed(() => icons[props.name] || Activity);

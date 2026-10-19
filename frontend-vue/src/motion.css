@@ -1,0 +1,332 @@
+/* Shared motion for workspaces, selection controls, and dialogs. */
+:root {
+  --motion-ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+.app-shell .motion-nav {
+  position: relative;
+  isolation: isolate;
+}
+.motion-nav > .motion-selection {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  border: 1px solid #29c6ff;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(13, 117, 218, .86), rgba(10, 68, 139, .74));
+  box-shadow: inset 0 0 22px rgba(63, 190, 255, .24), 0 0 11px rgba(0, 137, 238, .4);
+  transition: transform 160ms var(--motion-ease), width 160ms var(--motion-ease), height 160ms var(--motion-ease);
+}
+.motion-selection::before,
+.motion-selection::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+}
+.motion-selection::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid #1686b8;
+  border-left: 2px solid #1686b8;
+}
+.motion-selection::after {
+  right: -1px;
+  bottom: -1px;
+  border-right: 2px solid #1686b8;
+  border-bottom: 2px solid #1686b8;
+}
+.app-shell .operation-nav.motion-nav > .motion-selection,
+.app-shell .profile-tabs.motion-nav > .motion-selection,
+.app-shell .view-toggle.motion-nav > .motion-selection {
+  border-color: #1686b8;
+  background: #e1f2f8;
+  box-shadow: none;
+}
+.app-shell .nav-list.motion-ready > button.active,
+.app-shell .operation-nav.motion-ready > button.active,
+.app-shell .profile-tabs.motion-ready > button.active,
+.app-shell .notification-tabs.motion-ready > button.active,
+.app-shell .overview-panel .view-toggle.motion-ready > button.active,
+.app-shell:has(.operation-settings) .operation-nav.motion-ready > button.active,
+.app-shell:not(:has(.monitor-layout)) .system-parameter-nav.motion-ready > button.active {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.app-shell .nav-list.motion-ready > button.active::before,
+.app-shell .nav-list.motion-ready > button.active::after,
+.app-shell .operation-nav.motion-ready > button.active::before,
+.app-shell .operation-nav.motion-ready > button.active::after,
+.app-shell .profile-tabs.motion-ready > button.active::before,
+.app-shell .profile-tabs.motion-ready > button.active::after,
+.app-shell .overview-panel .view-toggle.motion-ready > button.active::before,
+.app-shell .overview-panel .view-toggle.motion-ready > button.active::after,
+.app-shell:has(.operation-settings) .operation-nav.motion-ready > button.active::before,
+.app-shell:has(.operation-settings) .operation-nav.motion-ready > button.active::after,
+.app-shell:not(:has(.monitor-layout)) .system-parameter-nav.motion-ready > button.active::before,
+.app-shell:not(:has(.monitor-layout)) .system-parameter-nav.motion-ready > button.active::after {
+  content: none;
+}
+.app-shell .motion-nav > button {
+  position: relative;
+  z-index: 1;
+}
+.app-shell .motion-nav > .motion-selection { margin: 0; padding: 0; }
+.app-shell .profile-tabs > .motion-selection::before,
+.app-shell .profile-tabs > .motion-selection::after,
+.app-shell .view-toggle > .motion-selection::before,
+.app-shell .view-toggle > .motion-selection::after,
+.app-shell .notification-tabs > .motion-selection::before,
+.app-shell .notification-tabs > .motion-selection::after { content: none; }
+.app-shell .notification-tabs > .motion-selection {
+  border-color: #2787b4;
+  background: #123653;
+  box-shadow: none;
+}
+.app-shell .parameter-tab-content,
+.app-shell .profile-tab-content { display: grid; gap: 16px; min-width: 0; }
+.app-shell .profile-dialog-shell { width: min(440px, 100%); max-height: calc(100dvh - 48px); overflow-y: auto; }
+.app-shell .profile-dialog-shell > .profile-modal { width: 100%; }
+.app-shell .pilot-dialog-backdrop { overflow-y: auto; overscroll-behavior: contain; }
+.app-shell .motion-nav > button:focus-visible {
+  outline: 2px solid #46c8f4;
+  outline-offset: 3px;
+}
+
+.operation-tab-content {
+  transition: opacity 180ms var(--motion-ease);
+}
+.workspace-enter-active,
+.settings-tab-enter-active {
+  transition: opacity 140ms var(--motion-ease), transform 140ms var(--motion-ease);
+}
+.workspace-leave-active {
+  transition: opacity 80ms ease-out, transform 80ms ease-out;
+  pointer-events: none;
+}
+.settings-tab-enter-active {
+  transition-duration: 110ms;
+}
+.settings-tab-leave-active {
+  transition: opacity 50ms ease-out;
+  pointer-events: none;
+}
+.workspace-enter-from,
+.settings-tab-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.workspace-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.settings-tab-leave-to { opacity: 0; }
+
+.app-shell .operation-tab-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+.operation-tab-content.is-refreshing {
+  opacity: .6;
+}
+.app-shell .operation-save-meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.app-shell .operation-save-meta .operation-feedback {
+  margin: 0;
+  color: #35596d;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.workspace-refresh-layer {
+  position: fixed;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(177, 194, 205, .3);
+  pointer-events: none;
+}
+.workspace-refresh-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  width: 252px;
+  max-width: 100%;
+  min-height: 168px;
+  padding: 24px;
+  border: 1px solid #d3e0e7;
+  border-radius: 8px;
+  background: rgba(248, 252, 253, .98);
+  box-shadow: 0 12px 36px rgba(25, 62, 82, .12), 0 2px 6px rgba(25, 62, 82, .06);
+  color: #24475c;
+  text-align: center;
+  pointer-events: none;
+}
+.workspace-refresh-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #7894a3;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: border-color .16s ease, background-color .16s ease, color .16s ease;
+}
+.workspace-refresh-close:hover {
+  border-color: #a6c6d6;
+  background: #edf6fa;
+  color: #166b92;
+}
+.workspace-refresh-close:focus-visible {
+  outline: 2px solid #1686b8;
+  outline-offset: 2px;
+}
+.workspace-refresh-panel strong { font-size: 14px; line-height: 1.5; }
+.workspace-refresh-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 60px;
+  width: 60px;
+  height: 60px;
+  color: #1686b8;
+}
+.workspace-refresh-mark > .workspace-refresh-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke-width: 2.5;
+}
+.workspace-refresh-track { stroke: #dcebf1; }
+.workspace-refresh-arc {
+  transform-origin: 32px 32px;
+  stroke: #1686b8;
+  stroke-linecap: round;
+  stroke-dasharray: 35 170;
+  animation: workspace-refresh-turn 1800ms linear infinite, workspace-refresh-sweep 1600ms ease-in-out infinite;
+}
+.workspace-refresh-panel[data-state="complete"] .workspace-refresh-mark { color: #24866b; }
+.workspace-refresh-panel[data-state="complete"] .workspace-refresh-track { stroke: #d8ece4; }
+.workspace-refresh-panel[data-state="error"] .workspace-refresh-mark { color: #ad712e; }
+.workspace-refresh-panel[data-state="error"] .workspace-refresh-track { stroke: #f0e1ca; }
+.workspace-refresh-panel:not([data-state="loading"]) .workspace-refresh-arc { opacity: 0; animation: none; }
+.workspace-refresh-detail { color: #637e8d; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.workspace-refresh-retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid #a6c6d6;
+  border-radius: 4px;
+  background: #edf6fa;
+  color: #166b92;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.workspace-refresh-retry:hover { background: #e1f2f8; }
+.workspace-refresh-retry:focus-visible { outline: 2px solid #1686b8; outline-offset: 3px; }
+.workspace-refresh-enter-active,
+.workspace-refresh-leave-active { transition: opacity 180ms var(--motion-ease); }
+.workspace-refresh-enter-active .workspace-refresh-panel,
+.workspace-refresh-leave-active .workspace-refresh-panel {
+  transition: opacity 180ms var(--motion-ease), transform 180ms var(--motion-ease);
+}
+.workspace-refresh-enter-from,
+.workspace-refresh-leave-to { opacity: 0; }
+.workspace-refresh-enter-from .workspace-refresh-panel { transform: translateY(6px) scale(.97); }
+.workspace-refresh-leave-to .workspace-refresh-panel { transform: translateY(-3px) scale(.99); }
+.workspace-refresh-leave-active .workspace-refresh-panel { pointer-events: none; }
+.refresh-symbol-enter-active,
+.refresh-symbol-leave-active { transition: opacity 80ms ease, transform 80ms ease; }
+.refresh-symbol-enter-from { opacity: 0; transform: scale(.85); }
+.refresh-symbol-leave-to { opacity: 0; }
+@keyframes workspace-refresh-turn { to { transform: rotate(360deg); } }
+@keyframes workspace-refresh-sweep {
+  0%, 100% { stroke-dasharray: 30 170; stroke-dashoffset: 0; }
+  50% { stroke-dasharray: 110 170; stroke-dashoffset: -25; }
+}
+.workspace-refresh-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 20px;
+  color: #8daebe;
+  font: 11px/1.4 "Microsoft YaHei", sans-serif;
+}
+.workspace-refresh-status.has-error { color: #e3aa64; }
+
+.pilot-dialog-panel { outline: none; }
+.pilot-dialog-enter-active,
+.pilot-dialog-enter-active > .pilot-dialog-panel {
+  transition: opacity 200ms var(--motion-ease), transform 200ms var(--motion-ease);
+}
+.pilot-dialog-leave-active,
+.pilot-dialog-leave-active > .pilot-dialog-panel {
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.pilot-dialog-leave-active { pointer-events: none; }
+.pilot-dialog-enter-from,
+.pilot-dialog-leave-to { opacity: 0; }
+.pilot-dialog-enter-from > .pilot-dialog-panel,
+.pilot-dialog-leave-to > .pilot-dialog-panel { transform: translateY(8px); }
+.app-shell .run-mode-option {
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+@media (max-width: 760px) {
+  .app-shell .operation-tab-content { min-height: 240px; }
+  .workspace-refresh-status { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .motion-nav > .motion-selection,
+  .app-shell .motion-nav > button,
+  .app-shell .motion-nav > button::before,
+  .app-shell .motion-nav > button::after,
+  .workspace-enter-active,
+  .workspace-leave-active,
+  .settings-tab-enter-active,
+  .settings-tab-leave-active,
+  .app-shell .operation-tab-content,
+  .workspace-refresh-enter-active,
+  .workspace-refresh-leave-active,
+  .workspace-refresh-enter-active .workspace-refresh-panel,
+  .workspace-refresh-leave-active .workspace-refresh-panel,
+  .refresh-symbol-enter-active,
+  .refresh-symbol-leave-active,
+  .pilot-dialog-enter-active,
+  .pilot-dialog-leave-active,
+  .pilot-dialog-enter-active > .pilot-dialog-panel,
+  .pilot-dialog-leave-active > .pilot-dialog-panel,
+  .app-shell .run-mode-option {
+    transition: none;
+    transform: none;
+  }
+  .workspace-refresh-arc { animation: none; }
+}

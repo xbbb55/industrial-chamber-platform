@@ -1,13 +1,15 @@
 <template>
+  <div class="profile-center">
   <section class="page-stack profile-page">
     <div class="section-head profile-section-head profile-page-head">
       <div>
         <h2>个人中心</h2>
         <span>查看账户资料、维护登录凭据和管理平台账户</span>
       </div>
-      <nav class="profile-tabs" aria-label="个人中心页面">
-        <button type="button" :class="{ active: activeTab === 'profile' }" @click="selectTab('profile')">个人中心</button>
-        <button type="button" :class="{ active: activeTab === 'logs' }" @click="selectTab('logs')">操作日志</button>
+      <nav ref="profileTabNav" class="profile-tabs motion-nav" :class="{ 'motion-ready': profileIndicator }" aria-label="个人中心页面">
+        <span v-if="profileIndicator" class="motion-selection" :style="profileIndicator" aria-hidden="true"></span>
+        <button data-motion-key="profile" type="button" :class="{ active: activeTab === 'profile' }" @click="selectTab('profile')">个人中心</button>
+        <button data-motion-key="logs" type="button" :class="{ active: activeTab === 'logs' }" @click="selectTab('logs')">操作日志</button>
       </nav>
       <button class="profile-back-button" type="button" @click="emit('back')">
         <AppIcon name="gauge" :size="16" />
@@ -15,7 +17,8 @@
       </button>
     </div>
 
-    <template v-if="activeTab === 'profile'">
+    <Transition name="settings-tab" mode="out-in">
+    <div v-if="activeTab === 'profile'" key="profile" class="profile-tab-content">
     <section class="profile-hero panel" aria-label="当前账户概览">
       <div class="profile-identity-block">
         <div class="profile-avatar">{{ avatarText }}</div>
@@ -96,8 +99,7 @@
       </div>
       <div class="profile-role-note"><AppIcon name="shield" :size="15" /><span>当前管理员、工程师与销售拥有相同业务权限。</span></div>
       <p v-if="usersError" class="profile-error" role="alert">{{ usersError }}</p>
-      <div v-else-if="usersLoading" class="profile-loading">正在读取用户列表…</div>
-      <div v-else-if="users.length" class="user-list" role="table" aria-label="用户列表">
+      <div v-if="users.length" class="user-list" role="table" aria-label="用户列表">
         <div class="user-list-head" role="row"><span>用户</span><span>账户名</span><span>权限组</span><span>操作</span></div>
         <div v-for="account in users" :key="account.username" class="user-list-row" role="row">
           <div><strong>{{ account.display_name }}</strong><small>{{ account.username === user.username ? '当前账户' : '平台用户' }}</small></div>
@@ -106,7 +108,7 @@
           <button class="user-save-button" type="button" :disabled="updatingUsername === account.username" @click="saveRole(account)">{{ updatingUsername === account.username ? '保存中' : '保存' }}</button>
         </div>
       </div>
-      <div v-else class="profile-loading">暂无账户，可使用“新增用户”创建。</div>
+      <div v-else-if="!usersLoading" class="profile-loading">暂无账户，可使用“新增用户”创建。</div>
     </section>
 
     <div class="profile-logout-row">
@@ -115,9 +117,9 @@
         <span>退出登录</span>
       </button>
     </div>
-    </template>
+    </div>
 
-    <section v-else class="panel operation-log-panel" aria-labelledby="operation-log-title">
+    <section v-else key="logs" class="panel operation-log-panel" aria-labelledby="operation-log-title">
       <div class="panel-title operation-log-title">
         <div><h3 id="operation-log-title">操作日志</h3><span>记录账户登录、设备控制与参数修改等操作</span></div>
         <button class="profile-secondary-button" type="button" :disabled="logsLoading" @click="loadOperationLogs(1)">刷新</button>
@@ -133,8 +135,7 @@
       </form>
 
       <p v-if="logsError" class="profile-error" role="alert">{{ logsError }}</p>
-      <div v-else-if="logsLoading" class="profile-loading operation-log-state">正在读取操作日志…</div>
-      <div v-else-if="operationLogs.length" class="operation-log-table-wrap">
+      <div v-if="operationLogs.length" class="operation-log-table-wrap">
         <div class="operation-log-table" role="table" aria-label="用户操作日志">
           <div class="operation-log-head" role="row"><span role="columnheader">用户</span><span role="columnheader">时间</span><span role="columnheader">操作</span><span role="columnheader">结果</span></div>
           <div v-for="log in operationLogs" :key="log.id" class="operation-log-row" role="row">
@@ -149,20 +150,21 @@
           </div>
         </div>
       </div>
-      <div v-else class="profile-loading operation-log-state">当前筛选条件下暂无操作日志。</div>
+      <div v-else-if="!logsLoading" class="profile-loading operation-log-state">当前筛选条件下暂无操作日志。</div>
 
       <footer class="operation-log-pagination">
         <span>共 {{ logsTotal }} 条，第 {{ logsPage }} / {{ logsTotalPages }} 页</span>
         <div><button class="profile-secondary-button" type="button" :disabled="logsLoading || logsPage <= 1" @click="loadOperationLogs(logsPage - 1)">上一页</button><button class="profile-secondary-button" type="button" :disabled="logsLoading || logsPage >= logsTotalPages" @click="loadOperationLogs(logsPage + 1)">下一页</button></div>
       </footer>
     </section>
+    </Transition>
   </section>
 
-  <div v-if="isPasswordDialogOpen" class="profile-modal-backdrop" @click.self="closePasswordDialog">
+  <MotionDialog :open="isPasswordDialogOpen" backdrop-class="profile-modal-backdrop" panel-class="profile-dialog-shell" labelledby="password-modal-title" @close="closePasswordDialog">
     <form class="profile-modal" aria-labelledby="password-modal-title" @submit.prevent="changePassword">
       <div class="profile-modal-header"><div><h3 id="password-modal-title">修改登录密码</h3><span>新密码必须至少为 5 位数字。</span></div><button type="button" aria-label="关闭" @click="closePasswordDialog"><AppIcon name="close" :size="17" /></button></div>
       <div class="profile-form-fields">
-        <label>当前密码<input v-model="passwordForm.current_password" type="password" autocomplete="current-password" required /></label>
+        <label>当前密码<input v-model="passwordForm.current_password" type="password" autocomplete="current-password" data-dialog-autofocus required /></label>
         <label>新密码<input v-model="passwordForm.new_password" type="password" inputmode="numeric" pattern="[0-9]{5,}" autocomplete="new-password" required /></label>
         <label>确认新密码<input v-model="passwordForm.confirm_password" type="password" inputmode="numeric" pattern="[0-9]{5,}" autocomplete="new-password" required /></label>
       </div>
@@ -170,13 +172,13 @@
       <p v-if="passwordSuccess" class="profile-success" role="status">{{ passwordSuccess }}</p>
       <div class="profile-modal-footer"><button class="profile-secondary-button" type="button" :disabled="passwordSaving" @click="closePasswordDialog">取消</button><button class="profile-primary-button" type="submit" :disabled="passwordSaving">{{ passwordSaving ? '保存中…' : '确认修改' }}</button></div>
     </form>
-  </div>
+  </MotionDialog>
 
-  <div v-if="isCreateUserDialogOpen" class="profile-modal-backdrop" @click.self="closeCreateUserDialog">
+  <MotionDialog :open="isCreateUserDialogOpen" backdrop-class="profile-modal-backdrop" panel-class="profile-dialog-shell" labelledby="create-user-modal-title" @close="closeCreateUserDialog">
     <form class="profile-modal" aria-labelledby="create-user-modal-title" @submit.prevent="createUser">
       <div class="profile-modal-header"><div><h3 id="create-user-modal-title">新增用户</h3><span>初始密码必须至少为 5 位数字。</span></div><button type="button" aria-label="关闭" @click="closeCreateUserDialog"><AppIcon name="close" :size="17" /></button></div>
       <div class="profile-form-fields">
-        <label>姓名<input v-model.trim="newUserForm.display_name" autocomplete="name" required /></label>
+        <label>姓名<input v-model.trim="newUserForm.display_name" autocomplete="name" data-dialog-autofocus required /></label>
         <label>账户名<input v-model.trim="newUserForm.username" autocomplete="username" pattern="[A-Za-z0-9_.-]+" required /></label>
         <label>初始密码<input v-model="newUserForm.password" type="password" inputmode="numeric" pattern="[0-9]{5,}" autocomplete="new-password" required /></label>
         <label>权限组<select v-model="newUserForm.role"><option v-for="role in roles" :key="role.value" :value="role.value">{{ role.label }}</option></select></label>
@@ -184,16 +186,33 @@
       <p v-if="createUserError" class="profile-error" role="alert">{{ createUserError }}</p>
       <div class="profile-modal-footer"><button class="profile-secondary-button" type="button" :disabled="creatingUser" @click="closeCreateUserDialog">取消</button><button class="profile-primary-button" type="submit" :disabled="creatingUser">{{ creatingUser ? '创建中…' : '创建用户' }}</button></div>
     </form>
+  </MotionDialog>
+  <WorkspaceRefresh
+    :target="refreshTarget"
+    :pending="activeTab === 'logs' ? logsRefresh.state.pending : usersRefresh.state.pending"
+    :visible="activeTab === 'logs' ? logsRefresh.state.visible : usersRefresh.state.visible"
+    :error="activeTab === 'logs' ? logsRefresh.state.error : usersRefresh.state.error"
+    title="正在读取个人中心"
+    complete-title="个人中心已更新"
+    error-title="个人中心读取失败"
+    @retry="activeTab === 'logs' ? loadOperationLogs(logsPage) : loadUsers()"
+    @dismiss="dismissRefreshNotice"
+  />
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from "vue";
 import AppIcon from "./AppIcon.vue";
+import MotionDialog from "./MotionDialog.vue";
+import { useSelectionIndicator } from "../composables/useSelectionIndicator";
+import WorkspaceRefresh from "./WorkspaceRefresh.vue";
+import { useRefreshTask } from "../composables/useRefreshTask";
 
 const props = defineProps({
   user: { type: Object, required: true },
-  currentTime: { type: String, required: true }
+  currentTime: { type: String, required: true },
+  refreshTarget: { type: Object, default: null }
 });
 const emit = defineEmits(["back", "logout", "user-updated"]);
 const roles = [
@@ -215,6 +234,8 @@ const creatingUser = ref(false);
 const createUserError = ref("");
 const newUserForm = ref({ display_name: "", username: "", password: "", role: "ENGINEER" });
 const activeTab = ref("profile");
+const profileTabNav = ref(null);
+const profileIndicator = useSelectionIndicator(profileTabNav, activeTab);
 const operationLogs = ref([]);
 const logsLoading = ref(false);
 const logsError = ref("");
@@ -230,6 +251,8 @@ const logCategories = ref([
   { value: "ACCOUNT", label: "账户管理" }
 ]);
 const logFilters = ref({ username: "", category: "", status: "", startTime: "", endTime: "" });
+const usersRefresh = useRefreshTask();
+const logsRefresh = useRefreshTask();
 
 const canManageUsers = computed(() => props.user.permissions?.includes("user.manage") ?? true);
 const canViewAllLogs = computed(() => props.user.role === "ADMIN");
@@ -251,10 +274,12 @@ async function request(path, options = {}) {
 
 function selectTab(tab) {
   activeTab.value = tab;
-  if (tab === "logs" && !operationLogs.value.length) loadOperationLogs(1);
+  if (tab === "logs") loadOperationLogs(1);
+  else if (canManageUsers.value) loadUsers();
 }
 
 async function loadOperationLogs(page = logsPage.value) {
+  if (logsLoading.value) logsRefresh.cancel();
   logsLoading.value = true;
   logsError.value = "";
   const parameters = new URLSearchParams({ page: String(page), page_size: "20" });
@@ -263,18 +288,18 @@ async function loadOperationLogs(page = logsPage.value) {
   if (logFilters.value.status) parameters.set("status", logFilters.value.status);
   if (logFilters.value.startTime) parameters.set("start_time", String(new Date(logFilters.value.startTime).getTime() / 1000));
   if (logFilters.value.endTime) parameters.set("end_time", String(new Date(logFilters.value.endTime).getTime() / 1000));
-  try {
-    const result = await request(`/api/operation-logs?${parameters}`);
-    operationLogs.value = result.items || [];
-    logsPage.value = result.page || page;
-    logsTotal.value = result.total || 0;
-    logsTotalPages.value = result.total_pages || 1;
-    if (result.categories?.length) logCategories.value = result.categories;
-  } catch (error) {
-    logsError.value = error.message;
-  } finally {
-    logsLoading.value = false;
-  }
+  await logsRefresh.run(
+    signal => request(`/api/operation-logs?${parameters}`, { signal }),
+    result => {
+      operationLogs.value = result.items || [];
+      logsPage.value = result.page || page;
+      logsTotal.value = result.total || 0;
+      logsTotalPages.value = result.total_pages || 1;
+      if (result.categories?.length) logCategories.value = result.categories;
+    }
+  );
+  logsError.value = logsRefresh.state.error;
+  logsLoading.value = false;
 }
 
 function resetLogFilters() {
@@ -330,15 +355,20 @@ async function changePassword() {
 
 async function loadUsers() {
   if (!canManageUsers.value) return;
+  usersRefresh.cancel();
   usersLoading.value = true;
   usersError.value = "";
-  try {
-    users.value = (await request("/api/auth/users")).users || [];
-  } catch (error) {
-    usersError.value = error.message;
-  } finally {
-    usersLoading.value = false;
-  }
+  await usersRefresh.run(
+    signal => request("/api/auth/users", { signal }),
+    result => { users.value = result.users || []; }
+  );
+  usersError.value = usersRefresh.state.error;
+  usersLoading.value = false;
+}
+
+function dismissRefreshNotice() {
+  const refresh = activeTab.value === "logs" ? logsRefresh : usersRefresh;
+  refresh.dismissError();
 }
 
 async function saveRole(account) {
@@ -389,6 +419,7 @@ watch(canManageUsers, allowed => {
 </script>
 
 <style scoped>
+.profile-center { display: flex; flex: 1 0 auto; flex-direction: column; min-width: 0; }
 .profile-page { gap: 16px; padding-bottom: 28px; }
 .profile-page-head { min-height: 52px; }
 .profile-page-head h2 { margin-top: 2px; }

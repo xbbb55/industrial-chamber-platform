@@ -1,19 +1,23 @@
 <template>
   <div class="app-shell" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
-    <aside class="sidebar">
+    <aside class="sidebar" :inert="hasOpenDialogs">
       <div class="brand">
-        <div class="brand-mark">IC</div>
-        <div>
-          <h1>环境试验箱平台</h1>
-          <p>Industrial Chamber QC</p>
+        <div class="brand-mark" aria-hidden="true">
+          <AppIcon name="factory" :size="22" :stroke-width="1.75" />
+        </div>
+        <div class="brand-copy">
+          <h1>哈丁环境试验箱数据平台</h1>
         </div>
       </div>
 
-      <nav class="nav-list" aria-label="主导航">
+      <nav ref="sidebarNav" class="nav-list motion-nav" :class="{ 'motion-ready': sidebarIndicator }" aria-label="主导航">
+        <span v-if="sidebarIndicator" class="motion-selection" :style="sidebarIndicator" aria-hidden="true"></span>
         <button
           v-for="item in sidebarItems"
           :key="item.key"
+          :data-motion-key="item.key"
           :class="{ active: activeSidebarKey === item.key }"
+          :aria-current="activeSidebarKey === item.key ? 'page' : undefined"
           type="button"
           @click="handleSidebarSelect(item)"
         >
@@ -52,30 +56,52 @@
       </div>
     </aside>
 
-    <section class="main-shell">
+    <section class="main-shell" :inert="hasOpenDialogs">
       <header class="topbar">
         <div class="top-title">
-          <template v-if="activeView === 'device-detail'">
-            <div class="device-title-copy">
-              <h2>{{ selectedDevice?.name || selectedDeviceId }}</h2>
-              <div class="device-title-meta">
-                <span class="device-meta-item"><small>IP</small>{{ selectedDevice?.device_ip || selectedDevice?.ip_address || selectedDevice?.ip || "暂无 IP" }}</span>
-                <strong
-                  v-if="selectedDevice"
-                  :class="['device-status-badge', stateClass(selectedDevice)]"
-                >
-                  {{ runStateLabel(selectedDevice.run_state) }}
-                </strong>
-                <strong
-                  v-if="selectedDevice"
-                  :class="['device-status-badge', communicationClass(selectedDevice.online)]"
-                >
-                  {{ communicationLabel(selectedDevice.online) }}
-                </strong>
+          <Transition name="settings-tab" mode="out-in">
+          <div v-if="activeView === 'device-detail'" key="device" class="device-title-copy">
+              <div class="device-heading">
+                <AppIcon class="device-heading-icon" name="box" :size="20" :stroke-width="1.7" />
+                <h2>{{ selectedDevice?.name || selectedDeviceId }}</h2>
               </div>
-            </div>
-          </template>
-          <h2 v-else>{{ currentTitle }}</h2>
+              <div class="device-title-meta">
+                <span class="device-meta-item device-meta-ip" title="设备 IP 地址">
+                  <AppIcon name="network" :size="14" :stroke-width="1.8" />
+                  <span class="device-meta-label">IP</span>
+                  <strong>{{ selectedDevice?.device_ip || selectedDevice?.ip_address || selectedDevice?.ip || "未配置" }}</strong>
+                </span>
+                <span
+                  v-if="selectedDevice"
+                  :class="['device-meta-item', 'device-status-item', communicationClass(selectedDevice.online)]"
+                  title="设备连接状态"
+                >
+                  <AppIcon :name="selectedDevice.online ? 'wifi' : 'wifiOff'" :size="14" :stroke-width="1.9" />
+                  <span class="device-meta-label">连接</span>
+                  <strong>{{ communicationLabel(selectedDevice.online) }}</strong>
+                </span>
+                <span
+                  v-if="selectedDevice"
+                  :class="['device-meta-item', 'device-status-item', stateClass(selectedDevice)]"
+                  title="设备运行状态"
+                >
+                  <AppIcon :name="runStateIcon(selectedDevice.run_state)" :size="14" :stroke-width="1.9" />
+                  <span class="device-meta-label">运行</span>
+                  <strong>{{ runStateLabel(selectedDevice.run_state) }}</strong>
+                </span>
+                <span v-if="isPilotWorkspace" class="workspace-refresh-status" :class="{ 'has-error': pilotRefresh.state.error }">
+                  <AppIcon
+                    :class="{ 'status-icon-spin': pilotRefresh.state.pending }"
+                    :name="pilotRefresh.state.error ? 'alarms' : pilotRefresh.state.pending ? 'refresh' : 'database'"
+                    :size="14"
+                    :stroke-width="1.8"
+                  />
+                  <span>{{ pilotStatusText }}</span>
+                </span>
+              </div>
+          </div>
+          <h2 v-else :key="activeView">{{ currentTitle }}</h2>
+          </Transition>
         </div>
         <div class="top-actions">
           <button
@@ -99,21 +125,26 @@
               <strong>{{ sessionUser.display_name }}</strong>
               <span>{{ sessionUser.role_label }}</span>
             </div>
-            <div class="avatar">{{ sessionUser.display_name.slice(0, 1).toUpperCase() }}</div>
+            <div class="avatar" aria-hidden="true">
+              <AppIcon name="user" :size="18" :stroke-width="1.8" />
+            </div>
           </button>
         </div>
       </header>
 
-      <main class="content">
-        <section v-if="activeView === 'dashboard'" class="page-stack">
+      <main ref="workspaceContent" class="content">
+        <Transition name="workspace" mode="out-in" @before-leave="prepareWorkspaceLeave" @after-enter="finishWorkspaceEnter">
+        <section v-if="activeView === 'dashboard'" key="dashboard" class="page-stack">
           <section class="panel overview-panel">
             <div class="panel-title">
               <h3>试验箱实时列表</h3>
               <div class="panel-actions">
                 <span class="live-pill"><i></i>实时数据流</span>
-                <div class="view-toggle" aria-label="切换设备展示形式">
+                <div ref="displayModeNav" class="view-toggle motion-nav" :class="{ 'motion-ready': displayModeIndicator }" aria-label="切换设备展示形式">
+                  <span v-if="displayModeIndicator" class="motion-selection" :style="displayModeIndicator" aria-hidden="true"></span>
                   <button
                     type="button"
+                    data-motion-key="list"
                     :class="{ active: deviceDisplayMode === 'list' }"
                     @click="deviceDisplayMode = 'list'"
                   >
@@ -121,6 +152,7 @@
                   </button>
                   <button
                     type="button"
+                    data-motion-key="card"
                     :class="{ active: deviceDisplayMode === 'card' }"
                     @click="deviceDisplayMode = 'card'"
                   >
@@ -129,12 +161,14 @@
                 </div>
               </div>
             </div>
+            <Transition name="settings-tab" mode="out-in" @before-leave="prepareWorkspaceLeave">
             <DeviceOverviewList
               v-if="deviceDisplayMode === 'list'"
+              key="list"
               :devices="devices"
               @select="openDeviceDetail"
             />
-            <div v-else class="machine-detail-grid device-card-list">
+            <div v-else key="card" class="machine-detail-grid device-card-list">
               <LiveDeviceDetailCard
                 v-for="device in devices"
                 :key="device.device_id"
@@ -142,22 +176,28 @@
                 @select="openDeviceDetail"
               />
             </div>
+            </Transition>
           </section>
         </section>
 
         <ProfileCenter
           v-else-if="activeView === 'profile'"
+          key="profile"
           :user="sessionUser"
           :current-time="currentTimeText"
+          :refresh-target="workspaceContent"
           @back="returnToMonitoring"
           @logout="logoutToLogin"
           @user-updated="updateSessionUser"
         />
 
-        <section v-else-if="activeView === 'device-detail'" class="page-stack">
+        <section v-else-if="activeView === 'device-detail'" key="device-detail" class="page-stack device-workspace">
+          <Transition name="workspace" mode="out-in" @before-leave="prepareWorkspaceLeave" @after-enter="finishWorkspaceEnter">
           <section
             v-if="selectedDevice && selectedDeviceSection === 'monitor'"
+            key="monitor"
             class="monitor-layout"
+            :aria-busy="monitorRefresh.state.pending"
             :class="{
               'wallboard-mode': visibleMonitorCards.length === 0,
               'dut-only-mode': visibleMonitorCards.length === 1 && visibleMonitorCards[0] === 'dut-temperatures',
@@ -357,47 +397,22 @@
               </div>
             </section>
 
-            <div v-if="isLayoutEditorOpen" class="layout-modal-backdrop" @click.self="isLayoutEditorOpen = false">
-              <section class="layout-modal" role="dialog" aria-modal="true" aria-labelledby="layout-modal-title">
-                <div class="layout-modal-header">
-                  <div>
-                    <h3 id="layout-modal-title">选择显示卡片</h3>
-                    <span>配置仅保存在当前浏览器</span>
-                  </div>
-                  <button class="layout-modal-close" type="button" title="关闭" aria-label="关闭" @click="isLayoutEditorOpen = false">
-                    <AppIcon name="close" :size="17" />
-                  </button>
-                </div>
-                <div class="layout-editor">
-                  <label v-for="card in optionalMonitorCards" :key="card.key" class="layout-option">
-                    <input
-                      type="checkbox"
-                      :checked="visibleMonitorCards.includes(card.key)"
-                      @change="toggleMonitorCard(card.key)"
-                    />
-                    <AppIcon :name="card.icon" :size="15" />
-                    <span>{{ card.label }}</span>
-                  </label>
-                </div>
-                <div class="layout-modal-footer">
-                  <span>{{ visibleMonitorCards.length }} 项已显示</span>
-                  <button class="layout-modal-confirm" type="button" @click="isLayoutEditorOpen = false">完成</button>
-                </div>
-              </section>
-            </div>
           </section>
 
-          <section v-else-if="selectedDevice && selectedDeviceSection === 'operation'" class="operation-settings">
+          <section v-else-if="selectedDevice && selectedDeviceSection === 'operation'" key="operation" class="operation-settings">
             <div class="operation-layout">
-              <nav class="operation-nav panel" aria-label="操作设定分类">
-                <button v-for="item in operationTabs" :key="item.key" type="button" :class="{ active: operationTab === item.key }" @click="operationTab = item.key">
+              <nav ref="operationNav" class="operation-nav panel motion-nav" :class="{ 'motion-ready': operationIndicator }" aria-label="操作设定分类">
+                <span v-if="operationIndicator" class="motion-selection" :style="operationIndicator" aria-hidden="true"></span>
+                <button v-for="item in operationTabs" :key="item.key" :data-motion-key="item.key" type="button" :class="{ active: operationTab === item.key }" :aria-current="operationTab === item.key ? 'page' : undefined" @click="operationTab = item.key">
                   <AppIcon :name="item.icon" :size="17" />
                   <span><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span>
                   <AppIcon name="chevronRight" :size="14" />
                 </button>
               </nav>
 
-              <section class="operation-editor">
+              <section class="operation-editor" :aria-busy="operationRefresh.state.pending || operationSaving">
+                <Transition name="settings-tab" mode="out-in" @before-leave="prepareTabLeave" @after-enter="finishTabEnter">
+                <div :key="operationTab" class="operation-tab-content" :class="{ 'is-refreshing': operationRefresh.state.visible || operationRefresh.state.error }" :inert="operationRefresh.state.pending || !!operationRefresh.state.error || operationSaving">
                 <div v-if="operationTab === 'protection'" class="protection-settings-grid">
                   <section v-for="item in protectionItems" :key="item.key" class="protection-card protection-card-enabled">
                     <header>
@@ -509,22 +524,27 @@
                     </div>
                   </section>
                   </div>
-                  <div class="operation-editor-footer other-settings-footer"><span>最后保存：{{ operationLastSaved }}</span><button class="primary-action" type="button" @click="openSaveConfirm('other')">保存设定</button></div>
+                  <div class="operation-editor-footer other-settings-footer"><span class="operation-save-meta"><span>最后保存：{{ operationLastSaved }}</span><span v-if="operationFeedback" class="operation-feedback" role="status">{{ operationFeedback }}</span></span><button class="primary-action" type="button" @click="openSaveConfirm('other')">保存设定</button></div>
                 </section>
 
-                <div v-if="operationTab !== 'other'" class="operation-editor-footer"><span>最后保存：{{ operationLastSaved }}</span><div v-if="operationTab !== 'program'"><button class="ghost-action" type="button" @click="resetOperationForm">恢复默认</button><button class="primary-action" type="button" @click="openSaveConfirm('operation')">保存设定</button></div></div>
+                <div v-if="operationTab !== 'other'" class="operation-editor-footer"><span class="operation-save-meta"><span>最后保存：{{ operationLastSaved }}</span><span v-if="operationFeedback" class="operation-feedback" role="status">{{ operationFeedback }}</span></span><div v-if="operationTab !== 'program'"><button class="ghost-action" type="button" @click="resetOperationForm">恢复默认</button><button class="primary-action" type="button" @click="openSaveConfirm('operation')">保存设定</button></div></div>
+                </div>
+                </Transition>
               </section>
             </div>
           </section>
 
-          <section v-else-if="selectedDevice && selectedDeviceSection === 'parameters'" class="system-parameters">
-            <nav class="operation-nav panel system-parameter-nav" aria-label="系统参数分类">
-              <button v-for="item in parameterTabs" :key="item.key" type="button" :class="{ active: parameterTab === item.key }" @click="parameterTab = item.key">
+          <section v-else-if="selectedDevice && selectedDeviceSection === 'parameters'" key="parameters" class="system-parameters">
+            <nav ref="parameterNav" class="operation-nav panel system-parameter-nav motion-nav" :class="{ 'motion-ready': parameterIndicator }" aria-label="系统参数分类">
+              <span v-if="parameterIndicator" class="motion-selection" :style="parameterIndicator" aria-hidden="true"></span>
+              <button v-for="item in parameterTabs" :key="item.key" :data-motion-key="item.key" type="button" :class="{ active: parameterTab === item.key }" :aria-current="parameterTab === item.key ? 'page' : undefined" @click="parameterTab = item.key">
                 <AppIcon :name="item.icon" :size="17" />
                 <span><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span>
                 <AppIcon name="chevronRight" :size="14" />
               </button>
             </nav>
+            <Transition name="settings-tab" mode="out-in" @before-leave="prepareTabLeave" @after-enter="finishTabEnter">
+            <div :key="parameterTab" class="parameter-tab-content" :aria-busy="parameterRefresh.state.pending || parameterSaving" :inert="parameterRefresh.state.pending || !!parameterRefresh.state.error || parameterSaving">
             <div class="system-parameters-grid" :class="{ 'basic-parameter-grid': parameterTab === 'basic', 'calibration-parameter-grid': parameterTab === 'calibration' }">
               <section v-if="parameterTab === 'basic'" class="system-parameter-card product-info-card">
                 <header><span>产品信息</span></header>
@@ -619,7 +639,8 @@
                     </fieldset>
                   </div>
 
-                  <fieldset class="pid-group-editor">
+                  <Transition name="settings-tab" mode="out-in" @before-leave="prepareWorkspaceLeave">
+                  <fieldset :key="`${selectedPidMode}-${selectedPidGroup}`" class="pid-group-editor">
                     <legend>设定序号：{{ selectedPidDisplayNumber }}</legend>
                     <div class="pid-editor-head" aria-hidden="true">
                       <span></span>
@@ -634,6 +655,7 @@
                       </label>
                     </div>
                   </fieldset>
+                  </Transition>
                 </div>
               </section>
 
@@ -673,9 +695,11 @@
 
             </div>
             <div class="system-parameters-footer"><span>参数修改仅作用于当前设备</span><div><button class="ghost-action" type="button" @click="resetParameterForm">恢复默认</button><button class="primary-action" type="button" @click="openSaveConfirm('parameters')">保存参数</button></div></div>
+            </div>
+            </Transition>
           </section>
 
-          <section v-else-if="selectedDevice && selectedDeviceSection === 'history'" class="history-page page-stack">
+          <section v-else-if="selectedDevice && selectedDeviceSection === 'history'" key="history" class="history-page page-stack" :aria-busy="historyLoading">
             <div class="section-head history-page-head">
               <div><h2>历史记录</h2><span>{{ selectedDevice.name || selectedDevice.device_id }} · 温湿度历史曲线</span></div>
               <span class="history-record-count">{{ historyItems.length }} 条记录</span>
@@ -692,8 +716,7 @@
             </section>
             <section class="panel history-chart-panel">
               <div class="panel-title"><div><h3>温湿度曲线</h3><span>{{ historyRangeLabel }}</span></div><div class="history-legend"><span><i class="history-temp-line"></i>温度 °C</span><span><i class="history-hum-line"></i>湿度 %RH</span></div></div>
-              <div v-if="historyLoading" class="history-state">正在读取历史数据…</div>
-              <div v-else-if="!historyItems.length" class="history-state">当前时间范围内暂无历史数据。</div>
+              <div v-if="!historyItems.length" class="history-state">{{ historyLoading ? '' : '当前时间范围内暂无历史数据。' }}</div>
               <svg v-else class="history-chart" viewBox="0 0 1000 320" role="img" aria-label="温湿度历史曲线">
                 <g class="history-grid-lines"><line v-for="y in historyGridLines" :key="`y-${y}`" x1="58" :y1="y" x2="978" :y2="y"></line><line v-for="x in historyXAxis" :key="`x-${x}`" :x1="x" y1="20" :x2="x" y2="268"></line></g>
                 <polyline class="history-temp-path" :points="historyTempPoints"></polyline><polyline class="history-hum-path" :points="historyHumPoints"></polyline>
@@ -707,18 +730,19 @@
             </section>
           </section>
 
-          <section v-else-if="selectedDevice" class="panel empty-panel">
+          <section v-else-if="selectedDevice" :key="selectedDeviceSection" class="panel empty-panel">
             <h3>{{ currentDeviceSectionLabel }}</h3>
             <p>{{ currentDeviceSectionDescription }}</p>
           </section>
 
-          <section v-else class="panel empty-panel">
+          <section v-else key="missing-device" class="panel empty-panel">
             <h3>设备暂未找到</h3>
             <p>请返回实时列表，重新选择一台在线试验箱。</p>
           </section>
+          </Transition>
         </section>
 
-        <section v-else-if="activeView === 'memory'" class="page-stack">
+        <section v-else-if="activeView === 'memory'" key="memory" class="page-stack">
           <div class="section-head">
             <h2>共享内存检查</h2>
             <a class="link-button" href="/debug" target="_blank">打开调试页</a>
@@ -738,7 +762,7 @@
           </section>
         </section>
 
-        <section v-else class="page-stack">
+        <section v-else :key="activeView" class="page-stack">
           <div class="section-head">
             <h2>{{ currentTitle }}</h2>
             <span>预留模块</span>
@@ -748,11 +772,38 @@
             <p>这里将接入历史曲线、试验报告、报警处理、配方管理和权限审批。</p>
           </section>
         </section>
+        </Transition>
       </main>
+      <WorkspaceRefresh
+        v-if="workspaceRefresh"
+        :key="`${activeView}-${selectedDeviceId}-${selectedDeviceSection}-${operationTab}-${parameterTab}`"
+        :target="workspaceContent"
+        :pending="workspaceRefresh.state.pending"
+        :visible="workspaceRefresh.state.visible"
+        :error="workspaceRefresh.state.error"
+        :title="workspaceRefreshTitle"
+        complete-title="最新数据已就绪"
+        :error-title="workspaceErrorTitle"
+        @retry="retryWorkspace"
+        @dismiss="dismissWorkspaceRefresh"
+      />
     </section>
 
-    <div v-if="isSaveConfirmOpen" class="save-confirm-backdrop" @click.self="closeSaveConfirm">
-      <section class="save-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="save-confirm-title">
+    <MotionDialog :open="isLayoutEditorOpen" backdrop-class="layout-modal-backdrop" panel-class="layout-modal" labelledby="layout-modal-title" @close="isLayoutEditorOpen = false">
+      <div class="layout-modal-header">
+        <div><h3 id="layout-modal-title">选择显示卡片</h3><span>配置仅保存在当前浏览器</span></div>
+        <button class="layout-modal-close" type="button" title="关闭" aria-label="关闭" @click="isLayoutEditorOpen = false"><AppIcon name="close" :size="17" /></button>
+      </div>
+      <div class="layout-editor">
+        <label v-for="card in optionalMonitorCards" :key="card.key" class="layout-option">
+          <input type="checkbox" :checked="visibleMonitorCards.includes(card.key)" @change="toggleMonitorCard(card.key)" />
+          <AppIcon :name="card.icon" :size="15" /><span>{{ card.label }}</span>
+        </label>
+      </div>
+      <div class="layout-modal-footer"><span>{{ visibleMonitorCards.length }} 项已显示</span><button class="layout-modal-confirm" type="button" @click="isLayoutEditorOpen = false">完成</button></div>
+    </MotionDialog>
+
+    <MotionDialog :open="isSaveConfirmOpen" backdrop-class="save-confirm-backdrop" panel-class="save-confirm-modal" labelledby="save-confirm-title" return-focus=".operation-nav button.active" @close="closeSaveConfirm">
         <div class="save-confirm-header">
           <div>
             <h3 id="save-confirm-title">确认修改设置</h3>
@@ -760,14 +811,12 @@
           </div>
         </div>
         <div class="save-confirm-footer">
-          <button class="ghost-action" type="button" @click="closeSaveConfirm">取消</button>
+          <button class="ghost-action" type="button" data-dialog-autofocus @click="closeSaveConfirm">取消</button>
           <button class="primary-action" type="button" @click="confirmSaveSettings">确认修改</button>
         </div>
-      </section>
-    </div>
+    </MotionDialog>
 
-    <div v-if="isProgramEditorOpen" class="program-editor-backdrop" @click.self="closeProgramEditor">
-      <section class="program-editor-modal" role="dialog" aria-modal="true" aria-labelledby="program-editor-title">
+    <MotionDialog :open="isProgramEditorOpen" backdrop-class="program-editor-backdrop" panel-class="program-editor-modal" labelledby="program-editor-title" @close="closeProgramEditor">
         <div class="program-editor-header"><div><h3 id="program-editor-title">{{ programEditorMode === 'create' ? '新建程序' : '编辑程序' }}</h3></div><button class="program-editor-close" type="button" title="关闭" aria-label="关闭" @click="closeProgramEditor"><AppIcon name="close" :size="17" /></button></div>
         <form class="program-editor-form" @submit.prevent="saveProgram">
           <div class="program-editor-group-fields"><label class="program-editor-name"><span>程序名称</span><input v-model.trim="programDraft.name" type="text" maxlength="128" required></label></div>
@@ -789,11 +838,9 @@
           </section>
           <div class="program-editor-footer"><span v-if="programFeedback" class="program-editor-feedback">{{ programFeedback }}</span><div><button class="ghost-action" type="button" @click="closeProgramEditor">取消</button><button class="primary-action" type="submit" :disabled="programSaving">{{ programSaving ? '保存中…' : '保存程序' }}</button></div></div>
         </form>
-      </section>
-    </div>
+    </MotionDialog>
 
-    <div v-if="isProgramPreviewOpen" class="program-preview-backdrop" @click.self="closeProgramPreview">
-      <section class="program-preview-modal" role="dialog" aria-modal="true" aria-labelledby="program-preview-title">
+    <MotionDialog :open="isProgramPreviewOpen" backdrop-class="program-preview-backdrop" panel-class="program-preview-modal" labelledby="program-preview-title" @close="closeProgramPreview">
         <header class="program-preview-header"><div><h3 id="program-preview-title">{{ programPreview?.name || '程序预览' }}</h3><span>程序组 {{ programPreview?.pro_no }}</span></div><button class="program-preview-close" type="button" title="关闭预览" aria-label="关闭预览" @click="closeProgramPreview"><AppIcon name="close" :size="17" /></button></header>
         <div v-if="programPreview" class="program-preview-content">
           <div class="program-detail-meta"><span>总运行时间 <strong>{{ formatDuration(programPreview.display_total_time) }}</strong></span><span>总循环次数 <strong>{{ programPreview.full_cycle || 0 }} 次</strong></span><span>链接 <strong>{{ programPreview.link_no || 0 }}</strong></span></div>
@@ -839,11 +886,9 @@
           </section>
           <section v-else class="program-chart-empty">该程序尚未配置可绘制的步骤数据</section>
         </div>
-      </section>
-    </div>
+    </MotionDialog>
 
-    <div v-if="isEventDialogOpen" class="event-dialog-backdrop" @click.self="cancelEventDialog">
-      <section class="event-dialog" role="dialog" aria-modal="true" aria-labelledby="event-dialog-title">
+    <MotionDialog :open="isEventDialogOpen" backdrop-class="event-dialog-backdrop" panel-class="event-dialog" labelledby="event-dialog-title" @close="cancelEventDialog">
         <div class="event-dialog-header">
           <div>
             <h3 id="event-dialog-title">{{ eventDialogStepIndex === null ? '选择事件' : `步骤${eventDialogStepIndex + 1}事件` }}</h3>
@@ -875,16 +920,14 @@
             <button class="primary-action" type="button" @click="confirmEventDialog">确认</button>
           </div>
         </div>
-      </section>
-    </div>
+    </MotionDialog>
 
-    <div v-if="isRunModeDialogOpen" class="run-mode-backdrop" @click.self="cancelRunModeSelection">
-      <section class="run-mode-modal" role="dialog" aria-modal="true" aria-labelledby="run-mode-title">
+    <MotionDialog :open="isRunModeDialogOpen" backdrop-class="run-mode-backdrop" panel-class="run-mode-modal" labelledby="run-mode-title" return-focus=".operation-nav button.active" @close="cancelRunModeSelection">
         <div class="run-mode-header">
           <div>
             <h3 id="run-mode-title">选择运行模式</h3>
           </div>
-          <button class="run-mode-close" type="button" title="关闭" aria-label="关闭" @click="cancelRunModeSelection">
+          <button class="run-mode-close" type="button" title="关闭" aria-label="关闭" data-dialog-autofocus @click="cancelRunModeSelection">
             <AppIcon name="close" :size="17" />
           </button>
         </div>
@@ -895,6 +938,7 @@
             type="button"
             class="run-mode-option"
             :class="{ active: runModeSelection === mode.value }"
+            :aria-pressed="runModeSelection === mode.value"
             @click="runModeSelection = mode.value"
           >
             <span class="run-mode-option-icon"><AppIcon :name="mode.icon" :size="21" /></span>
@@ -904,24 +948,24 @@
         </div>
         <div class="run-mode-preview" aria-live="polite">
           <div class="run-mode-preview-heading"><span>当前模式预览</span><button v-if="runModeSelection === '1'" class="run-mode-preview-link" type="button" @click="openSetpointSettings">定制修改</button></div>
-          <div v-if="runModeSelection === '1'" class="run-mode-preview-grid">
+          <Transition name="settings-tab" mode="out-in" @before-leave="prepareWorkspaceLeave">
+          <div v-if="runModeSelection === '1'" key="fixed" class="run-mode-preview-grid">
             <div><span>温度目标</span><strong>{{ operationForm.targetTemp }} °C</strong></div>
             <div><span>湿度目标</span><strong>{{ operationForm.targetHum }} %RH</strong></div>
             <div><span>运行时间</span><strong>{{ String(operationForm.runtimeHours).padStart(2, '0') }}:{{ String(operationForm.runtimeMinutes).padStart(2, '0') }}:{{ String(operationForm.runtimeSeconds).padStart(2, '0') }}</strong></div>
           </div>
-          <div v-else class="run-mode-preview-grid program-mode-preview">
+          <div v-else key="program" class="run-mode-preview-grid program-mode-preview">
             <div><span>程序名称</span><strong>{{ selectedProgram?.name || "尚未选择程序" }}</strong></div>
             <div><span>总运行时间</span><strong>{{ selectedProgram?.display_total_time == null ? "--" : formatDuration(selectedProgram.display_total_time) }}</strong></div>
           </div>
+          </Transition>
         </div>
         <div class="run-mode-footer">
           <div><button class="primary-action" type="button" @click="confirmRunModeSelection">确认启动</button></div>
         </div>
-      </section>
-    </div>
+    </MotionDialog>
 
-    <div v-if="isNotificationOpen" class="notification-modal-backdrop" @click.self="isNotificationOpen = false">
-      <section class="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
+    <MotionDialog :open="isNotificationOpen" backdrop-class="notification-modal-backdrop" panel-class="notification-modal" labelledby="notification-modal-title" @close="isNotificationOpen = false">
         <div class="notification-modal-header">
           <div>
             <h3 id="notification-modal-title">{{ notificationTitle }}</h3>
@@ -931,11 +975,13 @@
             <AppIcon name="close" :size="17" />
           </button>
         </div>
-        <div v-if="activeView === 'device-detail'" class="notification-tabs" role="tablist" aria-label="设备信息类别">
-          <button type="button" :class="{ active: notificationTab === 'operations' }" role="tab" :aria-selected="notificationTab === 'operations'" @click="notificationTab = 'operations'">操作日志</button>
-          <button type="button" :class="{ active: notificationTab === 'alarms' }" role="tab" :aria-selected="notificationTab === 'alarms'" @click="notificationTab = 'alarms'">报警信息<span v-if="selectedDeviceAlarmItems.length">{{ selectedDeviceAlarmItems.length }}</span></button>
+        <div v-if="activeView === 'device-detail'" ref="notificationNav" class="notification-tabs motion-nav" :class="{ 'motion-ready': notificationIndicator }" role="tablist" aria-label="设备信息类别">
+          <span v-if="notificationIndicator" class="motion-selection" :style="notificationIndicator" aria-hidden="true"></span>
+          <button data-motion-key="operations" type="button" :class="{ active: notificationTab === 'operations' }" role="tab" :aria-selected="notificationTab === 'operations'" @click="notificationTab = 'operations'">操作日志</button>
+          <button data-motion-key="alarms" type="button" :class="{ active: notificationTab === 'alarms' }" role="tab" :aria-selected="notificationTab === 'alarms'" @click="notificationTab = 'alarms'">报警信息<span v-if="selectedDeviceAlarmItems.length">{{ selectedDeviceAlarmItems.length }}</span></button>
         </div>
-        <div v-if="notificationTab === 'operations' || activeView !== 'device-detail'" class="notification-list">
+        <Transition name="settings-tab" mode="out-in" @before-leave="prepareWorkspaceLeave">
+        <div v-if="notificationTab === 'operations' || activeView !== 'device-detail'" key="operations" class="notification-list">
           <div v-if="activeNotifications.length === 0" class="notification-empty">
             <strong>{{ notificationEmptyTitle }}</strong>
             <span>{{ notificationEmptyText }}</span>
@@ -949,7 +995,7 @@
             <time>{{ item.timeText }}</time>
           </article>
         </div>
-        <div v-else class="alarm-info-list">
+        <div v-else key="alarms" class="alarm-info-list">
           <div class="alarm-info-summary">
             <div><span>当前状态</span><strong :class="{ active: selectedDeviceAlarmItems.length > 0 }">{{ selectedDeviceAlarmState }}</strong></div>
             <small>{{ selectedDeviceAlarmItems.length ? `检测到 ${selectedDeviceAlarmItems.length} 条报警` : "当前设备未上报报警" }}</small>
@@ -967,8 +1013,16 @@
             <time>{{ selectedDevice?.data_time || selectedDevice?.time || "实时" }}</time>
           </article>
         </div>
-      </section>
-    </div>
+        </Transition>
+    </MotionDialog>
+
+    <MotionDialog :open="pendingDeleteProgram !== null" backdrop-class="save-confirm-backdrop" panel-class="save-confirm-modal" labelledby="delete-program-title" @close="pendingDeleteProgram = null">
+      <div class="save-confirm-header"><div><h3 id="delete-program-title">删除程序</h3><span>确定删除程序组 {{ pendingDeleteProgram }} 及其全部步骤？</span></div></div>
+      <div class="save-confirm-footer">
+        <button class="ghost-action" type="button" data-dialog-autofocus @click="pendingDeleteProgram = null">取消</button>
+        <button class="primary-action" type="button" @click="confirmDeleteProgram">确认删除</button>
+      </div>
+    </MotionDialog>
   </div>
 </template>
 
@@ -980,6 +1034,11 @@ import DeviceOverviewList from "./components/DeviceOverviewList.vue";
 import AppIcon from "./components/AppIcon.vue";
 import HmiDashboard from "./components/HmiDashboard.vue";
 import ProfileCenter from "./components/ProfileCenter.vue";
+import MotionDialog from "./components/MotionDialog.vue";
+import WorkspaceRefresh from "./components/WorkspaceRefresh.vue";
+import { useRefreshTask } from "./composables/useRefreshTask";
+import { useSelectionIndicator } from "./composables/useSelectionIndicator";
+import { hasOpenDialogs } from "./composables/useDialogStack";
 import { communicationClass, communicationLabel, runStateLabel } from "./utils/state";
 
 const emit = defineEmits(["logout"]);
@@ -1112,6 +1171,26 @@ const operationForm = ref({
   scheduledStopDate: "2026-07-31",
   scheduledStopTime: "16:34"
 });
+const operationFieldGroups = {
+  protection: ["airTEMP_H", "airTEMP_L", "dutTEMP_H", "dutTEMP_L", "dutModeAir_H", "dutModeAir_L"],
+  setpoint: ["targetTemp", "targetHum", "tempRamp", "humRamp", "runtimeHours", "runtimeMinutes", "runtimeSeconds"],
+  other: ["powerOnMode", "stopResumeMode", "temperatureControlMode", "dutTemperatureSource", "waitTemperatureUpper", "waitHumidityUpper", "eventCode"],
+  retention: ["historyRetentionDays"]
+};
+const operationBaselines = ref(Object.fromEntries(Object.keys(operationFieldGroups).map(key => [key, operationSignature(key)])));
+const operationSaving = ref(false);
+const monitorRefresh = useRefreshTask();
+const operationRefresh = useRefreshTask();
+const parameterRefresh = useRefreshTask();
+const historyRefresh = useRefreshTask();
+const programRead = useRefreshTask();
+const parameterSaving = ref(false);
+const sidebarNav = ref(null);
+const operationNav = ref(null);
+const parameterNav = ref(null);
+const displayModeNav = ref(null);
+const notificationNav = ref(null);
+const workspaceContent = ref(null);
 const parameterForm = ref({
   deviceName: "",
   model: "IC-1000",
@@ -1167,8 +1246,8 @@ const deviceDisplayMode = ref("list");
 const selectedTrendCanvas = ref(null);
 const trendHistory = ref({});
 const historyItems = ref([]);
-const historyLoading = ref(false);
-const historyError = ref("");
+const historyLoading = computed(() => historyRefresh.state.pending);
+const historyError = computed(() => historyRefresh.state.error);
 const historyQuery = ref({ range: "24h", startTime: toDateTimeInput(Date.now() - 24 * 60 * 60 * 1000), endTime: toDateTimeInput(Date.now()), runState: "" });
 const currentTimeText = ref(new Date().toLocaleTimeString());
 const commandStatusById = ref({});
@@ -1206,6 +1285,7 @@ const programChartCursor = ref(null);
 const isProgramChartPointerDown = ref(false);
 const programChartScrollStart = ref(0);
 const isProgramEditorOpen = ref(false);
+const pendingDeleteProgram = ref(null);
 const programEditorMode = ref("create");
 const programSaving = ref(false);
 const programFeedback = ref("");
@@ -1222,7 +1302,14 @@ let reconnectTimer = null;
 let clockTimer = null;
 let correctionRefreshTimer = null;
 let correctionRequestPending = false;
+let correctionController;
+let correctionRevision = 0;
 let lastTrendDragX = 0;
+let socketSnapshotRevision = 0;
+let programRequestRevision = 0;
+let programSelectionRevision = 0;
+let feedbackTimer;
+let retryProgramRead = null;
 
 const navItems = [
   { key: "dashboard", label: "设备列表", icon: "D" }
@@ -1307,7 +1394,7 @@ const dutCalibrationGroups = [
 ];
 const correctionReadingFieldKeys = ["TEMP", "HUMI"].flatMap(prefix =>
   ["Collected", "Corrected", "Final"].map(stage => `${prefix}_${stage}`)
-);
+).concat(Array.from({ length: 10 }, (_, index) => ["Collected", "Final"].map(stage => `DUT${index + 1}_${stage}`)).flat());
 const correctionFieldKeys = [
   ...calibrationFields.temperature.map(({ key }) => key),
   ...calibrationFields.humidity.map(({ key }) => key),
@@ -1316,6 +1403,12 @@ const correctionFieldKeys = [
     ["Collected", "Corrected", "Final"].map(stage => `DUT${index + 1}_${stage}`)
   ).flat()
 ];
+const parameterFieldGroups = {
+  basic: ["temperatureRangeMax", "temperatureRangeMin", "humidityRangeMax", "humidityRangeMin", "temperatureTransmissionMax", "temperatureTransmissionMin", "compressorFrequency", "circulationFanFrequency", "humidifierFrequency", "frequencyLimit"],
+  calibration: correctionFieldKeys.filter(key => !correctionReadingFieldKeys.includes(key)),
+  pid: pidSettingFieldKeys
+};
+const parameterBaselines = ref(Object.fromEntries(Object.values(parameterFieldGroups).flat().map(key => [key, String(parameterForm.value[key])])));
 const protectionItems = [
   { key: "air-temperature", label: "空气温度保护", upper: "airTEMP_H", lower: "airTEMP_L" },
   { key: "dut-temperature", label: "试品温度保护", upper: "dutTEMP_H", lower: "dutTEMP_L" },
@@ -1360,6 +1453,43 @@ const activeSidebarKey = computed(() => {
   if (activeView.value === "device-detail") return selectedDeviceSection.value;
   return activeView.value;
 });
+const sidebarIndicator = useSelectionIndicator(sidebarNav, activeSidebarKey);
+const operationIndicator = useSelectionIndicator(operationNav, operationTab);
+const parameterIndicator = useSelectionIndicator(parameterNav, parameterTab);
+const displayModeIndicator = useSelectionIndicator(displayModeNav, deviceDisplayMode);
+const notificationIndicator = useSelectionIndicator(notificationNav, notificationTab);
+const isPilotWorkspace = computed(() => activeView.value === "device-detail" && ["monitor", "operation"].includes(selectedDeviceSection.value));
+const pilotRefresh = computed(() => selectedDeviceSection.value === "operation" ? operationRefresh : monitorRefresh);
+const workspaceRefresh = computed(() => {
+  if (programRead.state.pending || programRead.state.error) return programRead;
+  if (["dashboard", "memory"].includes(activeView.value)) return monitorRefresh;
+  if (activeView.value !== "device-detail") return null;
+  return ({ monitor: monitorRefresh, operation: operationRefresh, parameters: parameterRefresh, history: historyRefresh })[selectedDeviceSection.value] || null;
+});
+const workspaceRefreshTitle = computed(() => {
+  if (workspaceRefresh.value === programRead) return "正在读取程序";
+  if (activeView.value !== "device-detail") return "正在读取实时数据";
+  return ({ operation: "正在读取最新设置", parameters: "正在读取系统参数", history: "正在读取历史记录" })[selectedDeviceSection.value] || "正在读取实时数据";
+});
+const workspaceErrorTitle = computed(() => {
+  if (workspaceRefresh.value === programRead) return "程序读取失败";
+  if (activeView.value === "device-detail") {
+    return ({ operation: "设置读取失败", monitor: "实时数据读取失败", parameters: "参数读取失败", history: "历史记录读取失败" })[selectedDeviceSection.value] || "数据读取失败";
+  }
+  return activeView.value === "memory" ? "快照读取失败" : "设备数据读取失败";
+});
+const operationHasDraft = computed(() => Object.keys(operationFieldGroups).some(key => operationSignature(key) !== operationBaselines.value[key]));
+const pilotStatusText = computed(() => {
+  const state = pilotRefresh.value.state;
+  if (state.error) return selectedDeviceSection.value === "operation" ? "设置读取失败" : snapshot.value ? "实时数据暂不可用，保留上次快照" : "等待控制器数据";
+  if (selectedDeviceSection.value === "operation") {
+    if (operationSaving.value) return "正在保存设置";
+    if (operationHasDraft.value) return "未保存的修改已保留";
+    return state.updatedAt ? `设置读取于 ${formatRefreshTime(state.updatedAt)}` : "等待读取设置";
+  }
+  if (connectionText.value !== "已连接" || !selectedDevice.value?.online) return snapshot.value ? "当前为最近一次设备数据" : "等待控制器数据";
+  return snapshot.value?.written_at ? `数据时间 ${formatRefreshTime(snapshot.value.written_at * 1000)}` : "等待设备数据";
+});
 const currentDeviceSectionLabel = computed(() => {
   return deviceNavItems.find(item => item.key === selectedDeviceSection.value)?.label || "数据监控";
 });
@@ -1372,7 +1502,6 @@ const currentDeviceSectionDescription = computed(() => {
   };
   return descriptionMap[selectedDeviceSection.value] || "这里展示当前试验箱的实时温度、湿度、步骤、报警等运行数据。";
 });
-const activeOperationTab = computed(() => operationTabs.find(item => item.key === operationTab.value) || operationTabs[0]);
 const selectedProgram = computed(() => programs.value.find(item => String(item.pro_no) === operationForm.value.programId) || programs.value[0] || null);
 const programCalculatedTotalTime = computed(() => calculateProgramTotalTime(programDraft.value));
 const programPreviewChart = computed(() => buildProgramPreviewChart(programPreview.value, programChartScrollStart.value));
@@ -1518,6 +1647,23 @@ function stateClass(device) {
   if (device.run_state === "IDLE") return "idle";
   if (device.online === false) return "idle";
   return "running";
+}
+
+function runStateIcon(state) {
+  const iconMap = {
+    RUNNING: "play",
+    HOLDING: "pause",
+    PAUSED: "pause",
+    STOPPED: "stop",
+    STOPPING: "stop",
+    ABORTING: "stop",
+    ALARM: "alarms",
+    MAINTENANCE: "settings",
+    READY: "check",
+    COMPLETED: "check",
+    IDLE: "gauge"
+  };
+  return iconMap[String(state || "").toUpperCase()] || "gauge";
 }
 
 function formatNumber(value) {
@@ -1968,7 +2114,132 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function formatRefreshTime(timestamp) {
+  return new Date(timestamp).toLocaleTimeString("zh-CN", { hour12: false });
+}
+
+function operationSignature(group) {
+  return JSON.stringify(operationFieldGroups[group].map(key => String(operationForm.value[key] ?? "")));
+}
+
+function markOperationSaved(groups = Object.keys(operationFieldGroups)) {
+  for (const group of groups) operationBaselines.value[group] = operationSignature(group);
+}
+
+function applyRefreshedOperationData({ fixed, operation, retention, programList }) {
+  // Refresh clean groups while keeping in-session edits intact across navigation.
+  const drafts = Object.fromEntries(Object.entries(operationFieldGroups)
+    .filter(([group]) => operationSignature(group) !== operationBaselines.value[group])
+    .flatMap(([, keys]) => keys.map(key => [key, operationForm.value[key]])));
+  applyFixedValueSettings(fixed.value);
+  applyOperationSettings(operation.value);
+  operationForm.value.historyRetentionDays = Number(retention.retention_days || 90);
+  const cleanGroups = Object.keys(operationFieldGroups)
+    .filter(group => !operationFieldGroups[group].some(key => Object.hasOwn(drafts, key)));
+  markOperationSaved(cleanGroups);
+  Object.assign(operationForm.value, drafts);
+  if (programList) applyProgramList(programList);
+}
+
+async function readPageJson(url, signal) {
+  const response = await fetch(url, { headers: authHeaders(), signal, cache: "no-store" });
+  if (!response.ok) throw new Error(response.status === 401 ? "登录已失效，请重新登录" : "暂时无法读取，请检查连接后重试");
+  return response.json();
+}
+
+function refreshOperationData() {
+  if (operationSaving.value) return;
+  const includePrograms = selectedDeviceSection.value === "operation" && operationTab.value === "program";
+  if (includePrograms) programRequestRevision += 1;
+  return operationRefresh.run(async signal => {
+    const [fixed, operation, retention, programList] = await Promise.all([
+      readPageJson("/api/settings/fixed-value", signal),
+      readPageJson("/api/settings/operation", signal),
+      readPageJson("/api/settings/history-retention", signal),
+      includePrograms ? fetchProgramList(signal) : Promise.resolve(null)
+    ]);
+    return { fixed, operation, retention, programList };
+  }, applyRefreshedOperationData);
+}
+
+function refreshPilotPage() {
+  monitorRefresh.cancel();
+  operationRefresh.cancel();
+  if (activeView.value === "device-detail" && selectedDeviceSection.value === "operation") {
+    refreshOperationData();
+    return;
+  }
+  if (!["dashboard", "memory"].includes(activeView.value) && !(isPilotWorkspace.value && selectedDeviceSection.value === "monitor")) return;
+  const socketRevision = socketSnapshotRevision;
+  monitorRefresh.run(async signal => {
+    try {
+      return await readPageJson("/api/memory/snapshot", signal);
+    } catch (error) {
+      if (socketSnapshotRevision !== socketRevision) return null;
+      throw error;
+    }
+  }, value => {
+    // The live stream can advance while the HTTP snapshot is in flight.
+    if (!value || socketSnapshotRevision !== socketRevision) return;
+    if (Number(value.written_at || 0) < Number(snapshot.value?.written_at || 0)) return;
+    snapshot.value = value;
+    devices.value = value.devices || [];
+    if (!devices.value.some(device => device.device_id === selectedDeviceId.value)) {
+      selectedDeviceId.value = devices.value[0]?.device_id || null;
+    }
+    updateDeviceNotifications(devices.value);
+    drawSelectedTrend();
+  });
+  if (isPilotWorkspace.value) refreshOperationData();
+}
+
+function refreshWorkspace() {
+  monitorRefresh.cancel();
+  operationRefresh.cancel();
+  parameterRefresh.cancel();
+  historyRefresh.cancel();
+  programRead.cancel();
+  programRead.state.error = "";
+  retryProgramRead = null;
+  programSelectionRevision += 1;
+  programRequestRevision += 1;
+  if (activeView.value === "device-detail" && selectedDeviceSection.value === "parameters") loadParameterSettings();
+  else if (activeView.value === "device-detail" && selectedDeviceSection.value === "history") {
+    if (historyQuery.value.range !== "custom") updateHistoryRange();
+    loadEnvironmentalHistory();
+  } else refreshPilotPage();
+}
+
+function retryWorkspace() {
+  if (programRead.state.error && retryProgramRead) retryProgramRead();
+  else refreshWorkspace();
+}
+
+function dismissWorkspaceRefresh() {
+  workspaceRefresh.value?.dismissError?.();
+}
+
+function prepareWorkspaceLeave(element) {
+  element.inert = true;
+}
+
+function finishWorkspaceEnter() {
+  drawSelectedTrend();
+}
+
+function prepareTabLeave(element) {
+  element.inert = true;
+  const editor = element.parentElement;
+  if (window.innerWidth <= 760) editor.style.minHeight = `${editor.offsetHeight}px`;
+}
+
+function finishTabEnter(element) {
+  element.parentElement.style.minHeight = "";
+}
+
 function openSaveConfirm(target) {
+  if (target === "parameters" && (parameterRefresh.state.pending || parameterRefresh.state.error || parameterSaving.value)) return;
+  if (target !== "parameters" && (operationRefresh.state.pending || operationRefresh.state.error || operationSaving.value)) return;
   pendingSaveTarget.value = target;
   isSaveConfirmOpen.value = true;
 }
@@ -2028,51 +2299,71 @@ function confirmSaveSettings() {
   if (target === "parameters") saveParameterSettings();
 }
 
-async function loadPrograms(selectFirst = true) {
-  try {
-    const response = await fetch("/api/programs", { headers: authHeaders() });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.detail || "程序读取失败");
-    const summaries = Array.isArray(result.programs) ? result.programs : [];
-    programs.value = await Promise.all(summaries.map(async summary => {
-      try {
-        const detailResponse = await fetch(`/api/programs/${encodeURIComponent(summary.pro_no)}`, { headers: authHeaders() });
-        const detailResult = await detailResponse.json().catch(() => ({}));
-        return detailResponse.ok && detailResult.program
-          ? { ...summary, display_total_time: calculateProgramTotalTime(detailResult.program) }
-          : { ...summary, display_total_time: null };
-      } catch {
-        return { ...summary, display_total_time: null };
-      }
-    }));
-    if (!programs.value.length) {
-      operationForm.value.programId = "";
-      selectedProgramDetail.value = null;
-      return;
+async function fetchProgramList(signal) {
+  const result = await readPageJson("/api/programs", signal);
+  const summaries = Array.isArray(result.programs) ? result.programs : [];
+  return Promise.all(summaries.map(async summary => {
+    try {
+      const detail = await readPageJson(`/api/programs/${encodeURIComponent(summary.pro_no)}`, signal);
+      return { ...summary, display_total_time: detail.program ? calculateProgramTotalTime(detail.program) : null };
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      return { ...summary, display_total_time: null };
     }
-    const current = programs.value.find(item => String(item.pro_no) === operationForm.value.programId);
-    if (selectFirst && !current) operationForm.value.programId = String(programs.value[0].pro_no);
-    await selectProgram(Number(operationForm.value.programId));
-  } catch (error) {
-    programs.value = [];
+  }));
+}
+
+function applyProgramList(list, selectFirst = true) {
+  programs.value = list;
+  if (!list.length) {
+    operationForm.value.programId = "";
     selectedProgramDetail.value = null;
+    return;
+  }
+  if (selectFirst && !list.some(item => String(item.pro_no) === operationForm.value.programId)) {
+    operationForm.value.programId = String(list[0].pro_no);
+  }
+}
+
+async function loadPrograms(selectFirst = true) {
+  const revision = ++programRequestRevision;
+  try {
+    const list = await fetchProgramList();
+    if (revision !== programRequestRevision) return;
+    applyProgramList(list, selectFirst);
+    if (operationForm.value.programId) await selectProgram(Number(operationForm.value.programId), true);
+  } catch (error) {
+    if (revision !== programRequestRevision) return;
     if (operationTab.value === "program") operationFeedback.value = `程序读取失败：${error.message || "数据库不可用"}`;
   }
 }
 
-async function selectProgram(proNo) {
+async function selectProgram(proNo, quiet = false) {
   const number = Number(proNo);
   if (!Number.isFinite(number)) return;
   operationForm.value.programId = String(number);
+  if (!quiet) return readProgram(number, program => { selectedProgramDetail.value = program; });
+  const revision = ++programSelectionRevision;
   try {
     const response = await fetch(`/api/programs/${encodeURIComponent(number)}`, { headers: authHeaders() });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.detail || "程序读取失败");
-    selectedProgramDetail.value = normalizeProgramDetail(result.program);
+    if (revision === programSelectionRevision) selectedProgramDetail.value = normalizeProgramDetail(result.program);
   } catch (error) {
+    if (revision !== programSelectionRevision) return;
     selectedProgramDetail.value = null;
     operationFeedback.value = `程序读取失败：${error.message || "数据库不可用"}`;
   }
+}
+
+function readProgram(proNo, apply) {
+  retryProgramRead = () => readProgram(proNo, apply);
+  return programRead.run(async signal => {
+    const result = await readPageJson(`/api/programs/${encodeURIComponent(proNo)}`, signal);
+    const program = normalizeProgramDetail(result.program);
+    if (!program) throw new Error("程序不存在，请刷新列表");
+    return program;
+  }, apply);
 }
 
 function normalizeProgramDetail(program) {
@@ -2086,22 +2377,16 @@ function normalizeProgramDetail(program) {
 }
 
 async function openProgramPreview(proNo) {
-  try {
-    const response = await fetch(`/api/programs/${encodeURIComponent(proNo)}`, { headers: authHeaders() });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.detail || "程序读取失败");
-    programPreview.value = normalizeProgramDetail(result.program);
+  return readProgram(proNo, program => {
+    programPreview.value = program;
     programChartCursor.value = null;
     programChartScrollStart.value = 0;
     isProgramPreviewOpen.value = true;
-  } catch (error) {
-    operationFeedback.value = `程序读取失败：${error.message || "数据库不可用"}`;
-  }
+  });
 }
 
 function closeProgramPreview() {
   isProgramPreviewOpen.value = false;
-  programPreview.value = null;
   programChartCursor.value = null;
   programChartScrollStart.value = 0;
   isProgramChartPointerDown.value = false;
@@ -2159,17 +2444,14 @@ function handleProgramChartPointerUp(event) {
 async function openProgramEditor(proNo = null) {
   programFeedback.value = "";
   if (proNo !== null && proNo !== undefined && proNo !== "") {
-    try {
-      const response = await fetch(`/api/programs/${encodeURIComponent(proNo)}`, { headers: authHeaders() });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.detail || "程序读取失败");
-      programDraft.value = createProgramDraft(result.program);
+    return readProgram(proNo, program => {
+      programDraft.value = createProgramDraft(program);
       programEditorMode.value = "edit";
-    } catch (error) {
-      programFeedback.value = error.message || "程序读取失败";
-      return;
-    }
+      isProgramEditorOpen.value = true;
+    });
   } else {
+    programRead.cancel();
+    programRead.state.error = "";
     programDraft.value = createProgramDraft({ pro_no: null });
     programEditorMode.value = "create";
   }
@@ -2253,8 +2535,14 @@ async function saveProgram() {
   }
 }
 
-async function deleteProgram(proNo) {
-  if (!window.confirm(`确定删除程序组 ${proNo} 吗？该程序的全部步骤也会被删除。`)) return;
+function deleteProgram(proNo) {
+  pendingDeleteProgram.value = proNo;
+}
+
+async function confirmDeleteProgram() {
+  const proNo = pendingDeleteProgram.value;
+  if (proNo === null) return;
+  pendingDeleteProgram.value = null;
   try {
     const response = await fetch(`/api/programs/${encodeURIComponent(proNo)}`, { method: "DELETE", headers: authHeaders() });
     const result = await response.json().catch(() => ({}));
@@ -2275,6 +2563,11 @@ function handleSidebarSelect(item) {
 }
 
 async function saveOperationSettings() {
+  if (operationSaving.value || operationRefresh.state.pending || operationRefresh.state.error) return;
+  operationSaving.value = true;
+  operationRefresh.cancel();
+  window.clearTimeout(feedbackTimer);
+  const savedTab = operationTab.value;
   operationFeedback.value = "保存中…";
   const payload = {
     temperature_target: Number(operationForm.value.targetTemp),
@@ -2305,8 +2598,8 @@ async function saveOperationSettings() {
     afterShutdow: ({ reset: 0, continue: 1 })[operationForm.value.stopResumeMode] ?? 0
   };
   try {
-    const shouldNotifyFixedValue = operationTab.value === "setpoint";
-    const shouldNotifyOperation = operationTab.value === "protection" || operationTab.value === "other";
+    const shouldNotifyFixedValue = savedTab === "setpoint";
+    const shouldNotifyOperation = savedTab === "protection" || savedTab === "other";
     const response = await fetch(`/api/settings/fixed-value?notify_memory=${shouldNotifyFixedValue}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -2315,6 +2608,7 @@ async function saveOperationSettings() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.detail || "数据库保存失败");
     applyFixedValueSettings(result.value || payload);
+    markOperationSaved(["setpoint"]);
     const protectionResponse = await fetch(`/api/settings/operation?notify_memory=${shouldNotifyOperation}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -2323,16 +2617,22 @@ async function saveOperationSettings() {
     const protectionResult = await protectionResponse.json().catch(() => ({}));
     if (!protectionResponse.ok) throw new Error(protectionResult.detail || "保护设定保存失败");
     applyOperationSettings(protectionResult.value || protectionPayload);
+    markOperationSaved(["protection", "other"]);
     operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
     operationFeedback.value = "已保存到数据库";
-    addOperationLog({ title: "保存操作设定", message: `${selectedDevice.value?.name || selectedDeviceId.value} 已更新${activeOperationTab.value.label}`, tone: "success" });
+    addOperationLog({ title: "保存操作设定", message: `${selectedDevice.value?.name || selectedDeviceId.value} 已更新${operationTabs.find(item => item.key === savedTab)?.label || "操作设定"}`, tone: "success" });
   } catch (error) {
     operationFeedback.value = `保存失败：${error.message || "数据库不可用"}`;
   }
-  window.setTimeout(() => { operationFeedback.value = ""; }, 3000);
+  operationSaving.value = false;
+  feedbackTimer = window.setTimeout(() => { operationFeedback.value = ""; }, 3000);
 }
 
 async function saveOtherSettings() {
+  if (operationSaving.value || operationRefresh.state.pending || operationRefresh.state.error) return;
+  operationSaving.value = true;
+  operationRefresh.cancel();
+  window.clearTimeout(feedbackTimer);
   operationFeedback.value = "保存中…";
   const selectedDutSensor = Number(String(operationForm.value.dutTemperatureSource || "dut1").replace(/^dut/, "")) - 1;
   const eventBits = normalizeEventCode(operationForm.value.eventCode);
@@ -2355,13 +2655,15 @@ async function saveOtherSettings() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.detail || "其他设定保存失败");
     applyOperationSettings(result.value || payload);
+    markOperationSaved(["other", "retention"]);
     operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
     operationFeedback.value = "已保存到数据库并通知应用层";
     addOperationLog({ title: "保存其他设定", message: `${selectedDevice.value?.name || selectedDeviceId.value} 已更新其他设定`, tone: "success" });
   } catch (error) {
     operationFeedback.value = `保存失败：${error.message || "数据库不可用"}`;
   }
-  window.setTimeout(() => { operationFeedback.value = ""; }, 3000);
+  operationSaving.value = false;
+  feedbackTimer = window.setTimeout(() => { operationFeedback.value = ""; }, 3000);
 }
 
 function applyOperationSettings(value) {
@@ -2401,41 +2703,24 @@ function applyFixedValueSettings(value) {
   };
 }
 
-async function loadFixedValueSettings() {
-  try {
-    const response = await fetch("/api/settings/fixed-value", { headers: authHeaders() });
-    if (response.ok) {
-      const result = await response.json();
-      applyFixedValueSettings(result.value);
-    }
-  } catch {
-  }
-  try {
-    const response = await fetch("/api/settings/operation", { headers: authHeaders() });
-    if (response.ok) {
-      const result = await response.json();
-      applyOperationSettings(result.value);
-    }
-  } catch {
-  }
-  try {
-    const response = await fetch("/api/settings/history-retention", { headers: authHeaders() });
-    if (response.ok) {
-      const result = await response.json();
-      operationForm.value.historyRetentionDays = Number(result.retention_days || 90);
-    }
-  } catch {
-  }
-  try {
-    const response = await fetch("/api/settings/system-basic", { headers: authHeaders() });
-    if (response.ok) {
-      const result = await response.json();
-      applySystemBasicSettings(result.value);
-    }
-  } catch {
-  }
-  await loadCorrectionSettings();
-  await loadPidSettings();
+function loadParameterSettings() {
+  if (parameterSaving.value) return;
+  const group = parameterTab.value;
+  const endpoint = { basic: "system-basic", calibration: "correction", pid: "pid" }[group];
+  return parameterRefresh.run(signal => readPageJson(`/api/settings/${endpoint}`, signal), result => {
+    const drafts = Object.fromEntries(parameterFieldGroups[group]
+      .filter(key => String(parameterForm.value[key]) !== parameterBaselines.value[key])
+      .map(key => [key, parameterForm.value[key]]));
+    if (group === "basic") applySystemBasicSettings(result.value);
+    else if (group === "pid") applyPidSettings(result.value);
+    else applyCorrectionSettings(result.value);
+    markParametersSaved(group);
+    Object.assign(parameterForm.value, drafts);
+  });
+}
+
+function markParametersSaved(group) {
+  for (const key of parameterFieldGroups[group]) parameterBaselines.value[key] = String(parameterForm.value[key]);
 }
 
 function toDateTimeInput(timestamp) {
@@ -2446,11 +2731,15 @@ function toDateTimeInput(timestamp) {
 
 function applyHistoryRange() {
   if (historyQuery.value.range === "custom") return;
+  updateHistoryRange();
+  loadEnvironmentalHistory();
+}
+
+function updateHistoryRange() {
   const durations = { "1h": 60 * 60 * 1000, "6h": 6 * 60 * 60 * 1000, "24h": 24 * 60 * 60 * 1000, "7d": 7 * 24 * 60 * 60 * 1000 };
   const end = Date.now();
   historyQuery.value.startTime = toDateTimeInput(end - (durations[historyQuery.value.range] || durations["24h"]));
   historyQuery.value.endTime = toDateTimeInput(end);
-  loadEnvironmentalHistory();
 }
 
 function historyTimestamp(value) {
@@ -2494,24 +2783,16 @@ function historySeriesPoints(field) {
 
 async function loadEnvironmentalHistory() {
   if (!selectedDeviceId.value) return;
-  historyLoading.value = true;
-  historyError.value = "";
-  try {
+  return historyRefresh.run(async signal => {
     const start = new Date(historyQuery.value.startTime).getTime();
     const end = new Date(historyQuery.value.endTime).getTime();
     if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw new Error("请选择有效的时间范围");
     const params = new URLSearchParams({ device_id: selectedDeviceId.value, start_time: String(start / 1000), end_time: String(end / 1000), limit: "20000" });
     if (historyQuery.value.runState) params.set("run_state", historyQuery.value.runState);
-    const response = await fetch(`/api/environmental-history?${params}`, { headers: authHeaders() });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.detail || "历史数据读取失败");
+    return readPageJson(`/api/environmental-history?${params}`, signal);
+  }, result => {
     historyItems.value = Array.isArray(result.items) ? result.items : [];
-  } catch (error) {
-    historyItems.value = [];
-    historyError.value = error.message || "历史数据读取失败";
-  } finally {
-    historyLoading.value = false;
-  }
+  });
 }
 
 function applyPidSettings(value) {
@@ -2521,51 +2802,40 @@ function applyPidSettings(value) {
   }
 }
 
-async function loadPidSettings() {
-  try {
-    const response = await fetch("/api/settings/pid", {
-      headers: authHeaders(),
-      cache: "no-store"
-    });
-    if (!response.ok) return;
-    const result = await response.json();
-    applyPidSettings(result.value);
-  } catch {
-  }
-}
-
 function pidPayload() {
   return Object.fromEntries(
     pidSettingFieldKeys.map(key => [key, Number(parameterForm.value[key])])
   );
 }
 
-async function loadCorrectionSettings(fields = correctionFieldKeys) {
-  if (correctionRequestPending) return;
+async function loadCorrectionSettings() {
+  if (correctionRequestPending || parameterRefresh.state.pending || parameterSaving.value) return;
   correctionRequestPending = true;
+  const revision = correctionRevision;
+  const controller = new AbortController();
+  correctionController = controller;
+  const timeout = window.setTimeout(() => controller.abort(), 7000);
   try {
-    const response = await fetch("/api/settings/correction", {
-      headers: authHeaders(),
-      cache: "no-store"
-    });
-    if (!response.ok) return;
-    const result = await response.json();
-    applyCorrectionSettings(result.value, fields);
+    const result = await readPageJson("/api/settings/correction", controller.signal);
+    if (revision === correctionRevision && !controller.signal.aborted) applyCorrectionSettings(result.value, correctionReadingFieldKeys);
   } catch {
   } finally {
-    correctionRequestPending = false;
+    window.clearTimeout(timeout);
+    if (revision === correctionRevision) correctionRequestPending = false;
   }
 }
 
 function syncCorrectionRefresh() {
+  correctionRevision += 1;
+  correctionController?.abort();
+  correctionRequestPending = false;
   if (correctionRefreshTimer) {
     window.clearInterval(correctionRefreshTimer);
     correctionRefreshTimer = null;
   }
   if (activeView.value !== "device-detail" || selectedDeviceSection.value !== "parameters" || parameterTab.value !== "calibration") return;
-  loadCorrectionSettings();
   correctionRefreshTimer = window.setInterval(
-    () => loadCorrectionSettings(correctionReadingFieldKeys),
+    loadCorrectionSettings,
     CORRECTION_REFRESH_MS
   );
 }
@@ -2657,11 +2927,27 @@ function applyCorrectionSettings(value, fields = correctionFieldKeys) {
 }
 
 async function saveParameterSettings() {
-  if (parameterTab.value === "calibration") {
+  if (parameterSaving.value || parameterRefresh.state.pending || parameterRefresh.state.error) return;
+  const tab = parameterTab.value;
+  parameterSaving.value = true;
+  parameterRefresh.cancel();
+  correctionRevision += 1;
+  correctionController?.abort();
+  correctionRequestPending = false;
+  try {
+    await persistParameterSettings(tab);
+  } finally {
+    parameterSaving.value = false;
+    if (activeView.value === "device-detail" && selectedDeviceSection.value === "parameters" && parameterTab.value !== tab) loadParameterSettings();
+  }
+}
+
+async function persistParameterSettings(tab) {
+  if (tab === "calibration") {
     await saveCorrectionSettings();
     return;
   }
-  if (parameterTab.value === "pid") {
+  if (tab === "pid") {
     await savePidSettings();
     return;
   }
@@ -2687,6 +2973,7 @@ async function saveParameterSettings() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.detail || "系统参数保存失败");
     applySystemBasicSettings(result.value || payload);
+    markParametersSaved("basic");
     operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
     addOperationLog({ title: "保存系统参数", message: `${deviceName} 已保存基础信息并通知应用层`, tone: "success" });
   } catch (error) {
@@ -2706,6 +2993,7 @@ async function savePidSettings() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.detail || "PID 参数保存失败");
     applyPidSettings(result.value || payload);
+    markParametersSaved("pid");
     operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
     addOperationLog({ title: "保存 PID 参数", message: `${deviceName} 已保存温度及湿热模式参数并通知应用层`, tone: "success" });
   } catch (error) {
@@ -2725,6 +3013,7 @@ async function saveCorrectionSettings() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.detail || "测量校正参数保存失败");
     applyCorrectionSettings(result.value || payload);
+    markParametersSaved("calibration");
     operationLastSaved.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
     addOperationLog({ title: "保存测量校正", message: `${deviceName} 已保存温湿度及试品温度校正参数并通知应用层`, tone: "success" });
   } catch (error) {
@@ -3090,6 +3379,10 @@ function connectSocket() {
     }
 
     snapshot.value = message.snapshot;
+    socketSnapshotRevision += 1;
+    monitorRefresh.cancel();
+    monitorRefresh.state.error = "";
+    monitorRefresh.state.updatedAt = Date.now();
     routerReadAt.value = message.router_read_at;
     devices.value = message.snapshot?.devices || [];
     if (!devices.value.some(device => device.device_id === selectedDeviceId.value)) {
@@ -3397,9 +3690,9 @@ function handleTrendResize() {
 
 onMounted(() => {
   loadMonitorLayout();
-  loadFixedValueSettings();
   loadPrograms();
   connectSocket();
+  refreshWorkspace();
   syncCorrectionRefresh();
   window.addEventListener("resize", handleTrendResize);
   clockTimer = window.setInterval(() => {
@@ -3410,19 +3703,23 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  if (socket) socket.close();
+  if (socket) {
+    socket.onclose = null;
+    socket.close();
+  }
   if (reconnectTimer) window.clearTimeout(reconnectTimer);
   if (clockTimer) window.clearInterval(clockTimer);
   if (correctionRefreshTimer) window.clearInterval(correctionRefreshTimer);
+  correctionController?.abort();
+  window.clearTimeout(feedbackTimer);
   window.removeEventListener("resize", handleTrendResize);
 });
 
 watch([activeView, selectedDeviceId, selectedDeviceSection, visibleMonitorCards], () => nextTick(drawSelectedTrend));
-watch([activeView, selectedDeviceId, selectedDeviceSection], ([view, deviceId, section], previous) => {
-  if (view === "device-detail" && deviceId && section === "history" && (section !== previous?.[2] || deviceId !== previous?.[1])) loadEnvironmentalHistory();
+watch([activeView, selectedDeviceId, selectedDeviceSection, operationTab, parameterTab], (current, previous) => {
+  if (current.slice(0, 3).some((value, index) => value !== previous?.[index])
+    || (current[2] === "operation" && current[3] !== previous?.[3])
+    || (current[2] === "parameters" && current[4] !== previous?.[4])) refreshWorkspace();
 });
 watch([activeView, selectedDeviceSection, parameterTab], syncCorrectionRefresh);
-watch([selectedDeviceSection, parameterTab], ([section, tab]) => {
-  if (section === "parameters" && tab === "pid") loadPidSettings();
-});
 </script>

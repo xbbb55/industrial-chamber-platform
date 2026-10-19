@@ -1,4 +1,9 @@
-<template><LoginView v-if="!authenticated" @authenticated="handleAuthenticated" /><DashboardApp v-else :initial-user="currentUser" @logout="handleLogout" /></template>
+<template>
+  <Transition name="workspace" mode="out-in">
+    <LoginView v-if="!authenticated" key="login" @authenticated="handleAuthenticated" />
+    <DashboardApp v-else key="dashboard" :initial-user="currentUser" @logout="handleLogout" />
+  </Transition>
+</template>
 
 <script setup>
 import { ref } from "vue";
