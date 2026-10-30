@@ -62,7 +62,7 @@ C++ 程序读取后必须清空命令内容，完成实际设备侧安全校验�
 1. C++ 通讯程序先创建并写入 `BE_W`，并创建 `BE_R`。
 2. 复制配置并填写共享内存、MySQL 与可选总控连接参数。
 3. 执行 `python -m device_edge.run_edge serve --config device-edge.config.json --host 127.0.0.1 --port 8765`。
-4. 检查 `GET /api/status`、`GET /api/memory/snapshot` 和 `WS /ws/memory`。
+4. 检查存活探针 `GET /healthz`（匿名，仅 `{"ok": true}`）；随后登录并检查 `GET /api/diagnostics`（共享内存版本与错误信息）、`GET /api/memory/snapshot` 和 `WS /ws/memory`。注意 `/api/memory/snapshot` 与 `/api/diagnostics` 需要登录令牌，匿名访问会返回 401。
 5. 通过 `POST /api/devices/{device_id}/commands` 下发命令，核对 C++ 已清空 `FE_W` 且 `BE_R` 回传结果。
 
 ## 6. 不在交接范围内

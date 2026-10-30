@@ -239,19 +239,36 @@ def create_app(config: EdgeConfig) -> FastAPI:
     else:
         dist_dir = Path(__file__).resolve().parents[1] / "frontend-vue" / "dist"
 
-    @app.get("/api/memory/snapshot")
-    async def memory_snapshot() -> dict[str, Any]:
+    def _snapshot_or_503() -> dict[str, Any]:
         try:
             return runtime.snapshot()
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
+    @app.get("/api/memory/snapshot")
+    async def memory_snapshot(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
+        # P0-1: device telemetry is only readable by an authenticated viewer.
+        return _snapshot_or_503()
+
     @app.get("/api/memory/devices")
-    async def memory_devices() -> list[dict[str, Any]]:
-        return (await memory_snapshot()).get("devices", [])
+    async def memory_devices(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> list[dict[str, Any]]:
+        return _snapshot_or_503().get("devices", [])
+
+    @app.get("/healthz")
+    async def healthz() -> dict[str, bool]:
+        # Anonymous liveness probe used by the Electron launcher; leaks nothing.
+        return {"ok": True}
 
     @app.get("/api/status")
     async def status() -> dict[str, Any]:
+        # Anonymous but deliberately minimal: no device ids, shared-memory
+        # names, pending commands or error details. Field acceptance scripts
+        # keep working while the rich state moved to /api/diagnostics.
+        return {"ok": True, "version": config.agent_version}
+
+    @app.get("/api/diagnostics")
+    async def diagnostics(_: dict[str, Any] = Depends(require_permission(PERMISSION_DEVICE_VIEW))) -> dict[str, Any]:
+        # P0-1: the detailed runtime state requires an authenticated viewer.
         return runtime.health()
 
     @app.get("/api/settings/fixed-value")

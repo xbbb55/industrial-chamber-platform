@@ -55,7 +55,9 @@ function startBackend(configPath) {
 }
 
 async function waitForBackend() {
-  const endpoint = `http://${HOST}:${PORT}/api/status`;
+  // P0-1: /api/status is no longer the launcher probe; /healthz is anonymous
+  // and returns {"ok": true} without exposing device or config details.
+  const endpoint = `http://${HOST}:${PORT}/healthz`;
   let lastError = "未知错误";
   for (let attempt = 0; attempt < 80; attempt += 1) {
     try {

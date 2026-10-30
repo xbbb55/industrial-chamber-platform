@@ -64,17 +64,27 @@ BE_R  命令状态，C++ 创建并写入
 启动本机服务：
 
 ```powershell
+$env:DEPLOYMENT_PROFILE = "local"          # 本机版；多设备版改为 multi-device
 python -m device_edge.run_edge serve --config device-edge.config.json --host 127.0.0.1 --port 8765
 ```
 
-本机接口：
+部署自检（G6）：服务启动时校验 `DEPLOYMENT_PROFILE` / `SESSION_COOKIE_MODE` / 监听地址 / `TRUSTED_PROXY_IPS` 是否自洽，不自洽则拒绝启动。
+
+- 本机版：`DEPLOYMENT_PROFILE=local` + `--host 127.0.0.1` + `SESSION_COOKIE_MODE=secure`（默认值，无需显式设置）。
+- 多设备版：`DEPLOYMENT_PROFILE=multi-device` + `--host <具体网卡IP>` + `SESSION_COOKIE_MODE=strict-http`；无 HTTPS 时必须持有书面风险接受。
+- 反向代理形态：多设备版 + `SESSION_COOKIE_MODE=secure` + `TRUSTED_PROXY_IPS=<反向代理地址>`。
+- 任何形态都不会接受 `--host 0.0.0.0`。
+
+本机接口（★ 需要登录并具备 `device.view` 权限）：
 
 ```text
-GET /api/memory/snapshot
-GET /api/memory/devices
-GET /api/status
+GET /healthz                匿名存活探测，仅返回 {"ok": true}
+GET /api/status             匿名，仅返回 ok / version
+GET /api/diagnostics        ★ 详细运行状态（共享内存版本、待执行命令、错误信息）
+GET /api/memory/snapshot    ★ 设备实时快照
+GET /api/memory/devices     ★ 设备列表
 POST /api/devices/{device_id}/commands
-WS  /ws/memory
+WS  /ws/memory              需要 access_token
 GET /api/settings/fixed-value
 PUT /api/settings/fixed-value
 GET /api/settings/operation
@@ -96,7 +106,6 @@ DELETE /api/programs/{pro_no}
 ```powershell
 $env:MYSQL_PWD = "你的数据库密码"
 python -m device_edge.run_edge serve --config device-edge.config.json --host 127.0.0.1 --port 8765
-```
 ```
 
 Vue 开发环境默认代理到 `http://127.0.0.1:8765`。生产环境构建 `frontend-vue` 后，`device_edge` 会托管 `frontend-vue/dist` 中的静态文件。

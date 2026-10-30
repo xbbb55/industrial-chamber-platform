@@ -1,7 +1,12 @@
 import unittest
+import os
+import sys
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from pydantic import ValidationError
 
+from backend import auth
 from backend.auth import (
     ChangePasswordRequest,
     CreateAccountRequest,
@@ -28,6 +33,54 @@ class CapturingCursor:
 
 
 class AuthContractTests(unittest.TestCase):
+    def test_control_center_database_settings_take_precedence(self) -> None:
+        connector = SimpleNamespace(connect=lambda **kwargs: kwargs)
+        mysql_module = SimpleNamespace(connector=connector)
+        with patch.dict(
+            sys.modules,
+            {"mysql": mysql_module, "mysql.connector": connector},
+        ), patch.dict(
+            os.environ,
+            {
+                "MYSQL_HOST": "edge-db",
+                "MYSQL_PORT": "3307",
+                "MYSQL_DATABASE": "HDQC",
+                "MYSQL_USER": "edge-user",
+                "MYSQL_PWD": "edge-password",
+                "CONTROL_CENTER_MYSQL_HOST": "control-db",
+                "CONTROL_CENTER_MYSQL_PORT": "3308",
+                "CONTROL_CENTER_MYSQL_DATABASE": "industrial_chamber_control_center",
+                "CONTROL_CENTER_MYSQL_USER": "control-user",
+                "CONTROL_CENTER_MYSQL_PASSWORD": "control-password",
+            },
+            clear=False,
+        ):
+            connection_args = auth._connection()
+
+        self.assertEqual(connection_args["host"], "control-db")
+        self.assertEqual(connection_args["port"], 3308)
+        self.assertEqual(connection_args["database"], "industrial_chamber_control_center")
+        self.assertEqual(connection_args["user"], "control-user")
+        self.assertEqual(connection_args["password"], "control-password")
+
+    def test_control_center_password_env_reference_is_supported(self) -> None:
+        connector = SimpleNamespace(connect=lambda **kwargs: kwargs)
+        mysql_module = SimpleNamespace(connector=connector)
+        with patch.dict(
+            sys.modules,
+            {"mysql": mysql_module, "mysql.connector": connector},
+        ), patch.dict(
+            os.environ,
+            {
+                "CONTROL_CENTER_MYSQL_PASSWORD_ENV": "CONTROL_DB_SECRET",
+                "CONTROL_DB_SECRET": "secret-from-env",
+            },
+            clear=False,
+        ):
+            connection_args = auth._connection()
+
+        self.assertEqual(connection_args["password"], "secret-from-env")
+
     def test_existing_admin_role_is_migrated_to_admin(self) -> None:
         self.assertEqual(normalize_role("系统管理员"), ROLE_ADMIN)
         self.assertEqual(normalize_role("unrecognized"), ROLE_ENGINEER)

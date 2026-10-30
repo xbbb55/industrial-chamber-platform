@@ -8,7 +8,14 @@ from .local_service import create_app
 def run_service(config_path: str, host: str, port: int) -> None:
     import uvicorn
 
-    uvicorn.run(create_app(load_config(config_path)), host=host, port=port)
+    from .deployment_guard import ensure_deployable, resolve_deployment
+
+    config = load_config(config_path)
+    # G6: refuse to start when the deployment profile, the listening address and
+    # the cookie mode do not agree - a mismatch either breaks login silently or
+    # downgrades session security.
+    ensure_deployable(resolve_deployment(host))
+    uvicorn.run(create_app(config), host=host, port=port)
 
 
 def init_config(target: str) -> None:

@@ -27,3 +27,14 @@ artifacts/Industrial-Chamber-Platform-win-x64-portable.zip
 4. 先启动 C++ 应用层，使 `BE_W` 和 `BE_R` 共享内存可用；`FE_W` 由 `device_edge` 创建。
 
 Electron 只监听 `127.0.0.1`，窗口关闭时会停止本地 `device_edge` 子进程。日志写入 Electron 用户数据目录下的 `logs` 文件夹。
+
+## 部署版本与 profile
+
+两个交付物对应两个部署版本，profile 由交付物固定，不交给现场临场切换：
+
+| 交付物 | 版本 | `DEPLOYMENT_PROFILE` | 监听地址 | Cookie 模式 |
+| --- | --- | --- | --- | --- |
+| Electron 便携包 | 本机版 | `local` | `127.0.0.1` | `secure` |
+| 独立边缘服务包 | 多设备版 | `multi-device` | 具体网卡地址 | 无 HTTPS 时 `strict-http`（需书面风险接受）；有 HTTPS 反代时 `secure` + `TRUSTED_PROXY_IPS` |
+
+服务启动时会执行部署自检，监听地址与 Cookie 模式不自洽时**拒绝启动**；任何形态都不接受 `0.0.0.0` 裸监听。

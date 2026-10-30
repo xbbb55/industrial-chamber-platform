@@ -2098,14 +2098,18 @@ function returnToMonitoring() {
   isSidebarCollapsed.value = false;
 }
 
+function forceLogout() {
+  window.localStorage.removeItem("industrial-auth-token");
+  window.localStorage.removeItem("industrial-auth-user");
+  emit("logout");
+}
+
 async function logoutToLogin() {
   try {
     await fetch("/api/auth/logout", { method: "POST", headers: authHeaders() });
   } catch {
   } finally {
-    window.localStorage.removeItem("industrial-auth-token");
-    window.localStorage.removeItem("industrial-auth-user");
-    emit("logout");
+    forceLogout();
   }
 }
 
@@ -2143,7 +2147,13 @@ function applyRefreshedOperationData({ fixed, operation, retention, programList 
 
 async function readPageJson(url, signal) {
   const response = await fetch(url, { headers: authHeaders(), signal, cache: "no-store" });
-  if (!response.ok) throw new Error(response.status === 401 ? "登录已失效，请重新登录" : "暂时无法读取，请检查连接后重试");
+  if (response.status === 401) {
+    // P0-8: an expired or revoked session must leave the dashboard instead of
+    // showing a read error on a page nobody can operate.
+    forceLogout();
+    throw new Error("登录已失效，请重新登录");
+  }
+  if (!response.ok) throw new Error("暂时无法读取，请检查连接后重试");
   return response.json();
 }
 
@@ -3397,7 +3407,13 @@ function connectSocket() {
     connectionText.value = "连接异常";
   };
 
-  socket.onclose = () => {
+  socket.onclose = event => {
+    if (event?.code === 1008) {
+      // Session revoked: rebuilding the socket with a dead token only creates a
+      // reconnect storm, so leave the dashboard instead.
+      forceLogout();
+      return;
+    }
     connectionText.value = "重连中";
     reconnectTimer = window.setTimeout(connectSocket, 1200);
   };
