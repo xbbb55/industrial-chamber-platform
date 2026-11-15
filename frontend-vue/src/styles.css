@@ -42,11 +42,6 @@ button {
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
-  transition: grid-template-columns .18s ease;
-}
-
-.app-shell.sidebar-collapsed {
-  grid-template-columns: 78px 1fr;
 }
 
 .sidebar {
@@ -62,20 +57,6 @@ button {
   align-items: center;
   padding: 22px;
   border-bottom: 1px solid var(--line);
-}
-
-.sidebar-collapsed .brand {
-  justify-content: center;
-  padding-left: 18px;
-  padding-right: 18px;
-}
-
-.sidebar-collapse-button span,
-.sidebar-collapsed .brand h1,
-.sidebar-collapsed .brand p,
-.sidebar-collapsed .nav-label,
-.sidebar-collapsed .sidebar-return-button span {
-  display: none;
 }
 
 .brand-mark,
@@ -132,16 +113,6 @@ button {
   text-align: left;
 }
 
-.sidebar-collapsed .nav-list {
-  padding-left: 12px;
-  padding-right: 12px;
-}
-
-.sidebar-collapsed .nav-list button {
-  justify-content: center;
-  padding: 12px;
-}
-
 .nav-list button:hover {
   color: white;
   background: #252b3a;
@@ -174,33 +145,6 @@ button {
   gap: 8px;
 }
 
-.sidebar-collapse-button {
-  width: 42px;
-  height: 38px;
-  flex: 0 0 42px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel-2);
-  color: var(--muted);
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-}
-
-.sidebar-collapse-button:hover {
-  color: var(--text);
-  border-color: var(--blue);
-  background: rgba(59, 130, 246, .12);
-}
-
-.sidebar-collapsed .sidebar-collapse-button {
-  width: 42px;
-  flex-basis: 42px;
-}
-
 .sidebar-foot strong {
   display: block;
   margin-top: 4px;
@@ -229,23 +173,6 @@ button {
   color: var(--text);
   border-color: var(--blue);
   background: rgba(59, 130, 246, .12);
-}
-
-.sidebar-collapsed .sidebar-foot {
-  padding-left: 12px;
-  padding-right: 12px;
-}
-
-.sidebar-collapsed .sidebar-device-actions {
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.sidebar-collapsed .sidebar-return-button {
-  width: 42px;
-  min-width: 42px;
-  padding: 0;
 }
 
 .main-shell {
@@ -1210,7 +1137,7 @@ td {
 .login-grid-mark { position:absolute; inset:0; opacity:.22; pointer-events:none; background-image:linear-gradient(rgba(43,166,220,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(43,166,220,.16) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(90deg,#000,transparent 74%); }
 .login-aside,.login-panel { position:relative; z-index:1; }
 .login-aside { display:flex; flex-direction:column; justify-content:space-between; padding:clamp(28px,6vw,88px); min-height:100dvh; }
-.login-brand { display:flex; align-items:center; gap:13px; } .login-brand>span { display:grid; place-items:center; width:44px; height:44px; border:1px solid #37cbff; border-radius:5px; background:linear-gradient(145deg,#168fe6,#06356f); box-shadow:0 0 18px rgba(25,169,239,.38),inset 0 0 12px rgba(185,241,255,.26); font-weight:800; } .login-brand strong,.login-brand small { display:block; } .login-brand strong { font-size:16px; } .login-brand small { margin-top:3px; color:#7fa2b9; font-size:11px; letter-spacing:.08em; }
+.login-brand { display:flex; align-items:center; }
 .login-intro { max-width:590px; margin-top:auto; margin-bottom:auto; padding:10vh 0 8vh; } .login-kicker,.login-overline,.login-signal { color:#55d4ff; font:700 11px "Roboto Mono",Consolas,monospace; letter-spacing:.18em; } .login-intro h1 { margin:17px 0 18px; max-width:560px; font-size:clamp(34px,4.4vw,64px); line-height:1.12; letter-spacing:-.045em; } .login-intro h1 em { color:#53d5ff; font-style:normal; text-shadow:0 0 18px rgba(40,194,255,.35); }
 .login-status { display:flex; align-items:center; gap:10px; color:#8ca9b9; font-size:12px; } .login-status i { width:8px; height:8px; border-radius:50%; background:#f2b84b; box-shadow:0 0 0 4px rgba(242,184,75,.12),0 0 10px rgba(242,184,75,.64); } .login-status strong { color:#c5dce8; font-weight:600; }
 .login-panel { align-self:center; margin:32px clamp(22px,6vw,88px) 32px 18px; padding:clamp(28px,4vw,48px); border:1px solid rgba(52,166,220,.46); background:linear-gradient(145deg,rgba(7,35,57,.96),rgba(3,20,35,.98)); box-shadow:0 24px 70px rgba(0,0,0,.34),inset 0 0 28px rgba(0,127,194,.08); clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px); } .login-panel::before { content:""; position:absolute; left:28px; top:0; width:76px; height:2px; background:#2bd2ff; box-shadow:0 0 10px #159bdc; }

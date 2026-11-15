@@ -1,0 +1,873 @@
+/* A contained visual treatment for the device parameter workspace. */
+.app-shell:has(.system-parameters) {
+  --card-surface: rgba(250, 251, 252, .78);
+  --card-surface-muted: transparent;
+  --card-border: rgba(255, 255, 255, .72);
+  --card-divider: rgba(75, 84, 94, .12);
+  --field-surface: rgba(235, 238, 241, .86);
+  --field-border: rgba(110, 120, 130, .18);
+  --ink-strong: #1c2024;
+  --ink: #353b42;
+  --ink-muted: #737b84;
+  width: calc(100% - 20px);
+  height: calc(100dvh - 20px);
+  margin: 10px;
+  border: 1px solid rgba(255, 255, 255, .65);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(42, 50, 59, .18);
+}
+
+.app-shell:has(.system-parameters) .main-shell {
+  min-width: 0;
+  background: transparent;
+}
+
+.app-shell:has(.system-parameters) .sidebar,
+.app-shell:has(.system-parameters) .topbar,
+.app-shell:has(.system-parameters) .brand {
+  border-color: rgba(76, 85, 95, .1);
+  background: rgba(235, 238, 241, .72);
+}
+
+.app-shell:has(.system-parameters) .sidebar {
+  border-right: 1px solid rgba(255, 255, 255, .62);
+}
+
+.app-shell:has(.system-parameters) .sidebar::after,
+.app-shell:has(.system-parameters) .brand::after,
+.app-shell:has(.system-parameters) .content::before {
+  display: none;
+}
+
+.app-shell:has(.system-parameters) .brand h1,
+.app-shell:has(.system-parameters) .topbar h2 {
+  color: #202429;
+}
+
+.app-shell:has(.system-parameters) .brand-mark {
+  background: #202429;
+  color: #fff;
+  box-shadow: none;
+}
+
+.app-shell:has(.system-parameters) .topbar {
+  border-bottom: 1px solid rgba(76, 85, 95, .1);
+}
+
+.app-shell:has(.system-parameters) .device-heading-icon {
+  color: #30383f;
+  filter: none;
+}
+
+.app-shell:has(.system-parameters) .device-title-meta,
+.app-shell:has(.system-parameters) .device-meta-label {
+  color: #626c75;
+}
+
+.app-shell:has(.system-parameters) .device-meta-item,
+.app-shell:has(.system-parameters) .workspace-refresh-status {
+  border: 1px solid rgba(255, 255, 255, .75);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .46);
+  color: #3a444c;
+  box-shadow: none;
+}
+
+.app-shell:has(.system-parameters) .device-meta-item strong {
+  color: #273039;
+}
+
+.app-shell:has(.system-parameters) .device-meta-item svg {
+  color: currentColor;
+}
+
+.app-shell:has(.system-parameters) .device-status-item.online,
+.app-shell:has(.system-parameters) .device-status-item.running {
+  color: #188064;
+}
+
+.app-shell:has(.system-parameters) .device-status-item.offline,
+.app-shell:has(.system-parameters) .device-status-item.alarm {
+  color: #ae4d4d;
+}
+
+.app-shell:has(.system-parameters) .nav-list button,
+.app-shell:has(.system-parameters) .sidebar-return-button {
+  color: #49535c;
+}
+
+.app-shell:has(.system-parameters) .nav-list button:hover,
+.app-shell:has(.system-parameters) .sidebar-return-button:hover {
+  border-color: rgba(255, 255, 255, .8);
+  background: rgba(255, 255, 255, .58);
+  color: #1b2024;
+}
+
+.app-shell:has(.system-parameters) .nav-list button.active {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .76);
+  color: #1b2024;
+  box-shadow: 0 2px 12px rgba(54, 64, 74, .05);
+}
+
+.app-shell:has(.system-parameters) .nav-list .motion-selection {
+  border: 1px solid rgba(255, 255, 255, .85);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .78);
+  box-shadow: 0 2px 12px rgba(54, 64, 74, .05);
+}
+
+.app-shell:has(.system-parameters) .nav-list .motion-selection::before,
+.app-shell:has(.system-parameters) .nav-list .motion-selection::after {
+  content: none;
+}
+
+.app-shell:has(.system-parameters) .sidebar-return-button {
+  border-color: #202326;
+  background: #202326;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(32, 35, 38, .16);
+}
+
+.app-shell:has(.system-parameters) .light-toggle,
+.app-shell:has(.system-parameters) .notify,
+.app-shell:has(.system-parameters) .user-card {
+  border-color: rgba(255, 255, 255, .75);
+  background: rgba(255, 255, 255, .42);
+  color: #30383e;
+}
+
+.app-shell:has(.system-parameters) .sidebar-foot {
+  border-top-color: rgba(76, 85, 95, .12);
+}
+
+.app-shell:has(.system-parameters) .sidebar-device-actions {
+  gap: 8px;
+  align-items: stretch;
+}
+
+.app-shell:has(.system-parameters) .sidebar-return-button {
+  min-height: 42px;
+  border-radius: 12px;
+  clip-path: none;
+}
+
+.app-shell:has(.system-parameters) .sidebar-return-button {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-shell:has(.system-parameters) .sidebar-return-button:hover {
+  border-color: #34383c;
+  background: #34383c;
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(32, 35, 38, .2);
+}
+
+.app-shell:has(.system-parameters) .system-parameters {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 4px 2px 20px;
+  gap: 18px;
+  color: #252a2f;
+}
+
+.parameter-page-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 4px 4px 0;
+}
+
+.parameter-page-heading span {
+  color: #727a82;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.parameter-page-heading h3 {
+  margin: 3px 0 0;
+  color: #1d2226;
+  font-size: 22px;
+  font-weight: 750;
+}
+
+.parameter-page-heading p {
+  max-width: 50%;
+  margin: 0 0 2px;
+  overflow: hidden;
+  color: #667079;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: flex-start;
+  width: 100%;
+  max-width: none;
+  gap: 4px;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid var(--system-line);
+  border-radius: 14px;
+  background: rgba(222, 227, 231, .72);
+  box-shadow: none;
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav button {
+  width: 100%;
+  min-height: 48px;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--system-ink-muted);
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav button > span {
+  gap: 0;
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav button strong {
+  color: inherit;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav button small {
+  display: none;
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav button:hover {
+  border-color: transparent;
+  background: rgba(255, 255, 255, .62);
+  color: var(--system-ink);
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav button.active {
+  border-color: transparent;
+  background: #202326;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(32, 35, 38, .15);
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav button.active strong {
+  color: #fff;
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav.motion-ready > .motion-selection {
+  border: 0;
+  border-radius: 10px;
+  background: #202326;
+  box-shadow: 0 4px 10px rgba(32, 35, 38, .15);
+}
+
+.app-shell:has(.system-parameters) .system-parameter-nav.motion-ready > button.active {
+  color: #fff;
+}
+
+.app-shell:has(.system-parameters) .system-parameters-grid {
+  gap: 14px;
+}
+
+.app-shell:has(.system-parameters) .system-parameters-grid.basic-parameter-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.app-shell:has(.system-parameters) .system-parameter-card {
+  border: 1px solid rgba(255, 255, 255, .78);
+  border-radius: 12px;
+  background: rgba(250, 251, 252, .75);
+  box-shadow: 0 12px 30px rgba(69, 76, 85, .07);
+  backdrop-filter: blur(16px);
+}
+
+.app-shell:has(.system-parameters) .system-parameter-card header {
+  min-height: 56px;
+  padding: 16px 20px 9px;
+  border: 0;
+  background: transparent;
+}
+
+.app-shell:has(.system-parameters) .system-parameter-card header span {
+  color: #25292d;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.app-shell:has(.system-parameters) .parameter-fields {
+  gap: 10px;
+  padding: 8px 20px 20px;
+}
+
+.app-shell:has(.system-parameters) .parameter-fields label {
+  min-height: 40px;
+  color: #505961;
+  font-size: 13px;
+}
+
+.app-shell:has(.system-parameters) .parameter-fields label b {
+  color: #69737c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.app-shell:has(.system-parameters) .parameter-fields input:not([type="range"]):not(.numeric-slider-value),
+.app-shell:has(.system-parameters) .pid-axis-input input,
+.app-shell:has(.system-parameters) .hmi-number-control,
+.app-shell:has(.system-parameters) .pid-unavailable {
+  min-height: 38px;
+  border: 1px solid rgba(98, 108, 118, .15);
+  border-radius: 7px;
+  background: rgba(230, 233, 236, .68);
+  color: #24292e;
+  box-shadow: none;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-shell:has(.system-parameters) .hmi-number-control input {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.app-shell:has(.system-parameters) .parameter-fields input:disabled {
+  background: rgba(220, 224, 228, .56);
+  color: #7c858e;
+}
+
+.app-shell:has(.system-parameters) .parameter-fields input:focus,
+.app-shell:has(.system-parameters) .pid-axis-input input:focus,
+.app-shell:has(.system-parameters) .hmi-number-control:focus-within {
+  border-color: #68747e;
+  box-shadow: 0 0 0 3px rgba(70, 81, 91, .12);
+}
+
+.app-shell:has(.system-parameters) .hmi-number-steps {
+  border-left-color: rgba(99, 109, 119, .13);
+}
+
+.app-shell:has(.system-parameters) .hmi-number-steps button {
+  color: #5d6870;
+}
+
+.app-shell:has(.system-parameters) .parameter-range-fields {
+  gap: 5px;
+}
+
+.app-shell:has(.system-parameters) .parameter-range-fields > label:not(:first-child) {
+  margin-top: 13px;
+}
+
+.app-shell:has(.system-parameters) .parameter-range-fields input[type="range"]:not(.numeric-slider-range) {
+  display: block;
+  box-sizing: border-box;
+  width: calc(100% - 8px);
+  height: 30px;
+  min-height: 30px;
+  margin: 4px 4px 9px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  appearance: none;
+  background: linear-gradient(90deg, var(--range-start) 0%, var(--range-end) var(--range-progress), #d8dee2 var(--range-progress), #d8dee2 100%);
+  box-shadow: inset 0 1px 3px rgba(31, 42, 50, .18);
+  cursor: pointer;
+}
+
+.app-shell:has(.system-parameters) .parameter-range-fields input[type="range"]:not(.numeric-slider-range)::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  appearance: none;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(22, 30, 38, .2);
+}
+
+.app-shell:has(.system-parameters) .parameter-range-fields input[type="range"]:not(.numeric-slider-range)::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.app-shell:has(.system-parameters) .parameter-range-fields input[type="range"]:not(.numeric-slider-range)::-moz-range-track {
+  border: 0;
+  background: transparent;
+}
+
+.app-shell:has(.system-parameters) .parameter-range-fields input[type="range"]:not(.numeric-slider-range):focus-visible {
+  outline: 2px solid #3e626e;
+  outline-offset: 3px;
+}
+
+.app-shell:has(.system-parameters) :is(.motor-frequency-fields, .humidity-range-fields, .temperature-limit-fields) {
+  gap: 14px;
+}
+
+.app-shell:has(.system-parameters) :is(.motor-frequency-row, .humidity-range-row, .temperature-limit-row) {
+  display: grid;
+  grid-template-columns: minmax(90px, .72fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.app-shell:has(.system-parameters) :is(.motor-frequency-row, .humidity-range-row, .temperature-limit-row) > label {
+  display: block;
+  min-height: 0;
+  color: #505961;
+  font-size: 13px;
+}
+
+.app-shell:has(.system-parameters) :is(.motor-frequency-controls, .humidity-range-controls, .temperature-limit-controls) {
+  display: grid;
+  grid-template-columns: minmax(80px, 112px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.app-shell:has(.system-parameters) :is(.motor-frequency-controls, .humidity-range-controls, .temperature-limit-controls) .hmi-number-control {
+  width: 100%;
+  min-width: 0;
+}
+
+.app-shell:has(.system-parameters) :is(.motor-frequency-controls, .humidity-range-controls, .temperature-limit-controls) > input[type="range"] {
+  width: 100%;
+  margin: 0;
+}
+
+.app-shell:has(.system-parameters) :is(.motor-frequency-controls, .humidity-range-controls, .temperature-limit-controls) > b {
+  color: #69737c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.app-shell:has(.system-parameters) .calibration-card-content {
+  padding: 8px 20px 20px;
+}
+
+.app-shell:has(.system-parameters) .calibration-readings {
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(76, 85, 95, .12);
+}
+
+.app-shell:has(.system-parameters) .calibration-reading {
+  padding: 5px 12px;
+  border: 0;
+  border-right: 1px solid rgba(76, 85, 95, .12);
+  border-radius: 0;
+  background: transparent;
+}
+
+.app-shell:has(.system-parameters) .calibration-reading:last-child {
+  border-right: 0;
+}
+
+.app-shell:has(.system-parameters) .calibration-reading > span,
+.app-shell:has(.system-parameters) .calibration-matrix-head,
+.app-shell:has(.system-parameters) .dut-calibration-head {
+  color: #79828a;
+}
+
+.app-shell:has(.system-parameters) .calibration-reading output,
+.app-shell:has(.system-parameters) .calibration-matrix-row > strong,
+.app-shell:has(.system-parameters) .dut-calibration-row > strong,
+.app-shell:has(.system-parameters) .dut-calibration-row > output {
+  color: #252a2e;
+}
+
+.app-shell:has(.system-parameters) .calibration-reading output small {
+  color: #66727b;
+}
+
+.app-shell:has(.system-parameters) .calibration-matrix-row,
+.app-shell:has(.system-parameters) .dut-calibration-row {
+  min-height: 43px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(76, 85, 95, .08);
+}
+
+.app-shell:has(.system-parameters) .dut-calibration-content {
+  width: 100%;
+  padding: 8px 20px 20px;
+}
+
+.app-shell:has(.system-parameters) .pid-setting-layout {
+  gap: 18px;
+  padding: 8px 20px 20px;
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-modes {
+  gap: 16px;
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-panel,
+.app-shell:has(.system-parameters) .pid-group-editor {
+  padding: 12px;
+  border: 1px solid rgba(83, 92, 101, .13);
+  border-radius: 8px;
+  background: rgba(235, 238, 241, .52);
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-panel.active {
+  border-color: #595f66;
+  box-shadow: none;
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-panel legend,
+.app-shell:has(.system-parameters) .pid-group-editor legend,
+.app-shell:has(.system-parameters) .pid-editor-row > span,
+.app-shell:has(.system-parameters) .pid-editor-head strong {
+  color: #32383d;
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-point {
+  border: 1px solid rgba(83, 92, 101, .13);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .65);
+  color: #4d565e;
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-point:hover {
+  border-color: #69747c;
+  background: #fff;
+  color: #23282c;
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-point.active {
+  border-color: #202326;
+  background: #202326;
+  color: #fff;
+  box-shadow: none;
+}
+
+.app-shell:has(.system-parameters) .system-parameters-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  min-height: 64px;
+  margin-top: 2px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 12px;
+  background: rgba(239, 242, 244, .93);
+  color: #68727b;
+  box-shadow: 0 10px 25px rgba(53, 61, 68, .09);
+  backdrop-filter: blur(14px);
+}
+
+.app-shell:has(.system-parameters) .system-parameters-footer .ghost-action,
+.app-shell:has(.system-parameters) .system-parameters-footer .primary-action {
+  min-height: 38px;
+  padding: 8px 18px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 650;
+  box-shadow: none;
+}
+
+.app-shell:has(.system-parameters) .system-parameters-footer .ghost-action {
+  border: 1px solid rgba(85, 94, 103, .16);
+  background: rgba(255, 255, 255, .65);
+  color: #2e363d;
+}
+
+.app-shell:has(.system-parameters) .system-parameters-footer .primary-action {
+  border: 1px solid #1d2023;
+  background: #1d2023;
+  color: #fff;
+}
+
+.app-shell:has(.system-parameters) .system-parameters-footer button:hover {
+  filter: brightness(.92);
+}
+
+@media (max-width: 1080px) {
+  .app-shell:has(.system-parameters) .system-parameters-grid.basic-parameter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell:has(.system-parameters) :is(.motor-frequency-row, .humidity-range-row, .temperature-limit-row) {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .app-shell:has(.system-parameters) :is(.motor-frequency-controls, .humidity-range-controls, .temperature-limit-controls) {
+    grid-template-columns: minmax(72px, 112px) minmax(70px, 1fr) auto;
+    gap: 8px;
+  }
+
+  .app-shell:has(.system-parameters) {
+    width: 100%;
+    height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .app-shell:has(.system-parameters) .system-parameters {
+    gap: 14px;
+    padding-bottom: 16px;
+  }
+
+  .parameter-page-heading h3 {
+    font-size: 19px;
+  }
+
+  .app-shell:has(.system-parameters) .system-parameter-nav {
+    align-self: stretch;
+  }
+
+  .app-shell:has(.system-parameters) .system-parameter-nav button {
+    flex: 1 0 auto;
+    padding-inline: 10px;
+  }
+
+  .app-shell:has(.system-parameters) .calibration-reading {
+    border-right: 0;
+    border-bottom: 1px solid rgba(76, 85, 95, .1);
+  }
+}
+
+/* Numeric fields use one input/unit/slider layout across operation and parameters. */
+.app-shell:not(:has(.monitor-layout)) .operation-settings .setpoint-slider-control,
+.app-shell:has(.system-parameters) :is(.motor-frequency-controls, .humidity-range-controls, .temperature-limit-controls) {
+  display: block;
+  min-width: 0;
+}
+
+.app-shell:not(:has(.monitor-layout)) .numeric-slider,
+.app-shell:has(.system-parameters) .parameter-fields label > .numeric-slider {
+  display: grid;
+  grid-template-columns: 76px 44px minmax(60px, 1fr);
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-shell:not(:has(.monitor-layout)) .numeric-slider.numeric-slider-compact {
+  grid-template-columns: 64px 44px minmax(56px, 1fr);
+  gap: 5px;
+}
+
+.app-shell:has(.system-parameters) .numeric-slider.numeric-slider-no-range {
+  grid-template-columns: 64px 44px;
+  width: max-content;
+  max-width: 100%;
+}
+
+.app-shell:not(:has(.monitor-layout)) .numeric-slider .numeric-slider-value {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  height: 38px;
+  margin: 0;
+  padding: 5px;
+  border: 1px solid rgba(98, 108, 118, .22);
+  border-radius: 8px;
+  background: #fff;
+  color: #24292e;
+  box-shadow: none;
+  font: 700 14px "Roboto Mono", Consolas, monospace;
+  text-align: center;
+  appearance: textfield;
+}
+
+.app-shell:not(:has(.monitor-layout)) .numeric-slider.numeric-slider-compact .numeric-slider-value {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12px;
+}
+
+.app-shell:not(:has(.monitor-layout)) .numeric-slider .numeric-slider-unit {
+  min-width: 0;
+  color: #69737c;
+  font: 600 12px "Roboto Mono", Consolas, monospace;
+  white-space: nowrap;
+}
+
+.app-shell:not(:has(.monitor-layout)) .numeric-slider .numeric-slider-range {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  min-height: 30px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  appearance: none;
+  background: linear-gradient(90deg, var(--range-start) 0%, var(--range-end) var(--range-progress), #d8dee2 var(--range-progress), #d8dee2 100%);
+  box-shadow: inset 0 1px 3px rgba(31, 42, 50, .18);
+}
+
+.app-shell:not(:has(.monitor-layout)) .numeric-slider.numeric-slider-compact .numeric-slider-range {
+  height: 24px;
+  min-height: 24px;
+  padding-inline: 6px;
+}
+
+.app-shell:not(:has(.monitor-layout)) .operation-settings .protection-fields label {
+  grid-template-columns: minmax(65px, .5fr) minmax(190px, 1.5fr);
+}
+
+.app-shell:not(:has(.monitor-layout)) .operation-settings .runtime-time-control {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+}
+
+.app-shell:not(:has(.monitor-layout)) .operation-settings .runtime-time-field {
+  grid-template-columns: 45px minmax(0, 1fr);
+  align-items: center;
+}
+
+.app-shell:not(:has(.monitor-layout)) .operation-settings .runtime-time-field > div { min-width: 0; }
+.app-shell:not(:has(.monitor-layout)) .operation-settings .other-value-list label {
+  grid-template-columns: minmax(110px, .7fr) minmax(210px, 1.3fr);
+}
+
+.app-shell:has(.system-parameters) .calibration-matrix { overflow-x: auto; }
+.app-shell:has(.system-parameters) :is(.calibration-matrix-head, .calibration-matrix-row) {
+  min-width: 510px;
+  grid-template-columns: 28px repeat(3, minmax(150px, 1fr));
+}
+
+.app-shell:has(.system-parameters) .dut-calibration-content { max-width: none; overflow-x: auto; grid-template-columns: repeat(2, minmax(470px, 1fr)); }
+.app-shell:has(.system-parameters) :is(.dut-calibration-head, .dut-calibration-row) {
+  grid-template-columns: minmax(90px, 1fr) minmax(70px, .7fr) minmax(185px, 1.6fr) minmax(70px, .7fr);
+}
+
+.app-shell:has(.system-parameters) .pid-setting-layout { grid-template-columns: minmax(0, 1fr); }
+.app-shell:has(.system-parameters) .pid-coordinate-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.app-shell:has(.system-parameters) .pid-coordinate-panel,
+.app-shell:has(.system-parameters) .pid-group-editor { min-width: 0; overflow-x: auto; }
+.app-shell:has(.system-parameters) .pid-coordinate-map-humidity { grid-template-columns: repeat(4, minmax(165px, 1fr)); }
+.app-shell:has(.system-parameters) .pid-coordinate-map-temperature { grid-template-columns: repeat(3, minmax(165px, 1fr)); }
+.app-shell:has(.system-parameters) .pid-axis-input { flex-direction: column; justify-content: center; gap: 2px; }
+.app-shell:has(.system-parameters) .pid-axis-input > span { position: static; font-size: 10px; }
+.app-shell:has(.system-parameters) :is(.pid-editor-head, .pid-editor-row) {
+  min-width: 500px;
+  grid-template-columns: minmax(80px, .7fr) repeat(2, minmax(190px, 1fr));
+}
+
+.app-shell:not(:has(.monitor-layout)) .program-steps-editor td:has(.numeric-slider),
+.app-shell:not(:has(.monitor-layout)) .program-steps-editor th:nth-child(3),
+.app-shell:not(:has(.monitor-layout)) .program-steps-editor th:nth-child(4),
+.app-shell:not(:has(.monitor-layout)) .program-steps-editor th:nth-child(5) { min-width: 185px; }
+.app-shell:not(:has(.monitor-layout)) .program-loop-list { overflow-x: auto; }
+.app-shell:not(:has(.monitor-layout)) :is(.program-loop-heading, .program-loop-row) {
+  min-width: 545px;
+  grid-template-columns: 90px repeat(2, minmax(90px, 1fr)) minmax(175px, 1.4fr) 28px;
+}
+.app-shell:not(:has(.monitor-layout)) .program-loop-extra { min-width: 185px; }
+
+@media (max-width: 1300px) {
+  .app-shell:has(.system-parameters) .system-parameters-grid.calibration-parameter-grid { grid-template-columns: 1fr; }
+  .app-shell:has(.system-parameters) .pid-coordinate-modes { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .app-shell:not(:has(.monitor-layout)) .numeric-slider,
+  .app-shell:has(.system-parameters) .parameter-fields label > .numeric-slider {
+    grid-template-columns: 68px 38px minmax(48px, 1fr);
+    gap: 5px;
+  }
+  .app-shell:not(:has(.monitor-layout)) .numeric-slider.numeric-slider-compact {
+    grid-template-columns: 58px 38px minmax(48px, 1fr);
+    gap: 4px;
+  }
+  .app-shell:has(.system-parameters) .numeric-slider.numeric-slider-no-range {
+    grid-template-columns: 58px 38px;
+  }
+  .app-shell:not(:has(.monitor-layout)) .numeric-slider .numeric-slider-unit { font-size: 10px; }
+}
+
+.app-shell:has(.system-parameters) .pid-setting-card,
+.app-shell:has(.system-parameters) .pid-setting-layout,
+.app-shell:has(.system-parameters) .pid-coordinate-modes,
+.app-shell:has(.system-parameters) .pid-coordinate-panel,
+.app-shell:has(.system-parameters) .pid-coordinate-map,
+.app-shell:has(.system-parameters) .pid-group-editor {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-map {
+  width: 100%;
+  min-height: 0;
+  grid-template-rows: repeat(4, minmax(54px, auto)) minmax(54px, auto);
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-map-humidity {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-shell:has(.system-parameters) .pid-coordinate-map-temperature {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.app-shell:has(.system-parameters) .pid-axis-input {
+  min-width: 0;
+  overflow: visible;
+  gap: 5px;
+}
+
+.app-shell:has(.system-parameters) .pid-axis-input > span {
+  position: static;
+  display: block;
+  padding: 0 0 2px 2px;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.app-shell:has(.system-parameters) .pid-axis-input .numeric-slider {
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 3px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.app-shell:has(.system-parameters) .pid-axis-input .numeric-slider-value {
+  min-width: 0;
+  padding-inline: 2px;
+}
+
+.app-shell:has(.system-parameters) .pid-axis-input .numeric-slider-unit {
+  font-size: 10px;
+}
+
+.app-shell:has(.system-parameters) .pid-editor-row label {
+  min-width: 0;
+}
+
+.app-shell:has(.system-parameters) .pid-editor-row .numeric-slider-no-range {
+  grid-template-columns: minmax(0, 1fr) 32px;
+  gap: 3px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.app-shell:has(.system-parameters) .pid-editor-row .numeric-slider-value {
+  min-width: 0;
+  padding-inline: 3px;
+}
+
+.app-shell:has(.system-parameters) .pid-editor-row .numeric-slider-unit {
+  font-size: 10px;
+}

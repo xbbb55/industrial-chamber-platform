@@ -1,0 +1,463 @@
+/* Keep the application identity and device header stable across all views. */
+.app-shell:has(.sidebar) .main-shell {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: 72px minmax(0, 1fr);
+}
+
+.app-shell:has(.sidebar) .brand {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 72px;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: auto;
+  height: 72px;
+  min-height: 72px;
+  padding: 0 14px;
+}
+
+.app-shell:has(.sidebar) .brand-logo {
+  display: block;
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+  height: 54px;
+  max-height: calc(100% - 12px);
+  min-width: 0;
+  object-fit: contain;
+  object-position: center;
+}
+
+.app-shell:has(.sidebar) .topbar {
+  box-sizing: border-box;
+  height: 72px;
+  min-height: 72px;
+  padding: 0 24px;
+  align-items: center;
+  border-bottom: 1px solid rgba(58, 67, 76, .13);
+  background: rgba(238, 241, 243, .68);
+  color: #1d2227;
+  backdrop-filter: blur(18px);
+}
+
+.app-shell:has(.sidebar) .top-title,
+.app-shell:has(.sidebar) .device-title-copy {
+  min-width: 0;
+}
+
+.app-shell:has(.sidebar) .device-title-copy {
+  width: 100%;
+}
+
+.app-shell:has(.sidebar) .device-heading {
+  min-width: 0;
+}
+
+.app-shell:has(.sidebar) .device-heading h2,
+.app-shell:has(.sidebar) .topbar > .top-title > h2 {
+  color: #1d2227;
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.15;
+  text-shadow: none;
+}
+
+.app-shell:has(.sidebar) .device-heading-icon {
+  color: #4f5962;
+  filter: none;
+}
+
+.app-shell:has(.sidebar) .device-title-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 4px;
+  color: #7a838b;
+  font-family: var(--ui-font-family);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.app-shell:has(.sidebar) .device-meta-item,
+.app-shell:has(.sidebar) .workspace-refresh-status {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  min-height: 26px;
+  padding: 4px 9px;
+  border: 1px solid rgba(255, 255, 255, .78);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .48);
+  color: #4f5962;
+  box-shadow: none;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.app-shell:has(.sidebar) .device-meta-item + .device-meta-item {
+  padding-left: 9px;
+  border-left-color: rgba(255, 255, 255, .78);
+}
+
+.app-shell:has(.sidebar) .device-meta-item svg,
+.app-shell:has(.sidebar) .workspace-refresh-status svg {
+  flex: 0 0 auto;
+  color: currentColor;
+  filter: none;
+}
+
+.app-shell:has(.sidebar) .device-meta-label {
+  color: #6d8c9b;
+  font-size: 11px;
+}
+
+.app-shell:has(.sidebar) .device-status-item .device-meta-label {
+  color: #6d8c9b;
+}
+
+.app-shell:has(.sidebar) .device-meta-item strong {
+  color: #1d2227;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.app-shell:has(.sidebar) .device-status-item.online,
+.app-shell:has(.sidebar) .device-status-item.running {
+  border-color: rgba(35, 150, 112, .2);
+  background: rgba(218, 243, 233, .78);
+  color: #197a60;
+}
+
+.app-shell:has(.sidebar) .device-status-item.offline,
+.app-shell:has(.sidebar) .device-status-item.alarm {
+  border-color: rgba(174, 77, 77, .2);
+  background: rgba(249, 229, 229, .78);
+  color: #ae4d4d;
+}
+
+.app-shell:has(.sidebar) .device-status-item.idle,
+.app-shell:has(.sidebar) .device-status-item.stopped {
+  border-color: rgba(173, 123, 45, .2);
+  background: rgba(250, 239, 216, .8);
+  color: #91631f;
+}
+
+.app-shell:has(.sidebar) .workspace-refresh-status {
+  max-width: min(280px, 30vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-shell:has(.sidebar) .workspace-refresh-status > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-shell:has(.sidebar) .workspace-refresh-status.has-error {
+  border-color: rgba(174, 77, 77, .2);
+  background: rgba(249, 229, 229, .78);
+  color: #ae4d4d;
+}
+
+@media (max-width: 860px) {
+  .app-shell:has(.sidebar) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell:has(.sidebar) .main-shell {
+    height: auto;
+    min-height: 100dvh;
+    grid-template-rows: minmax(72px, auto) minmax(0, 1fr);
+  }
+
+  .app-shell:has(.sidebar) .topbar {
+    height: auto;
+    min-height: 72px;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .app-shell:has(.sidebar) .device-title-meta {
+    height: auto;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 620px) {
+  .app-shell:has(.sidebar) .device-title-meta {
+    display: none;
+  }
+}
+
+/* Keep the sidebar footer controls aligned across monitor and workspace views. */
+.app-shell:has(.sidebar) .sidebar-foot {
+  box-sizing: border-box;
+  padding: 14px;
+}
+
+.app-shell:has(.sidebar) .sidebar {
+  border-right: 1px solid rgba(255, 255, 255, .7);
+  background: rgba(236, 240, 243, .72);
+  box-shadow: none;
+}
+
+.app-shell:has(.sidebar) .brand,
+.app-shell:has(.sidebar) .sidebar-foot {
+  background: rgba(236, 240, 243, .72);
+  box-shadow: none;
+}
+
+.app-shell:has(.sidebar) .brand {
+  border-bottom: 0 !important;
+}
+
+.app-shell:has(.sidebar) .sidebar-foot {
+  border-top: 0 !important;
+}
+
+.app-shell:has(.sidebar) .sidebar::before,
+.app-shell:has(.sidebar) .sidebar::after,
+.app-shell:has(.sidebar) .brand::before,
+.app-shell:has(.sidebar) .brand::after {
+  content: none !important;
+  display: none !important;
+}
+
+.app-shell:has(.sidebar) .sidebar-device-actions {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.app-shell:has(.sidebar) .sidebar-return-button {
+  box-sizing: border-box;
+  height: 42px;
+  min-height: 42px;
+}
+
+.app-shell:has(.sidebar) .sidebar-return-button {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 0;
+  justify-content: center;
+  padding-inline: 12px;
+}
+
+@media (max-width: 760px) {
+  .app-shell:has(.monitor-layout) .sidebar-foot {
+    padding-inline: 6px;
+  }
+
+  .app-shell:has(.monitor-layout) .sidebar-device-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .app-shell:has(.monitor-layout) .sidebar-return-button {
+    width: 40px;
+    min-width: 40px;
+    flex: 0 0 40px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .app-shell:has(.monitor-layout) .sidebar-return-button span {
+    display: none;
+  }
+}
+
+/* Keep notification logs aligned with the shared light workspace shell. */
+.app-shell:has(.sidebar) .notification-modal {
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(720px, calc(100dvh - 32px));
+  border: 1px solid rgba(255, 255, 255, .86);
+  border-radius: 16px;
+  background: rgba(248, 250, 251, .96);
+  color: var(--system-ink);
+  box-shadow: 0 24px 70px rgba(38, 45, 52, .2);
+  backdrop-filter: blur(22px);
+}
+
+.app-shell:has(.sidebar) .notification-modal-header {
+  min-height: 72px;
+  box-sizing: border-box;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--system-line);
+  background: rgba(255, 255, 255, .52);
+}
+
+.app-shell:has(.sidebar) .notification-modal-header h3 {
+  margin: 0;
+  color: var(--system-ink);
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.app-shell:has(.sidebar) .notification-modal-header span {
+  display: block;
+  margin-top: 5px;
+  color: var(--system-ink-muted);
+  font-size: 11px;
+}
+
+.app-shell:has(.sidebar) .notification-modal-close {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--system-line-strong);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .5);
+  color: var(--system-ink-muted);
+}
+
+.app-shell:has(.sidebar) .notification-modal-close:hover {
+  border-color: rgba(32, 35, 38, .34);
+  background: #fff;
+  color: var(--system-ink);
+}
+
+.app-shell:has(.sidebar) .notification-tabs {
+  gap: 4px;
+  padding: 10px 14px 0;
+  border-bottom: 1px solid var(--system-line);
+  background: rgba(239, 243, 245, .72);
+}
+
+.app-shell:has(.sidebar) .notification-tabs button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-radius: 8px 8px 0 0;
+  color: var(--system-ink-muted);
+  font-size: 13px;
+}
+
+.app-shell:has(.sidebar) .notification-tabs button:hover {
+  background: rgba(255, 255, 255, .64);
+  color: var(--system-ink);
+}
+
+.app-shell:has(.sidebar) .notification-tabs button.active {
+  border-color: transparent;
+  border-bottom-color: #202326;
+  background: #202326;
+  color: #fff;
+  box-shadow: none;
+}
+
+.app-shell:has(.sidebar) .notification-tabs button span {
+  background: #d96b6b;
+  box-shadow: none;
+}
+
+.app-shell:has(.sidebar) .notification-list,
+.app-shell:has(.sidebar) .alarm-info-list {
+  padding: 16px;
+  background: rgba(239, 243, 245, .72);
+  scrollbar-color: #a9bcc6 transparent;
+  color-scheme: light;
+}
+
+.app-shell:has(.sidebar) .notification-list::-webkit-scrollbar-track {
+  border-left: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell:has(.sidebar) .notification-list::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #a9bcc6;
+  background-clip: padding-box;
+  box-shadow: none;
+}
+
+.app-shell:has(.sidebar) .notification-item,
+.app-shell:has(.sidebar) .alarm-info-summary {
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--system-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 4px 12px rgba(47, 55, 63, .04);
+}
+
+.app-shell:has(.sidebar) .notification-item:hover {
+  border-color: rgba(74, 154, 192, .28);
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(47, 55, 63, .07);
+}
+
+.app-shell:has(.sidebar) .notification-item > i {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  box-shadow: 0 0 0 5px rgba(74, 154, 192, .12);
+}
+
+.app-shell:has(.sidebar) .notification-item.success > i { box-shadow: 0 0 0 5px rgba(74, 166, 91, .14); }
+.app-shell:has(.sidebar) .notification-item.warning > i { box-shadow: 0 0 0 5px rgba(226, 166, 55, .14); }
+.app-shell:has(.sidebar) .notification-item.danger > i { box-shadow: 0 0 0 5px rgba(211, 91, 91, .14); }
+.app-shell:has(.sidebar) .notification-item strong { color: var(--system-ink); font-size: 14px; }
+.app-shell:has(.sidebar) .notification-item p { margin-top: 6px; color: var(--system-ink-soft); font-size: 13px; line-height: 1.55; }
+.app-shell:has(.sidebar) .notification-item time { color: var(--system-ink-muted); font: 600 12px "Roboto Mono", Consolas, monospace; }
+.app-shell:has(.sidebar) .alarm-info-summary { align-items: center; }
+.app-shell:has(.sidebar) .alarm-info-summary span,
+.app-shell:has(.sidebar) .alarm-info-summary small { color: var(--system-ink-muted); }
+.app-shell:has(.sidebar) .alarm-info-summary strong { color: #4a9a5a; }
+.app-shell:has(.sidebar) .alarm-info-summary strong.active { color: #c95454; }
+.app-shell:has(.sidebar) .notification-empty { color: var(--system-ink-muted); }
+.app-shell:has(.sidebar) .notification-empty strong { color: var(--system-ink); }
+
+@media (max-width: 560px) {
+  .app-shell:has(.sidebar) .notification-modal {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .app-shell:has(.sidebar) .notification-modal-backdrop {
+    padding: 10px;
+    place-items: center;
+  }
+
+  .app-shell:has(.sidebar) .notification-modal-header { padding: 16px; }
+  .app-shell:has(.sidebar) .notification-modal-header h3 { font-size: 18px; }
+  .app-shell:has(.sidebar) .notification-tabs { padding-inline: 10px; }
+  .app-shell:has(.sidebar) .notification-tabs button { flex: 1; padding-inline: 8px; }
+  .app-shell:has(.sidebar) .notification-list,
+  .app-shell:has(.sidebar) .alarm-info-list { padding: 10px; }
+  .app-shell:has(.sidebar) .notification-item { grid-template-columns: auto minmax(0, 1fr); }
+  .app-shell:has(.sidebar) .notification-item time { grid-column: 2; }
+}
+
+/* Make the active log tab visibly selected while keeping the shared motion layer. */
+.app-shell:has(.sidebar) .notification-tabs.motion-ready > button.active {
+  border-color: transparent;
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+}
+
+.app-shell:has(.sidebar) .notification-tabs.motion-ready > .motion-selection {
+  top: 0;
+  border: 1px solid #202326;
+  border-bottom: 3px solid #202326;
+  border-radius: 9px 9px 0 0;
+  background: #202326;
+  box-shadow: 0 3px 8px rgba(32, 35, 38, .16);
+}
+
+.app-shell:has(.sidebar) .notification-tabs.motion-ready > .motion-selection::before,
+.app-shell:has(.sidebar) .notification-tabs.motion-ready > .motion-selection::after {
+  display: none;
+}

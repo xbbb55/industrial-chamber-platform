@@ -73,8 +73,6 @@ textarea:focus-visible {
   z-index: 1;
 }
 
-.app-shell.sidebar-collapsed { grid-template-columns: 72px 1fr; }
-
 .brand {
   position: relative;
   min-height: 82px;
@@ -92,8 +90,6 @@ textarea:focus-visible {
   background: linear-gradient(90deg, transparent, rgba(230, 237, 247, .46));
   pointer-events: none;
 }
-
-.sidebar-collapsed .brand { padding: 18px 16px; }
 
 .brand-mark {
   width: 38px;
@@ -123,21 +119,10 @@ textarea:focus-visible {
 .nav-list button:hover { background: rgba(59, 130, 246, .10); color: var(--text); }
 .nav-list button.active { background: #174b9d; color: #fff; box-shadow: none; }
 
-.sidebar-collapse-button {
-  min-height: 38px;
-  border-radius: 7px;
-  background: var(--panel-soft);
-  font-size: 13px;
-}
-
 .sidebar-return-button {
   border-radius: 7px;
   background: var(--panel-soft);
   color: #9cadc4;
-}
-
-.sidebar-collapsed .sidebar-collapse-button {
-  width: 42px;
 }
 
 .nav-icon {
@@ -2940,8 +2925,7 @@ textarea:focus-visible {
 }
 
 .sidebar-device-actions { gap: 7px; }
-.sidebar-return-button,
-.sidebar-collapse-button {
+.sidebar-return-button {
   height: 44px;
   min-height: 44px;
   border-color: rgba(31, 129, 187, .46);
@@ -2953,16 +2937,7 @@ textarea:focus-visible {
 }
 
 .sidebar-return-button { flex: 1 1 auto; min-width: 0; padding-inline: 10px; }
-.sidebar-collapse-button { flex: 0 0 42px; }
-.sidebar-return-button:hover,
-.sidebar-collapse-button:hover { border-color: #2bbfff; color: #effbff; background: rgba(10, 70, 117, .62); box-shadow: inset 0 0 15px rgba(35, 174, 239, .14), 0 0 8px rgba(26, 150, 217, .20); }
-
-.sidebar-collapsed .brand { padding-inline: 14px; }
-.sidebar-collapsed .nav-list { margin-inline: 6px; padding: 12px 5px 18px; }
-.sidebar-collapsed .nav-list button { padding: 10px 8px; }
-.sidebar-collapsed .sidebar-foot { padding-inline: 9px; }
-.sidebar-collapsed .sidebar-return-button,
-.sidebar-collapsed .sidebar-collapse-button { width: 42px; min-width: 42px; }
+.sidebar-return-button:hover { border-color: #2bbfff; color: #effbff; background: rgba(10, 70, 117, .62); box-shadow: inset 0 0 15px rgba(35, 174, 239, .14), 0 0 8px rgba(26, 150, 217, .20); }
 
 /* Device overview: turn both list and card modes into cockpit equipment bays. */
 .overview-panel {
@@ -3213,7 +3188,6 @@ textarea:focus-visible {
   height: 72px;
   padding: 12px 16px;
 }
-.app-shell:has(.operation-settings).sidebar-collapsed .brand { padding-inline: 14px; }
 .app-shell:has(.operation-settings) .sidebar {
   border-right-color: transparent;
   box-shadow: none;
@@ -3368,7 +3342,6 @@ textarea:focus-visible {
 .app-shell:not(:has(.monitor-layout)) .sidebar { border-right-color: transparent; box-shadow: none; }
 .app-shell:not(:has(.monitor-layout)) .sidebar::before { display: none; }
 .app-shell:not(:has(.monitor-layout)) .brand { box-sizing: border-box; min-height: 72px; height: 72px; padding: 12px 16px; }
-.app-shell:not(:has(.monitor-layout)).sidebar-collapsed .brand { padding-inline: 14px; }
 
 .app-shell:not(:has(.monitor-layout)) .panel:not(.operation-nav),
 .app-shell:not(:has(.monitor-layout)) .system-parameter-card,
@@ -3468,7 +3441,7 @@ textarea:focus-visible {
 .app-shell:not(:has(.monitor-layout)) .pid-coordinate-point:hover { border-color: #6ea9c5; background: #e6f2f7; color: #164c68; }
 .app-shell:not(:has(.monitor-layout)) .pid-coordinate-point.active { border-color: #2787b4; background: #d9edf6; color: #164c68; box-shadow: inset 0 0 0 1px rgba(39, 135, 180, .12); }
 
-.app-shell:not(:has(.monitor-layout)) .content input:not([type="checkbox"]):not([type="radio"]),
+.app-shell:not(:has(.monitor-layout)) .content input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.numeric-slider-value),
 .app-shell:not(:has(.monitor-layout)) .content select,
 .app-shell:not(:has(.monitor-layout)) .content textarea,
 .app-shell:not(:has(.monitor-layout)) .hmi-number-control {
@@ -3820,7 +3793,6 @@ textarea:focus-visible {
 .app-shell:has(.monitor-layout) .sidebar { border-right-color: transparent; box-shadow: none; }
 .app-shell:has(.monitor-layout) .sidebar::before { display: none; }
 .app-shell:has(.monitor-layout) .brand { box-sizing: border-box; min-height: 72px; height: 72px; padding: 12px 16px; }
-.app-shell:has(.monitor-layout).sidebar-collapsed .brand { padding-inline: 14px; }
 .app-shell:has(.monitor-layout) .command-layout-button {
   border-color: #b8cad4;
   border-radius: 4px;
@@ -4755,58 +4727,12 @@ body,
 .app-shell .notification-tabs button.active::before,
 .app-shell .notification-tabs button.active::after { content: none; }
 
-/* Historical telemetry workspace. */
-.app-shell .history-page { gap: 14px; min-height: 0; }
-.app-shell .history-page-head { min-height: 48px; }
-.app-shell .history-page-head h2 { margin: 0 0 4px; }
-.app-shell .history-page-head span { color: var(--ink-muted); font-size: 12px; }
-.app-shell .history-record-count { align-self: center; color: #2f7698 !important; font: 700 12px "Roboto Mono", Consolas, monospace; }
-.app-shell .history-query-panel { padding: 16px; }
-.app-shell .history-query-row { display: grid; grid-template-columns: minmax(140px, .75fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(130px, .7fr) auto; gap: 12px; align-items: end; }
-.app-shell .history-query-row label { display: grid; gap: 6px; color: var(--ink-muted); font-size: 11px; font-weight: 700; }
-.app-shell .history-query-row input,
-.app-shell .history-query-row select { min-height: 36px; box-sizing: border-box; padding: 7px 9px; border: 1px solid var(--field-border); border-radius: 4px; background: var(--field-surface); color: var(--ink); font: inherit; }
-.app-shell .history-query-row input:disabled { opacity: .62; cursor: not-allowed; }
-.app-shell .history-query-button { min-height: 36px; white-space: nowrap; }
-.app-shell .history-error { margin: 12px 0 0; color: #b43c47; font-size: 12px; }
-.app-shell .history-chart-panel,
-.app-shell .history-table-panel { padding: 16px; }
-.app-shell .history-chart-panel .panel-title,
-.app-shell .history-table-panel .panel-title { align-items: flex-start; }
-.app-shell .history-chart-panel .panel-title > div:first-child,
-.app-shell .history-table-panel .panel-title > div:first-child { display: grid; gap: 5px; }
-.app-shell .history-chart-panel .panel-title h3,
-.app-shell .history-table-panel .panel-title h3 { margin: 0; }
-.app-shell .history-chart-panel .panel-title span,
-.app-shell .history-table-panel .panel-title > span { color: var(--ink-muted); font-size: 11px; }
-.app-shell .history-legend { display: flex; gap: 14px; align-items: center; }
-.app-shell .history-legend span { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-muted) !important; }
-.app-shell .history-legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
-.app-shell .history-temp-line { background: #3b82f6; }
-.app-shell .history-hum-line { background: #22c55e; }
-.app-shell .history-chart { display: block; width: 100%; min-height: 260px; margin-top: 10px; overflow: visible; border: 1px solid var(--card-divider); border-radius: 4px; background: #f8fbfc; }
-.app-shell .history-grid-lines line { stroke: #d8e2e8; stroke-width: 1; stroke-dasharray: 4 4; }
-.app-shell .history-temp-path,
-.app-shell .history-hum-path { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-.app-shell .history-temp-path { stroke: #3b82f6; }
-.app-shell .history-hum-path { stroke: #22c55e; }
-.app-shell .history-axis-labels text { fill: #68808e; font: 10px "Roboto Mono", Consolas, monospace; }
-.app-shell .history-state { display: grid; min-height: 260px; place-items: center; color: var(--ink-muted); font-size: 12px; }
-.app-shell .history-table-wrap { overflow-x: auto; border: 1px solid var(--card-divider); border-radius: 4px; }
-.app-shell .history-table { width: 100%; min-width: 720px; border-collapse: collapse; color: var(--ink); font-size: 12px; }
-.app-shell .history-table th { padding: 10px 12px; background: var(--card-surface-muted); color: var(--ink-muted); font-size: 11px; text-align: left; white-space: nowrap; }
-.app-shell .history-table td { padding: 10px 12px; border-top: 1px solid var(--card-divider); font-family: "Roboto Mono", Consolas, monospace; white-space: nowrap; }
-.app-shell .history-table tbody tr:hover { background: #edf5f8; }
-.app-shell .history-table-empty { min-height: 100px; }
-@media (max-width: 860px) {
-  .app-shell .history-query-row { grid-template-columns: 1fr 1fr; }
-  .app-shell .history-query-button { grid-column: 1 / -1; justify-self: end; }
-}
-@media (max-width: 560px) {
-  .app-shell .history-query-row { grid-template-columns: 1fr; }
-  .app-shell .history-query-button { grid-column: auto; justify-self: stretch; }
-  .app-shell .history-legend { align-items: flex-start; flex-direction: column; gap: 5px; }
-  .app-shell .history-chart { min-height: 220px; }
+/* Program selection keeps its status treatment without corner brackets. */
+.app-shell .program-card.active::before,
+.app-shell .program-card.active::after,
+.app-shell .program-card-selection.selected::before,
+.app-shell .program-card-selection.selected::after {
+  content: none;
 }
 
 /* Unified system identity and structured topbar status presentation. */
@@ -5062,5 +4988,400 @@ body,
 
   .app-shell .user-card {
     padding-left: 8px;
+  }
+}
+
+/* Realtime monitoring follows the same restrained workspace system as settings. */
+.app-shell:has(.monitor-layout) {
+  --workspace-surface: #cfd4da;
+  --card-surface: rgba(255, 255, 255, .92);
+  --card-surface-muted: rgba(235, 239, 242, .78);
+  --card-border: rgba(58, 67, 76, .13);
+  --card-divider: rgba(58, 67, 76, .13);
+  --ink-strong: #1d2227;
+  --ink: #4f5962;
+  --ink-muted: #7a838b;
+  width: calc(100% - 20px);
+  height: calc(100dvh - 20px);
+  margin: 10px;
+  grid-template-columns: 236px minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .7);
+  border-radius: 20px;
+  background: #cfd4da;
+  box-shadow: 0 24px 62px rgba(44, 51, 58, .18);
+}
+
+.app-shell:has(.monitor-layout) .sidebar,
+.app-shell:has(.monitor-layout) .topbar,
+.app-shell:has(.monitor-layout) .brand {
+  border-color: rgba(58, 67, 76, .13);
+  background: rgba(236, 240, 243, .76);
+}
+
+.app-shell:has(.monitor-layout) .sidebar {
+  border-right: 1px solid rgba(255, 255, 255, .78);
+  box-shadow: none;
+  backdrop-filter: blur(18px);
+}
+
+.app-shell:has(.monitor-layout) .brand h1,
+.app-shell:has(.monitor-layout) .topbar h2,
+.app-shell:has(.monitor-layout) .device-heading h2 { color: #1d2227; }
+
+.app-shell:has(.monitor-layout) .brand-mark { background: #202326; box-shadow: 0 5px 12px rgba(29, 34, 39, .14); }
+
+.app-shell:has(.monitor-layout) .brand p,
+.app-shell:has(.monitor-layout) .device-title-meta,
+.app-shell:has(.monitor-layout) .top-title p { color: #737d84; }
+
+.app-shell:has(.monitor-layout) .nav-list button {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #4f5962;
+}
+
+.app-shell:has(.monitor-layout) .nav-list button:hover {
+  border-color: rgba(255, 255, 255, .8);
+  background: rgba(255, 255, 255, .58);
+  color: #1d2227;
+}
+
+.app-shell:has(.monitor-layout) .nav-list button.active {
+  border-color: #1f2327;
+  border-radius: 12px;
+  background: #202326;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(32, 35, 38, .16);
+}
+
+.app-shell:has(.monitor-layout) .sidebar-return-button,
+.app-shell:has(.monitor-layout) .light-toggle,
+.app-shell:has(.monitor-layout) .notify,
+.app-shell:has(.monitor-layout) .user-card {
+  border-color: rgba(255, 255, 255, .82);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .48);
+  color: #4f5962;
+  box-shadow: 0 2px 8px rgba(47, 55, 63, .04);
+}
+
+.app-shell:has(.monitor-layout) .sidebar-return-button:hover,
+.app-shell:has(.monitor-layout) .light-toggle:hover,
+.app-shell:has(.monitor-layout) .notify:hover,
+.app-shell:has(.monitor-layout) .user-card:hover {
+  border-color: rgba(40, 46, 52, .2);
+  background: rgba(255, 255, 255, .78);
+  color: #1d2227;
+  box-shadow: 0 3px 10px rgba(47, 55, 63, .07);
+}
+
+.app-shell:has(.monitor-layout) .main-shell { min-width: 0; background: transparent; }
+.app-shell:has(.monitor-layout) .topbar { min-height: 72px; background: rgba(238, 241, 243, .68); backdrop-filter: blur(18px); }
+.app-shell:has(.monitor-layout) .content {
+  background:
+    linear-gradient(90deg, rgba(77, 122, 146, .055) 1px, transparent 1px) 0 0 / 34px 34px,
+    linear-gradient(rgba(77, 122, 146, .045) 1px, transparent 1px) 0 0 / 34px 34px,
+    #cfd4da;
+}
+
+.app-shell:has(.monitor-layout) .monitor-layout {
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: 14px;
+  height: auto;
+  min-height: 100%;
+}
+
+.app-shell:has(.monitor-layout) .monitor-primary-card,
+.app-shell:has(.monitor-layout) .monitor-layout .monitor-card {
+  min-width: 0;
+  border: 1px solid rgba(58, 67, 76, .13);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .92);
+  color: #1d2227;
+  box-shadow: 0 8px 24px rgba(47, 55, 63, .07);
+  clip-path: none;
+}
+
+.app-shell:has(.monitor-layout) .monitor-primary-card {
+  display: grid;
+  gap: 0;
+  padding: 18px 20px 0;
+  overflow: hidden;
+}
+
+.app-shell:has(.monitor-layout) .monitor-primary-content {
+  display: grid;
+  grid-template-columns: minmax(230px, .3fr) minmax(0, .7fr);
+  align-items: stretch;
+  gap: 20px;
+  min-width: 0;
+}
+
+.app-shell:has(.monitor-layout) .monitor-product-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 340px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.app-shell:has(.monitor-layout) .monitor-product-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 440px;
+  object-fit: contain;
+}
+
+.app-shell:has(.monitor-layout) .monitor-primary-card .hmi-dashboard {
+  width: 100%;
+  min-width: 0;
+  min-height: 385px;
+  padding: 4px 2px 0;
+  grid-template-rows: auto minmax(190px, 1fr) auto;
+  gap: 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #1d2227;
+  box-shadow: none;
+}
+
+.app-shell:has(.monitor-layout) .monitor-primary-card .hmi-header h3 { color: #1d2227; font-size: 19px; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .hmi-eyebrow { color: #7a838b; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .hmi-live { color: #667179; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .env-reading-card {
+  padding: 12px 16px 9px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.app-shell:has(.monitor-layout) .monitor-primary-card .env-reading-card + .env-reading-card { border-left: 1px solid #e2e7ea; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .metric-heading { color: #59636a; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .metric-reading { color: #20262a; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .metric-target { color: #778188; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .metric-target strong { color: #3d474e; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .metric-scale { color: #89939a; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .status-bar {
+  border-color: #e2e7ea;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.app-shell:has(.monitor-layout) .monitor-primary-card .status-item { color: #6b757c; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .status-item:not(:first-child) { border-color: #e2e7ea; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .status-icon { color: #727d84; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .status-copy > span { color: #858e94; font-size: 11px; }
+.app-shell:has(.monitor-layout) .monitor-primary-card .status-copy strong { color: #444d53; font-size: 12px; }
+
+.app-shell:has(.monitor-layout) .monitor-primary-footer {
+  display: grid;
+  grid-template-columns: auto minmax(300px, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  margin-top: 16px;
+  padding: 14px 0;
+  border-top: 1px solid #e2e7ea;
+}
+
+.app-shell:has(.monitor-layout) .monitor-primary-footer .command-actions { gap: 7px; flex-wrap: nowrap; }
+.app-shell:has(.monitor-layout) .monitor-primary-footer .start-command-button,
+.app-shell:has(.monitor-layout) .monitor-primary-footer .hold-command-button,
+.app-shell:has(.monitor-layout) .monitor-primary-footer .skip-command-button,
+.app-shell:has(.monitor-layout) .monitor-primary-footer .danger-command-button {
+  min-width: 88px;
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid #d7dde1;
+  border-radius: 9px;
+  background: #f3f5f6;
+  color: #40494f;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.app-shell:has(.monitor-layout) .monitor-primary-footer .start-command-button {
+  border-color: #202326;
+  background: #202326;
+  color: #fff;
+}
+
+.app-shell:has(.monitor-layout) .monitor-primary-footer .danger-command-button {
+  border-color: #ead6d6;
+  background: #fbf5f5;
+  color: #a84a4a;
+}
+
+.app-shell:has(.monitor-layout) .monitor-primary-footer .start-command-button:hover:not(:disabled) { background: #353a3e; }
+.app-shell:has(.monitor-layout) .monitor-primary-footer :is(.hold-command-button, .skip-command-button):hover:not(:disabled) { background: #e8edef; }
+.app-shell:has(.monitor-layout) .monitor-primary-footer .danger-command-button:hover:not(:disabled) { background: #f7eaea; }
+
+.app-shell:has(.monitor-layout) .monitor-primary-runtime { min-width: 0; }
+.app-shell:has(.monitor-layout) .monitor-primary-runtime .runtime-tags { justify-content: space-around; gap: 8px; }
+.app-shell:has(.monitor-layout) .monitor-primary-runtime .runtime-tag { min-width: 0; gap: 3px; }
+.app-shell:has(.monitor-layout) .monitor-primary-runtime .runtime-tag span { color: #7a838b; font-size: 11px; }
+.app-shell:has(.monitor-layout) .monitor-primary-runtime .runtime-tag strong {
+  color: #30383d;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.app-shell:has(.monitor-layout) .monitor-primary-runtime .runtime-tags > i { background: #e2e7ea; }
+.app-shell:has(.monitor-layout) .monitor-primary-footer .command-layout-button {
+  margin: 0;
+  border-color: #d7dde1;
+  border-radius: 9px;
+  background: #fff;
+  color: #4f5962;
+  box-shadow: none;
+  white-space: nowrap;
+}
+.app-shell:has(.monitor-layout) .monitor-primary-footer .command-layout-button:hover,
+.app-shell:has(.monitor-layout) .monitor-primary-footer .command-layout-button.active {
+  border-color: #bfc8cd;
+  background: #f2f4f5;
+  color: #202326;
+}
+
+.app-shell:has(.monitor-layout) .custom-layout-panel { min-width: 0; }
+.app-shell:has(.monitor-layout) .custom-monitor-grid { gap: 14px; }
+.app-shell:has(.monitor-layout) .monitor-layout .monitor-card { border-radius: 10px; }
+.app-shell:has(.monitor-layout) .trend-panel { padding: 16px 18px 14px; }
+.app-shell:has(.monitor-layout) .trend-title-block h3,
+.app-shell:has(.monitor-layout) .monitor-card-title h3 { color: #252b2f; }
+.app-shell:has(.monitor-layout) .trend-title-block h3::before { content: none; }
+.app-shell:has(.monitor-layout) .trend-panel canvas,
+.app-shell:has(.monitor-layout) .custom-monitor-grid .trend-panel canvas {
+  border: 1px solid #d9e0e4;
+  border-radius: 8px;
+  background: #fff;
+}
+.app-shell:has(.monitor-layout) .trend-toolbar button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #d7dde1;
+  border-radius: 8px;
+  background: #fff;
+  color: #4f5962;
+}
+.app-shell:has(.monitor-layout) .trend-toolbar button:hover { background: #f0f3f4; }
+.app-shell:has(.monitor-layout) .dut-temperature-item,
+.app-shell:has(.monitor-layout) .event-item {
+  border-color: #e0e5e8;
+  border-radius: 8px;
+  background: #f8fafb;
+}
+.app-shell:has(.monitor-layout) .dut-temperature-item.dut-selected-card,
+.app-shell:has(.monitor-layout) .event-item.event-active {
+  border-color: #c8d8df;
+  background: #eff5f7;
+}
+.app-shell:has(.monitor-layout) .dut-temperature-item::after,
+.app-shell:has(.monitor-layout) .dut-temperature-item.dut-selected-card::before,
+.app-shell:has(.monitor-layout) .dut-temperature-item.dut-selected-card::after { content: none; }
+
+@media (max-width: 1180px) {
+  .app-shell:has(.monitor-layout) .monitor-primary-content { grid-template-columns: minmax(180px, .28fr) minmax(0, .72fr); gap: 12px; }
+  .app-shell:has(.monitor-layout) .monitor-primary-footer { grid-template-columns: minmax(0, 1fr) auto; }
+  .app-shell:has(.monitor-layout) .monitor-primary-runtime { grid-column: 1 / -1; grid-row: 2; }
+}
+
+@media (max-width: 760px) {
+  .app-shell:has(.monitor-layout) {
+    width: 100%;
+    height: 100dvh;
+    margin: 0;
+    grid-template-columns: 68px minmax(0, 1fr);
+    border: 0;
+    border-radius: 0;
+  }
+  .app-shell:has(.monitor-layout) .brand { justify-content: center; padding-inline: 8px; }
+  .app-shell:has(.monitor-layout) .brand h1,
+  .app-shell:has(.monitor-layout) .brand p,
+  .app-shell:has(.monitor-layout) .nav-label,
+  .app-shell:has(.monitor-layout) .sidebar-return-button span { display: none; }
+  .app-shell:has(.monitor-layout) .nav-list { padding-inline: 7px; }
+  .app-shell:has(.monitor-layout) .nav-list button { justify-content: center; padding-inline: 8px; }
+  .app-shell:has(.monitor-layout) .sidebar-foot { padding-inline: 6px; }
+  .app-shell:has(.monitor-layout) .sidebar-return-button { min-width: 40px; padding-inline: 0; }
+  .app-shell:has(.monitor-layout) .monitor-primary-content { grid-template-columns: minmax(0, 1fr); }
+  .app-shell:has(.monitor-layout) .monitor-product-image { min-height: 210px; max-height: 260px; }
+  .app-shell:has(.monitor-layout) .monitor-product-image img { max-height: 260px; }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .hmi-dashboard { min-height: 450px; }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .env-reading-card { padding-inline: 8px; }
+  .app-shell:has(.monitor-layout) .monitor-primary-footer { grid-template-columns: minmax(0, 1fr) auto; }
+  .app-shell:has(.monitor-layout) .monitor-primary-footer .command-actions { flex-wrap: wrap; }
+  .app-shell:has(.monitor-layout) .monitor-primary-footer .command-actions button { flex: 1 1 calc(50% - 7px); }
+  .app-shell:has(.monitor-layout) .monitor-primary-runtime { grid-column: 1 / -1; grid-row: 2; }
+}
+
+@media (max-width: 520px) {
+  .app-shell:has(.monitor-layout) .monitor-primary-card { padding: 12px 12px 0; }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .hmi-dashboard { padding-inline: 0; }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .env-reading-grid { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .env-reading-card { padding: 12px; }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .env-reading-card + .env-reading-card { border-top: 1px solid #e2e7ea; border-left: 0; }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .hmi-dashboard { min-height: 660px; }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .status-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .status-item:nth-child(odd) { border-left: 0; }
+  .app-shell:has(.monitor-layout) .monitor-primary-card .status-item:nth-child(n + 3) { border-top: 1px solid #e2e7ea; }
+  .app-shell:has(.monitor-layout) .monitor-primary-footer { grid-template-columns: minmax(0, 1fr); }
+  .app-shell:has(.monitor-layout) .monitor-primary-footer .command-layout-button { justify-self: start; }
+  .app-shell:has(.monitor-layout) .monitor-primary-runtime { grid-column: 1; grid-row: 2; }
+  .app-shell:has(.monitor-layout) .monitor-primary-runtime .runtime-tags { align-items: start; }
+  .app-shell:has(.monitor-layout) .monitor-primary-runtime .runtime-tag strong { font-size: 12px; }
+}
+
+@media (min-width: 861px) {
+  .app-shell:has(.monitor-layout.fills-workspace) .main-shell {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: minmax(72px, auto) minmax(0, 1fr);
+  }
+
+  .content:has(.monitor-layout.fills-workspace) {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .content:has(.monitor-layout.fills-workspace) .device-workspace {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  .app-shell:has(.monitor-layout.fills-workspace) .monitor-layout {
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .app-shell:has(.monitor-layout.fills-workspace) .monitor-primary-card {
+    grid-template-rows: minmax(0, 1fr) auto;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .app-shell:has(.monitor-layout.fills-workspace) .monitor-primary-content {
+    min-height: 0;
+  }
+
+  .app-shell:has(.monitor-layout.fills-workspace) .monitor-product-image {
+    min-height: 0;
+  }
+
+  .app-shell:has(.monitor-layout.fills-workspace) .monitor-primary-card .hmi-dashboard {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr) auto;
   }
 }

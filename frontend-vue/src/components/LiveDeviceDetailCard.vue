@@ -21,22 +21,31 @@
       </div>
     </div>
 
-    <div class="detail-grid">
-      <div class="mini-box">
-        <span>当前温度</span>
-        <strong>{{ formatNumber(device.current_temperature) }} C</strong>
+    <div class="device-card-body">
+      <div class="device-card-product-image">
+        <img
+          src="/assets/chamber-product.png"
+          :data-device-id="device.device_id"
+          :alt="`${device.name || device.device_id}设备图片`"
+        />
       </div>
-      <div class="mini-box">
-        <span>当前湿度</span>
-        <strong>{{ formatNumber(device.current_humidity) }} %</strong>
-      </div>
-      <div class="mini-box">
-        <span>目标温度</span>
-        <strong>{{ device.target_temperature }} C</strong>
-      </div>
-      <div class="mini-box">
-        <span>目标湿度</span>
-        <strong>{{ device.target_humidity }} %</strong>
+      <div class="detail-grid">
+        <div class="mini-box">
+          <span>当前温度</span>
+          <strong>{{ formatNumber(device.current_temperature) }} C</strong>
+        </div>
+        <div class="mini-box">
+          <span>当前湿度</span>
+          <strong>{{ formatNumber(device.current_humidity) }} %</strong>
+        </div>
+        <div class="mini-box">
+          <span>目标温度</span>
+          <strong>{{ device.target_temperature }} C</strong>
+        </div>
+        <div class="mini-box">
+          <span>目标湿度</span>
+          <strong>{{ device.target_humidity }} %</strong>
+        </div>
       </div>
     </div>
 

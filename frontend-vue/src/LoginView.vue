@@ -3,8 +3,7 @@
     <div class="login-grid-mark" aria-hidden="true"></div>
     <section class="login-aside">
       <div class="login-brand">
-        <span aria-hidden="true"><Factory :size="22" :stroke-width="1.75" /></span>
-        <div><strong>哈丁环境试验箱数据平台</strong></div>
+        <img class="login-brand-logo" src="/assets/hardy-logo.png" alt="哈丁环境 Hardy Technology" />
       </div>
       <div class="login-intro">
         <h1>让每一次环境试验，<em>都可追溯。</em></h1>
@@ -26,7 +25,7 @@
 
 <script setup>
 import { ref } from "vue";
-import { ArrowRight, Eye, EyeOff, Factory, LockKeyhole, ShieldCheck, UserRound } from "lucide-vue-next";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from "lucide-vue-next";
 
 const emit = defineEmits(["authenticated"]);
 const username = ref("");

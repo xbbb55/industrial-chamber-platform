@@ -123,6 +123,37 @@
   opacity: 0;
   transform: translateY(-4px);
 }
+
+html.device-product-transition .device-workspace {
+  animation: device-workspace-reveal 920ms both;
+}
+
+html.device-product-transition .monitor-product-image img {
+  visibility: hidden;
+}
+
+.device-product-overlay {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.device-product-overlay img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes device-workspace-reveal {
+  0%, 44% { opacity: 0; }
+  88%, 100% { opacity: 1; }
+}
+
 .settings-tab-leave-to { opacity: 0; }
 
 .app-shell .operation-tab-content {

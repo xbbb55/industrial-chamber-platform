@@ -1,9 +1,10 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-export function useSelectionIndicator(container, selectedKey) {
+export function useSelectionIndicator(container, selectedKey, { resizeDebounceMs = 0 } = {}) {
   const style = ref(null);
   let observer;
   let frame;
+  let resizeTimer;
 
   function update() {
     window.cancelAnimationFrame(frame);
@@ -25,6 +26,15 @@ export function useSelectionIndicator(container, selectedKey) {
     });
   }
 
+  function scheduleResizeUpdate() {
+    if (!resizeDebounceMs) {
+      update();
+      return;
+    }
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(update, resizeDebounceMs);
+  }
+
   watch([container, selectedKey], async () => {
     await nextTick();
     observer?.disconnect();
@@ -32,13 +42,14 @@ export function useSelectionIndicator(container, selectedKey) {
     update();
   }, { flush: "post" });
   onMounted(() => {
-    observer = new ResizeObserver(update);
+    observer = new ResizeObserver(scheduleResizeUpdate);
     if (container.value) observer.observe(container.value);
     window.addEventListener("resize", update);
     update();
   });
   onBeforeUnmount(() => {
     observer?.disconnect();
+    window.clearTimeout(resizeTimer);
     window.cancelAnimationFrame(frame);
     window.removeEventListener("resize", update);
   });

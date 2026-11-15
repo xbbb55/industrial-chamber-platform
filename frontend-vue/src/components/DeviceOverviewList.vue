@@ -8,6 +8,13 @@
       @click="$emit('select', device.device_id)"
     >
       <div class="overview-device">
+        <span class="overview-product-image">
+          <img
+            src="/assets/chamber-product.png"
+            :data-device-id="device.device_id"
+            :alt="`${device.name || device.device_id}设备图片`"
+          />
+        </span>
         <span :class="['state-dot', stateClass(device)]"></span>
         <div>
           <strong>{{ device.device_id }}</strong>

@@ -1,13 +1,8 @@
 <template>
-  <div class="app-shell" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
+  <div class="app-shell">
     <aside class="sidebar" :inert="hasOpenDialogs">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <AppIcon name="factory" :size="22" :stroke-width="1.75" />
-        </div>
-        <div class="brand-copy">
-          <h1>哈丁环境试验箱数据平台</h1>
-        </div>
+        <img class="brand-logo" src="/assets/hardy-logo.png" alt="哈丁环境 Hardy Technology" />
       </div>
 
       <nav ref="sidebarNav" class="nav-list motion-nav" :class="{ 'motion-ready': sidebarIndicator }" aria-label="主导航">
@@ -37,16 +32,6 @@
           >
             <AppIcon name="dashboard" :size="18" />
             <span>返回设备列表</span>
-          </button>
-          <button
-            class="sidebar-collapse-button"
-            type="button"
-            :title="isSidebarCollapsed ? '展开侧边栏' : '收缩侧边栏'"
-            :aria-label="isSidebarCollapsed ? '展开侧边栏' : '收缩侧边栏'"
-            @click="isSidebarCollapsed = !isSidebarCollapsed"
-          >
-            <AppIcon :name="isSidebarCollapsed ? 'expand' : 'collapse'" :size="18" />
-            <span>{{ isSidebarCollapsed ? "展开" : "收缩" }}</span>
           </button>
         </div>
         <template v-else>
@@ -133,7 +118,7 @@
       </header>
 
       <main ref="workspaceContent" class="content">
-        <Transition name="workspace" mode="out-in" @before-leave="prepareWorkspaceLeave" @after-enter="finishWorkspaceEnter">
+        <Transition name="workspace" :mode="deviceTransitionInProgress ? 'default' : 'out-in'" :css="!deviceTransitionInProgress" @before-leave="prepareWorkspaceLeave" @after-enter="finishWorkspaceEnter">
         <section v-if="activeView === 'dashboard'" key="dashboard" class="page-stack">
           <section class="panel overview-panel">
             <div class="panel-title">
@@ -197,45 +182,29 @@
             v-if="selectedDevice && selectedDeviceSection === 'monitor'"
             key="monitor"
             class="monitor-layout"
+            :class="{ 'fills-workspace': visibleMonitorCards.length === 0 }"
             :aria-busy="monitorRefresh.state.pending"
-            :class="{
-              'wallboard-mode': visibleMonitorCards.length === 0,
-              'dut-only-mode': visibleMonitorCards.length === 1 && visibleMonitorCards[0] === 'dut-temperatures',
-              'event-only-mode': visibleMonitorCards.length === 1 && visibleMonitorCards[0] === 'user-events'
-            }"
           >
-            <section v-if="visibleMonitorCards.length > 0" class="panel realtime-overview-panel">
-              <div class="realtime-tile temperature">
-                <div class="current-reading">
-                  <span>当前温度</span>
-                  <div class="reading-value-row">
-                    <AppIcon class="realtime-icon" name="temperature" :size="48" :stroke-width="1.45" />
-                    <strong>{{ formatNumber(selectedDevice.current_temperature) }}<small>°C</small></strong>
-                  </div>
+            <section class="panel monitor-primary-card">
+              <div class="monitor-primary-content">
+                <div class="monitor-product-image">
+                  <img
+                    src="/assets/chamber-product.png"
+                    :alt="`${selectedDevice.name || selectedDevice.device_id}设备图片`"
+                  />
                 </div>
-                <div class="target-value">
-                  <span>目标温度</span>
-                  <b>{{ selectedDevice.target_temperature }}°C</b>
-                </div>
+                <HmiDashboard
+                  :temperature="Number(selectedDevice.current_temperature ?? 0)"
+                  :humidity="Number(selectedDevice.current_humidity ?? 0)"
+                  :target-temperature="Number(selectedDevice.target_temperature ?? 0)"
+                  :target-humidity="Number(selectedDevice.target_humidity ?? 0)"
+                  :device-status="runStateLabel(selectedDevice.run_state)"
+                  :running-mode="selectedDeviceRunningMode"
+                  :communication-status="communicationLabel(selectedDevice.online)"
+                  :start-time="selectedDeviceStartTime"
+                />
               </div>
-
-              <div class="realtime-tile humidity">
-                <div class="current-reading">
-                  <span>当前湿度</span>
-                  <div class="reading-value-row">
-                    <AppIcon class="realtime-icon" name="humidity" :size="48" :stroke-width="1.45" />
-                    <strong>{{ formatNumber(selectedDevice.current_humidity) }}<small>%</small></strong>
-                  </div>
-                </div>
-                <div class="target-value">
-                  <span>目标湿度</span>
-                  <b>{{ selectedDevice.target_humidity }}%</b>
-                </div>
-              </div>
-            </section>
-
-            <section class="panel command-panel">
-              <div class="command-main-row">
+              <div class="monitor-primary-footer">
                 <div class="command-actions">
                   <button
                     class="start-command-button"
@@ -274,6 +243,24 @@
                     <span>{{ stoppingDeviceIds[selectedDeviceId] ? "停止下发中" : isDeviceStopped ? "已停止" : "停止运行" }}</span>
                   </button>
                 </div>
+                <div class="monitor-primary-runtime">
+                  <div class="runtime-tags">
+                    <div class="runtime-tag">
+                      <span>运行时间:</span>
+                      <strong>{{ runtimeDisplay.running }}</strong>
+                    </div>
+                    <i aria-hidden="true"></i>
+                    <div class="runtime-tag">
+                      <span>设定时间:</span>
+                      <strong>{{ runtimeDisplay.setting }}</strong>
+                    </div>
+                    <i aria-hidden="true"></i>
+                    <div class="runtime-tag">
+                      <span>总运行时间:</span>
+                      <strong>{{ runtimeDisplay.total }}</strong>
+                    </div>
+                  </div>
+                </div>
                 <button
                   class="layout-config-button command-layout-button"
                   type="button"
@@ -288,36 +275,8 @@
               </div>
             </section>
 
-            <section class="panel runtime-panel">
-              <div class="runtime-tags">
-                <div class="runtime-tag">
-                  <span>运行时间:</span>
-                  <strong>{{ runtimeDisplay.running }}</strong>
-                </div>
-                <i aria-hidden="true"></i>
-                <div class="runtime-tag">
-                  <span>设定时间:</span>
-                  <strong>{{ runtimeDisplay.setting }}</strong>
-                </div>
-                <i aria-hidden="true"></i>
-                <div class="runtime-tag">
-                  <span>总运行时间:</span>
-                  <strong>{{ runtimeDisplay.total }}</strong>
-                </div>
-              </div>
-            </section>
-
-            <section class="panel custom-layout-panel">
-              <HmiDashboard
-                v-if="visibleMonitorCards.length === 0"
-                :temperature="Number(selectedDevice.current_temperature ?? 0)"
-                :humidity="Number(selectedDevice.current_humidity ?? 0)"
-                :device-status="runStateLabel(selectedDevice.run_state)"
-                :running-mode="selectedDeviceRunningMode"
-                :communication-status="communicationLabel(selectedDevice.online)"
-                :start-time="selectedDeviceStartTime"
-              />
-              <div v-else class="custom-monitor-grid" :class="{ 'single-card': visibleMonitorCards.length === 1 }">
+            <section v-if="visibleMonitorCards.length > 0" class="custom-layout-panel">
+              <div class="custom-monitor-grid" :class="{ 'single-card': visibleMonitorCards.length === 1 }">
                 <section v-if="visibleMonitorCards.includes('trend')" class="monitor-card trend-panel monitor-card-wide">
                   <div class="trend-header">
                     <div class="trend-title-block">
@@ -405,7 +364,7 @@
                 <span v-if="operationIndicator" class="motion-selection" :style="operationIndicator" aria-hidden="true"></span>
                 <button v-for="item in operationTabs" :key="item.key" :data-motion-key="item.key" type="button" :class="{ active: operationTab === item.key }" :aria-current="operationTab === item.key ? 'page' : undefined" @click="operationTab = item.key">
                   <AppIcon :name="item.icon" :size="17" />
-                  <span><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span>
+                  <span><strong>{{ item.label }}</strong></span>
                   <AppIcon name="chevronRight" :size="14" />
                 </button>
               </nav>
@@ -419,8 +378,8 @@
                       <span>{{ item.label }}</span>
                     </header>
                     <div class="protection-fields">
-                      <label><span>上限值</span><span class="hmi-number-control"><input v-model="operationForm[item.upper]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}上限值`" @blur="clampOperationNumber(item.upper, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :title="`调高${item.label}上限值`" :aria-label="`调高${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`调低${item.label}上限值`" :aria-label="`调低${item.label}上限值`" @click.stop.prevent="stepOperationNumber(item.upper, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
-                      <label><span>下限值</span><span class="hmi-number-control"><input v-model="operationForm[item.lower]" type="number" min="-32768" max="32768" step="0.1" :aria-label="`${item.label}下限值`" @blur="clampOperationNumber(item.lower, -32768, 32768)"><span class="hmi-number-steps"><button type="button" :title="`调高${item.label}下限值`" :aria-label="`调高${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, 0.1, -32768, 32768)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`调低${item.label}下限值`" :aria-label="`调低${item.label}下限值`" @click.stop.prevent="stepOperationNumber(item.lower, -0.1, -32768, 32768)"><AppIcon name="chevronDown" :size="12" /></button></span></span></label>
+                      <label><span>上限值</span><NumericSlider v-model="operationForm[item.upper]" :label="`${item.label}上限值`" unit="°C" :min="-32768" :max="32768" step="0.1" palette="temperature" /></label>
+                      <label><span>下限值</span><NumericSlider v-model="operationForm[item.lower]" :label="`${item.label}下限值`" unit="°C" :min="-32768" :max="32768" step="0.1" palette="temperature" /></label>
                     </div>
                   </section>
                 </div>
@@ -429,23 +388,35 @@
                   <section class="setpoint-module-card setpoint-temperature-card">
                     <header><span><AppIcon name="temperature" :size="16" />温度</span></header>
                     <div class="setpoint-module-fields">
-                      <label class="setpoint-inline-field"><span>目标值</span><div><span class="hmi-number-control"><input v-model="operationForm.targetTemp" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高温度目标值" aria-label="调高温度目标值" @click.stop.prevent="stepOperationNumber('targetTemp', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低温度目标值" aria-label="调低温度目标值" @click.stop.prevent="stepOperationNumber('targetTemp', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
-                      <label class="setpoint-inline-field"><span>斜率值</span><div><span class="hmi-number-control"><input v-model="operationForm.tempRamp" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高温度斜率值" aria-label="调高温度斜率值" @click.stop.prevent="stepOperationNumber('tempRamp', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低温度斜率值" aria-label="调低温度斜率值" @click.stop.prevent="stepOperationNumber('tempRamp', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C/min</b></div></label>
+                      <div class="setpoint-inline-field">
+                        <span>目标值</span>
+                        <div class="setpoint-slider-control"><NumericSlider v-model="operationForm.targetTemp" label="温度目标值" unit="°C" step="0.1" :slider-min="Number(parameterForm.temperatureRangeMin)" :slider-max="Number(parameterForm.temperatureRangeMax)" palette="temperature" /></div>
+                      </div>
+                      <div class="setpoint-inline-field">
+                        <span>斜率值</span>
+                        <div class="setpoint-slider-control"><NumericSlider v-model="operationForm.tempRamp" label="温度斜率值" unit="°C/min" step="0.1" :slider-min="0" :slider-max="10" palette="ramp" /></div>
+                      </div>
                     </div>
                   </section>
                   <section class="setpoint-module-card setpoint-humidity-card">
                     <header><span><AppIcon name="humidity" :size="16" />湿度</span></header>
                     <div class="setpoint-module-fields">
-                      <label class="setpoint-inline-field"><span>目标值</span><div><span class="hmi-number-control"><input v-model="operationForm.targetHum" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高湿度目标值" aria-label="调高湿度目标值" @click.stop.prevent="stepOperationNumber('targetHum', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低湿度目标值" aria-label="调低湿度目标值" @click.stop.prevent="stepOperationNumber('targetHum', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
-                      <label class="setpoint-inline-field"><span>斜率值</span><div><span class="hmi-number-control"><input v-model="operationForm.humRamp" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="调高湿度斜率值" aria-label="调高湿度斜率值" @click.stop.prevent="stepOperationNumber('humRamp', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="调低湿度斜率值" aria-label="调低湿度斜率值" @click.stop.prevent="stepOperationNumber('humRamp', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%/min</b></div></label>
+                      <div class="setpoint-inline-field">
+                        <span>目标值</span>
+                        <div class="setpoint-slider-control"><NumericSlider v-model="operationForm.targetHum" label="湿度目标值" unit="%RH" step="0.1" :slider-min="Number(parameterForm.humidityRangeMin)" :slider-max="Number(parameterForm.humidityRangeMax)" palette="humidity" /></div>
+                      </div>
+                      <div class="setpoint-inline-field">
+                        <span>斜率值</span>
+                        <div class="setpoint-slider-control"><NumericSlider v-model="operationForm.humRamp" label="湿度斜率值" unit="%/min" step="0.1" :slider-min="0" :slider-max="10" palette="humidity" /></div>
+                      </div>
                     </div>
                   </section>
                   <section class="setpoint-module-card setpoint-runtime-card">
                     <header><span><AppIcon name="history" :size="16" />运行时间</span></header>
                     <div class="runtime-time-control" aria-label="运行时间，格式为小时分钟秒">
-                      <label class="runtime-time-field"><span>小时</span><div><span class="hmi-number-control"><input v-model="operationForm.runtimeHours" type="number" min="0" step="1" aria-label="运行时间小时" @blur="clampOperationNumber('runtimeHours', 0, 999)"><span class="hmi-number-steps"><button type="button" title="增加小时" aria-label="增加小时" @click.stop.prevent="stepOperationNumber('runtimeHours', 1, 0, 999)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少小时" aria-label="减少小时" @click.stop.prevent="stepOperationNumber('runtimeHours', -1, 0, 999)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>H</b></div></label>
-                      <label class="runtime-time-field"><span>分钟</span><div><span class="hmi-number-control"><input v-model="operationForm.runtimeMinutes" type="number" min="0" max="59" step="1" aria-label="运行时间分钟" @blur="clampOperationNumber('runtimeMinutes', 0, 59)"><span class="hmi-number-steps"><button type="button" title="增加分钟" aria-label="增加分钟" @click.stop.prevent="stepOperationNumber('runtimeMinutes', 1, 0, 59)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少分钟" aria-label="减少分钟" @click.stop.prevent="stepOperationNumber('runtimeMinutes', -1, 0, 59)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>M</b></div></label>
-                      <label class="runtime-time-field"><span>秒</span><div><span class="hmi-number-control"><input v-model="operationForm.runtimeSeconds" type="number" min="0" max="59" step="1" aria-label="运行时间秒" @blur="clampOperationNumber('runtimeSeconds', 0, 59)"><span class="hmi-number-steps"><button type="button" title="增加秒" aria-label="增加秒" @click.stop.prevent="stepOperationNumber('runtimeSeconds', 1, 0, 59)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少秒" aria-label="减少秒" @click.stop.prevent="stepOperationNumber('runtimeSeconds', -1, 0, 59)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>S</b></div></label>
+                      <label class="runtime-time-field"><span>小时</span><div><NumericSlider v-model="operationForm.runtimeHours" label="运行时间小时" unit="H" :min="0" :max="999" step="1" palette="temperature" /></div></label>
+                      <label class="runtime-time-field"><span>分钟</span><div><NumericSlider v-model="operationForm.runtimeMinutes" label="运行时间分钟" unit="M" :min="0" :max="59" step="1" palette="temperature" /></div></label>
+                      <label class="runtime-time-field"><span>秒</span><div><NumericSlider v-model="operationForm.runtimeSeconds" label="运行时间秒" unit="S" :min="0" :max="59" step="1" palette="temperature" /></div></label>
                     </div>
                   </section>
                 </div>
@@ -497,8 +468,8 @@
                   <section class="other-settings-card">
                     <header>运行等待设定</header>
                     <div class="other-value-list">
-                      <label><span>温度等待区域</span><input v-model.number="operationForm.waitTemperatureUpper" type="number" step="0.1" aria-label="温度等待区域上限"></label>
-                      <label><span>湿度等待区域</span><input v-model.number="operationForm.waitHumidityUpper" type="number" step="0.1" aria-label="湿度等待区域上限"></label>
+                      <label><span>温度等待区域</span><NumericSlider v-model="operationForm.waitTemperatureUpper" label="温度等待区域上限" unit="°C" step="0.1" palette="temperature" /></label>
+                      <label><span>湿度等待区域</span><NumericSlider v-model="operationForm.waitHumidityUpper" label="湿度等待区域上限" unit="%RH" step="0.1" palette="humidity" /></label>
                     </div>
                   </section>
 
@@ -535,6 +506,13 @@
           </section>
 
           <section v-else-if="selectedDevice && selectedDeviceSection === 'parameters'" key="parameters" class="system-parameters">
+            <div class="parameter-page-heading">
+              <div>
+                <span>设备配置</span>
+                <h3>参数设置</h3>
+              </div>
+              <p>{{ selectedDevice.name || selectedDevice.device_id }}</p>
+            </div>
             <nav ref="parameterNav" class="operation-nav panel system-parameter-nav motion-nav" :class="{ 'motion-ready': parameterIndicator }" aria-label="系统参数分类">
               <span v-if="parameterIndicator" class="motion-selection" :style="parameterIndicator" aria-hidden="true"></span>
               <button v-for="item in parameterTabs" :key="item.key" :data-motion-key="item.key" type="button" :class="{ active: parameterTab === item.key }" :aria-current="parameterTab === item.key ? 'page' : undefined" @click="parameterTab = item.key">
@@ -573,13 +551,13 @@
                       <div v-for="row in card.rows" :key="row.area.key" class="calibration-matrix-row">
                         <strong>{{ row.number }}</strong>
                         <label :title="row.area.key">
-                          <span class="hmi-number-control"><input v-model.number="parameterForm[row.area.key]" type="number" step="any" :aria-label="`${row.number}号${card.title}区间（${row.area.key}）`"><span class="hmi-number-steps"><button type="button" :title="`增加${row.number}号${card.title}区间`" :aria-label="`增加${row.number}号${card.title}区间`" @click.stop.prevent="stepParameterNumber(row.area.key, 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少${row.number}号${card.title}区间`" :aria-label="`减少${row.number}号${card.title}区间`" @click.stop.prevent="stepParameterNumber(row.area.key, -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                          <NumericSlider v-model="parameterForm[row.area.key]" :label="`${row.number}号${card.title}区间（${row.area.key}）`" :unit="row.area.unit" step="any" :palette="card.key" compact :slider="false" />
                         </label>
                         <label :title="row.corrected.key">
-                          <span class="hmi-number-control"><input v-model.number="parameterForm[row.corrected.key]" type="number" step="any" :aria-label="`${row.number}号${card.title}修正值（${row.corrected.key}）`"><span class="hmi-number-steps"><button type="button" :title="`增加${row.number}号${card.title}修正值`" :aria-label="`增加${row.number}号${card.title}修正值`" @click.stop.prevent="stepParameterNumber(row.corrected.key, 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少${row.number}号${card.title}修正值`" :aria-label="`减少${row.number}号${card.title}修正值`" @click.stop.prevent="stepParameterNumber(row.corrected.key, -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                          <NumericSlider v-model="parameterForm[row.corrected.key]" :label="`${row.number}号${card.title}修正值（${row.corrected.key}）`" :unit="row.corrected.unit" step="any" :palette="card.key" compact :slider="false" />
                         </label>
                         <label v-if="row.number === 1" :title="card.correction.key">
-                          <span class="hmi-number-control"><input v-model.number="parameterForm[card.correction.key]" type="number" step="any" :aria-label="`${card.title}定校（${card.correction.key}）`"><span class="hmi-number-steps"><button type="button" :title="`增加${card.title}定校`" :aria-label="`增加${card.title}定校`" @click.stop.prevent="stepParameterNumber(card.correction.key, 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少${card.title}定校`" :aria-label="`减少${card.title}定校`" @click.stop.prevent="stepParameterNumber(card.correction.key, -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                          <NumericSlider v-model="parameterForm[card.correction.key]" :label="`${card.title}定校（${card.correction.key}）`" :unit="card.correction.unit" step="any" :palette="card.key" compact :slider="false" />
                         </label>
                         <span v-else aria-hidden="true"></span>
                       </div>
@@ -602,7 +580,7 @@
                       <strong role="rowheader">试品温度{{ channel }}</strong>
                       <output role="cell" :aria-label="`试品温度${channel}采集值`">{{ formatCalibrationValue(dutCalibrationValue(channel, 'collected')) }}</output>
                       <label class="dut-correction-value" role="cell">
-                        <span class="hmi-number-control"><input v-model.number="parameterForm[`DUT${channel}_Corrected`]" type="number" step="any" :aria-label="`试品温度${channel}修正值`"><span class="hmi-number-steps"><button type="button" :title="`增加试品温度${channel}修正值`" :aria-label="`增加试品温度${channel}修正值`" @click.stop.prevent="stepParameterNumber(`DUT${channel}_Corrected`, 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少试品温度${channel}修正值`" :aria-label="`减少试品温度${channel}修正值`" @click.stop.prevent="stepParameterNumber(`DUT${channel}_Corrected`, -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                        <NumericSlider v-model="parameterForm[`DUT${channel}_Corrected`]" :label="`试品温度${channel}修正值`" unit="°C" step="any" palette="temperature" compact :slider="false" />
                       </label>
                       <output role="cell" :aria-label="`试品温度${channel}最终值`">{{ formatCalibrationValue(dutCalibrationValue(channel, 'final')) }}</output>
                     </div>
@@ -619,7 +597,7 @@
                       <div class="pid-coordinate-map" :class="`pid-coordinate-map-${mode.key}`">
                         <label v-for="(axis, axisIndex) in mode.yAxes" :key="axis.key" class="pid-axis-input pid-axis-y" :style="{ gridRow: axisIndex + 1, gridColumn: 1 }">
                           <span>{{ axis.label }}</span>
-                          <input v-model.number="parameterForm[axis.key]" type="number" step="any" :aria-label="`${mode.title}${axis.label}坐标`">
+                          <NumericSlider v-model="parameterForm[axis.key]" :label="`${mode.title}${axis.label}坐标`" :unit="axis.key.startsWith('HUMI_H') ? '%RH' : '°C'" step="any" palette="temperature" compact :slider="false" />
                         </label>
                         <button
                           v-for="group in mode.groupCount"
@@ -633,7 +611,7 @@
                         >{{ pidDisplayGroupNumber(mode, group) }}</button>
                         <label v-for="(axis, axisIndex) in mode.xAxes" :key="axis.key" class="pid-axis-input pid-axis-x" :style="{ gridRow: 5, gridColumn: axisIndex + 2 }">
                           <span>{{ axis.label }}</span>
-                          <input v-model.number="parameterForm[axis.key]" type="number" step="any" :aria-label="`${mode.title}${axis.label}坐标`">
+                          <NumericSlider v-model="parameterForm[axis.key]" :label="`${mode.title}${axis.label}坐标`" :unit="axis.key.startsWith('HUMI_H') ? '%RH' : '°C'" step="any" palette="temperature" compact :slider="false" />
                         </label>
                       </div>
                     </fieldset>
@@ -650,7 +628,7 @@
                       <span>{{ metric.label }}<small v-if="metric.unit">（{{ metric.unit }}）</small></span>
                       <label v-for="category in pidCategories" :key="category.key">
                         <span class="pid-equals" aria-hidden="true">=</span>
-                        <span v-if="selectedPidModeConfig.categories.some(item => item.key === category.key)" class="hmi-number-control"><input v-model.number="parameterForm[pidParameterKey(selectedPidMode, selectedPidGroup, category.key, metric.key)]" type="number" step="any" :aria-label="`${selectedPidModeConfig.title}${selectedPidDisplayNumber}组${category.label}${metric.label}`"><span class="hmi-number-steps"><button type="button" :title="`增加${category.label}${metric.label}`" :aria-label="`增加${category.label}${metric.label}`" @click.stop.prevent="stepParameterNumber(pidParameterKey(selectedPidMode, selectedPidGroup, category.key, metric.key), 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" :title="`减少${category.label}${metric.label}`" :aria-label="`减少${category.label}${metric.label}`" @click.stop.prevent="stepParameterNumber(pidParameterKey(selectedPidMode, selectedPidGroup, category.key, metric.key), -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span>
+                        <NumericSlider v-if="selectedPidModeConfig.categories.some(item => item.key === category.key)" v-model="parameterForm[pidParameterKey(selectedPidMode, selectedPidGroup, category.key, metric.key)]" :label="`${selectedPidModeConfig.title}${selectedPidDisplayNumber}组${category.label}${metric.label}`" :unit="metric.unit" step="any" compact :slider="false" />
                         <output v-else class="pid-unavailable" :aria-label="`${selectedPidModeConfig.title}无${category.label}${metric.label}参数`">---</output>
                       </label>
                     </div>
@@ -661,35 +639,75 @@
 
               <section v-if="parameterTab === 'basic'" class="system-parameter-card">
                 <header><span>电机频率</span></header>
-                <div class="parameter-fields">
-                  <label><span>升降温频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.compressorFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高升降温频率" aria-label="提高升降温频率" @click.stop.prevent="stepParameterNumber('compressorFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低升降温频率" aria-label="降低升降温频率" @click.stop.prevent="stepParameterNumber('compressorFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
-                  <label><span>恒温频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.circulationFanFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高恒温频率" aria-label="提高恒温频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低恒温频率" aria-label="降低恒温频率" @click.stop.prevent="stepParameterNumber('circulationFanFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
-                  <label><span>湿度频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidifierFrequency" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高湿度频率" aria-label="提高湿度频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低湿度频率" aria-label="降低湿度频率" @click.stop.prevent="stepParameterNumber('humidifierFrequency', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
-                  <label><span>其他频率</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.frequencyLimit" type="number" min="0" max="100" step="0.1"><span class="hmi-number-steps"><button type="button" title="提高其他频率" aria-label="提高其他频率" @click.stop.prevent="stepParameterNumber('frequencyLimit', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="降低其他频率" aria-label="降低其他频率" @click.stop.prevent="stepParameterNumber('frequencyLimit', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>Hz</b></div></label>
+                <div class="parameter-fields parameter-range-fields motor-frequency-fields">
+                  <div class="motor-frequency-row">
+                    <label for="compressor-frequency">升降温频率</label>
+                    <div class="motor-frequency-controls">
+                      <NumericSlider v-model="parameterForm.compressorFrequency" label="升降温频率" id="compressor-frequency" unit="Hz" :min="0" :max="100" step="0.1" palette="frequency" />
+                    </div>
+                  </div>
+                  <div class="motor-frequency-row">
+                    <label for="circulation-fan-frequency">恒温频率</label>
+                    <div class="motor-frequency-controls">
+                      <NumericSlider v-model="parameterForm.circulationFanFrequency" label="恒温频率" id="circulation-fan-frequency" unit="Hz" :min="0" :max="100" step="0.1" palette="frequency" />
+                    </div>
+                  </div>
+                  <div class="motor-frequency-row">
+                    <label for="humidifier-frequency">湿度频率</label>
+                    <div class="motor-frequency-controls">
+                      <NumericSlider v-model="parameterForm.humidifierFrequency" label="湿度频率" id="humidifier-frequency" unit="Hz" :min="0" :max="100" step="0.1" palette="humidity" />
+                    </div>
+                  </div>
+                  <div class="motor-frequency-row">
+                    <label for="other-frequency">其他频率</label>
+                    <div class="motor-frequency-controls">
+                      <NumericSlider v-model="parameterForm.frequencyLimit" label="其他频率" id="other-frequency" unit="Hz" :min="0" :max="100" step="0.1" palette="frequency" />
+                    </div>
+                  </div>
                 </div>
               </section>
 
               <section v-if="parameterTab === 'basic'" class="system-parameter-card">
                 <header><span>温度操作范围</span></header>
                 <div class="parameter-fields">
-                  <label><span>操作下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureRangeMin" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度操作下限" aria-label="增加温度操作下限" @click.stop.prevent="stepParameterNumber('temperatureRangeMin', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作下限" aria-label="减少温度操作下限" @click.stop.prevent="stepParameterNumber('temperatureRangeMin', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
-                  <label><span>操作上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureRangeMax" type="number" step="0.1"><span class="hmi-number-steps"><button type="button" title="增加温度操作上限" aria-label="增加温度操作上限" @click.stop.prevent="stepParameterNumber('temperatureRangeMax', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作上限" aria-label="减少温度操作上限" @click.stop.prevent="stepParameterNumber('temperatureRangeMax', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
+                  <label><span>操作下限</span><div><NumericSlider v-model="parameterForm.temperatureRangeMin" label="温度操作下限" unit="°C" step="0.1" palette="temperature" /></div></label>
+                  <label><span>操作上限</span><div><NumericSlider v-model="parameterForm.temperatureRangeMax" label="温度操作上限" unit="°C" step="0.1" palette="temperature" /></div></label>
                 </div>
               </section>
 
               <section v-if="parameterTab === 'basic'" class="system-parameter-card">
                 <header><span>湿度操作范围</span></header>
-                <div class="parameter-fields stacked-limit-fields">
-                  <label><span>湿度操作上限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMax" type="number" min="0" max="100" step="0.1" aria-label="湿度操作上限"><span class="hmi-number-steps"><button type="button" title="增加湿度操作上限" aria-label="增加湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作上限" aria-label="减少湿度操作上限" @click.stop.prevent="stepParameterNumber('humidityRangeMax', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
-                  <label><span>湿度操作下限</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.humidityRangeMin" type="number" min="0" max="100" step="0.1" aria-label="湿度操作下限"><span class="hmi-number-steps"><button type="button" title="增加湿度操作下限" aria-label="增加湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', 0.1, 0, 100)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少湿度操作下限" aria-label="减少湿度操作下限" @click.stop.prevent="stepParameterNumber('humidityRangeMin', -0.1, 0, 100)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>%RH</b></div></label>
+                <div class="parameter-fields parameter-range-fields humidity-range-fields">
+                  <div class="humidity-range-row">
+                    <label for="humidity-range-max">湿度操作上限</label>
+                    <div class="humidity-range-controls">
+                      <NumericSlider v-model="parameterForm.humidityRangeMax" label="湿度操作上限" id="humidity-range-max" unit="%RH" :min="0" :max="100" step="0.1" palette="humidity" />
+                    </div>
+                  </div>
+                  <div class="humidity-range-row">
+                    <label for="humidity-range-min">湿度操作下限</label>
+                    <div class="humidity-range-controls">
+                      <NumericSlider v-model="parameterForm.humidityRangeMin" label="湿度操作下限" id="humidity-range-min" unit="%RH" :min="0" :max="100" step="0.1" palette="humidity" />
+                    </div>
+                  </div>
                 </div>
               </section>
 
               <section v-if="parameterTab === 'basic'" class="system-parameter-card">
                 <header><span>湿度模式温度操作范围</span></header>
-                <div class="parameter-fields stacked-limit-fields">
-                  <label><span>温度操作上限值</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMax" type="number" step="0.1" aria-label="温度操作上限值"><span class="hmi-number-steps"><button type="button" title="增加温度操作上限值" aria-label="增加温度操作上限值" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作上限值" aria-label="减少温度操作上限值" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMax', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
-                  <label><span>温度操作下限值</span><div><span class="hmi-number-control"><input v-model.number="parameterForm.temperatureTransmissionMin" type="number" step="0.1" aria-label="温度操作下限值"><span class="hmi-number-steps"><button type="button" title="增加温度操作下限值" aria-label="增加温度操作下限值" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', 0.1)"><AppIcon name="chevronUp" :size="12" /></button><button type="button" title="减少温度操作下限值" aria-label="减少温度操作下限值" @click.stop.prevent="stepParameterNumber('temperatureTransmissionMin', -0.1)"><AppIcon name="chevronDown" :size="12" /></button></span></span><b>°C</b></div></label>
+                <div class="parameter-fields temperature-limit-fields">
+                  <div class="temperature-limit-row">
+                    <label for="temperature-limit-max">温度操作上限值</label>
+                    <div class="temperature-limit-controls">
+                      <NumericSlider v-model="parameterForm.temperatureTransmissionMax" label="温度操作上限值" id="temperature-limit-max" unit="°C" step="0.1" palette="temperature" />
+                    </div>
+                  </div>
+                  <div class="temperature-limit-row">
+                    <label for="temperature-limit-min">温度操作下限值</label>
+                    <div class="temperature-limit-controls">
+                      <NumericSlider v-model="parameterForm.temperatureTransmissionMin" label="温度操作下限值" id="temperature-limit-min" unit="°C" step="0.1" palette="temperature" />
+                    </div>
+                  </div>
                 </div>
               </section>
 
@@ -702,31 +720,110 @@
           <section v-else-if="selectedDevice && selectedDeviceSection === 'history'" key="history" class="history-page page-stack" :aria-busy="historyLoading">
             <div class="section-head history-page-head">
               <div><h2>历史记录</h2><span>{{ selectedDevice.name || selectedDevice.device_id }} · 温湿度历史曲线</span></div>
-              <span class="history-record-count">{{ historyItems.length }} 条记录</span>
+              <span class="history-record-count"><strong>{{ historyItems.length }}</strong><span>条记录</span></span>
             </div>
-            <section class="panel history-query-panel">
+            <section class="panel history-query-panel" aria-label="历史数据查询条件">
+              <div class="history-panel-heading">
+                <div class="history-heading-title"><AppIcon name="sliders" :size="17" /><h3>查询条件</h3></div>
+              </div>
               <div class="history-query-row">
-                <label><span>快捷范围</span><select v-model="historyQuery.range" @change="applyHistoryRange"><option value="1h">最近1小时</option><option value="6h">最近6小时</option><option value="24h">最近24小时</option><option value="7d">最近7天</option><option value="custom">自定义</option></select></label>
-                <label><span>开始时间</span><input v-model="historyQuery.startTime" type="datetime-local" :disabled="historyQuery.range !== 'custom'"></label>
-                <label><span>结束时间</span><input v-model="historyQuery.endTime" type="datetime-local" :disabled="historyQuery.range !== 'custom'"></label>
+                <div class="history-range-field">
+                  <span>时间范围</span>
+                  <div class="history-range-control" role="group" aria-label="快捷时间范围">
+                    <button
+                      v-for="option in historyRangeOptions"
+                      :key="option.value"
+                      :class="{ active: historyQuery.range === option.value }"
+                      :aria-pressed="historyQuery.range === option.value"
+                      type="button"
+                      @click="selectHistoryRange(option.value)"
+                    >{{ option.label }}</button>
+                  </div>
+                </div>
+                <label><span>开始时间</span><input v-model="historyQuery.startTime" type="datetime-local" @click="activateHistoryDatePicker"></label>
+                <label><span>结束时间</span><input v-model="historyQuery.endTime" type="datetime-local" @click="activateHistoryDatePicker"></label>
                 <label><span>运行状态</span><select v-model="historyQuery.runState"><option value="">全部状态</option><option value="RUNNING">运行中</option><option value="HOLDING">保持中</option><option value="PAUSED">已暂停</option><option value="STOPPED">已停止</option><option value="IDLE">空闲</option><option value="ALARM">报警</option></select></label>
-                <button class="primary-action history-query-button" type="button" :disabled="historyLoading" @click="loadEnvironmentalHistory">{{ historyLoading ? '查询中…' : '查询历史' }}</button>
+                <button class="primary-action history-query-button" type="button" :disabled="historyLoading" @click="loadEnvironmentalHistory">
+                  <AppIcon :class="{ 'status-icon-spin': historyLoading }" :name="historyLoading ? 'refresh' : 'history'" :size="16" />
+                  <span>{{ historyLoading ? '查询中…' : '查询历史' }}</span>
+                </button>
               </div>
               <p v-if="historyError" class="history-error" role="alert">{{ historyError }}</p>
             </section>
-            <section class="panel history-chart-panel">
-              <div class="panel-title"><div><h3>温湿度曲线</h3><span>{{ historyRangeLabel }}</span></div><div class="history-legend"><span><i class="history-temp-line"></i>温度 °C</span><span><i class="history-hum-line"></i>湿度 %RH</span></div></div>
-              <div v-if="!historyItems.length" class="history-state">{{ historyLoading ? '' : '当前时间范围内暂无历史数据。' }}</div>
-              <svg v-else class="history-chart" viewBox="0 0 1000 320" role="img" aria-label="温湿度历史曲线">
-                <g class="history-grid-lines"><line v-for="y in historyGridLines" :key="`y-${y}`" x1="58" :y1="y" x2="978" :y2="y"></line><line v-for="x in historyXAxis" :key="`x-${x}`" :x1="x" y1="20" :x2="x" y2="268"></line></g>
-                <polyline class="history-temp-path" :points="historyTempPoints"></polyline><polyline class="history-hum-path" :points="historyHumPoints"></polyline>
-                <g class="history-axis-labels"><text v-for="label in historyYAxisLabels" :key="label.text" :x="label.x" :y="label.y">{{ label.text }}</text><text v-for="label in historyXAxisLabels" :key="label.text" :x="label.x" y="294" text-anchor="middle">{{ label.text }}</text></g>
+            <section class="panel history-chart-panel" aria-label="温湿度历史曲线">
+              <div class="history-panel-heading history-chart-heading">
+                <div class="history-chart-title">
+                  <span class="history-heading-icon"><AppIcon name="chart" :size="17" /></span>
+                  <div><h3>温湿度曲线</h3><span>{{ historyRangeLabel }}</span></div>
+                </div>
+                <div class="history-legend" aria-label="曲线图例">
+                  <span><i class="history-temp-line"></i>温度 <b>°C</b></span>
+                  <span><i class="history-hum-line"></i>湿度 <b>%RH</b></span>
+                </div>
+              </div>
+              <div v-if="!historyChartItems.length" class="history-state" role="status" aria-live="polite">
+                <span class="history-state-icon"><AppIcon :class="{ 'status-icon-spin': historyLoading }" :name="historyLoading ? 'refresh' : 'database'" :size="21" /></span>
+                <strong>{{ historyLoading ? '正在读取历史数据' : '暂无曲线数据' }}</strong>
+                <span>{{ historyLoading ? '正在查询所选时间范围' : '当前时间范围内没有可用的温湿度采样' }}</span>
+              </div>
+              <div v-else class="history-chart-scroll">
+              <svg class="history-chart" viewBox="0 0 1000 370" preserveAspectRatio="none" role="img" aria-label="温度与湿度双纵轴历史曲线">
+                <defs>
+                  <linearGradient id="history-temperature-fill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#4385f5" stop-opacity=".16" />
+                    <stop offset="100%" stop-color="#4385f5" stop-opacity="0" />
+                  </linearGradient>
+                  <linearGradient id="history-humidity-fill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#29a779" stop-opacity=".13" />
+                    <stop offset="100%" stop-color="#29a779" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <g class="history-grid-lines">
+                  <line v-for="y in historyGridLines" :key="`y-${y}`" x1="92" :y1="y" x2="908" :y2="y" />
+                  <line v-for="x in historyXAxis" :key="`x-${x}`" :x1="x" y1="40" :x2="x" y2="300" />
+                </g>
+                <path class="history-temp-area" :d="historyTempAreaPath" />
+                <path class="history-hum-area" :d="historyHumAreaPath" />
+                <polyline class="history-temp-path" :points="historyTempPoints" />
+                <polyline class="history-hum-path" :points="historyHumPoints" />
+                <circle v-if="historyTempLatest" class="history-temp-point" :cx="historyTempLatest.x" :cy="historyTempLatest.y" r="4.5">
+                  <title>最新温度 {{ formatHistoryNumber(historyTempLatest.value) }} °C</title>
+                </circle>
+                <circle v-if="historyHumLatest" class="history-hum-point" :cx="historyHumLatest.x" :cy="historyHumLatest.y" r="4.5">
+                  <title>最新湿度 {{ formatHistoryNumber(historyHumLatest.value) }} %RH</title>
+                </circle>
+                <g class="history-axis-labels">
+                  <text v-for="label in historyTempYAxisLabels" :key="`temp-${label.text}`" class="history-temp-axis" :x="label.x" :y="label.y" text-anchor="end">{{ label.text }}</text>
+                  <text v-for="label in historyHumYAxisLabels" :key="`hum-${label.text}`" class="history-hum-axis" :x="label.x" :y="label.y" text-anchor="start">{{ label.text }}</text>
+                  <text v-for="label in historyXAxisLabels" :key="label.text" :x="label.x" y="340" text-anchor="middle">{{ label.text }}</text>
+                </g>
               </svg>
+              </div>
             </section>
-            <section class="panel history-table-panel">
-              <div class="panel-title"><div><h3>采样明细</h3><span>按采样时间倒序显示最近 50 条</span></div><span>{{ historyItems.length ? formatHistoryTime(historyItems[historyItems.length - 1].recorded_at) : '--' }} 至 {{ historyItems.length ? formatHistoryTime(historyItems[0].recorded_at) : '--' }}</span></div>
-              <div v-if="historyItems.length" class="history-table-wrap"><table class="history-table"><thead><tr><th>采样时间</th><th>温度（°C）</th><th>湿度（%RH）</th><th>温度目标</th><th>湿度目标</th><th>运行状态</th></tr></thead><tbody><tr v-for="item in historyRecentItems" :key="`${item.recorded_at}-${item.device_id}`"><td>{{ formatHistoryTime(item.recorded_at) }}</td><td>{{ formatHistoryNumber(item.temperature) }}</td><td>{{ formatHistoryNumber(item.humidity) }}</td><td>{{ formatHistoryNumber(item.temperature_target) }}</td><td>{{ formatHistoryNumber(item.humidity_target) }}</td><td>{{ historyRunStateLabel(item.run_state) }}</td></tr></tbody></table></div>
-              <div v-else-if="!historyLoading" class="history-state history-table-empty">暂无可展示的采样明细。</div>
+            <section class="panel history-table-panel" aria-label="历史采样明细">
+              <div class="history-panel-heading history-table-heading">
+                <div class="history-chart-title">
+                  <span class="history-heading-icon"><AppIcon name="database" :size="17" /></span>
+                  <div><h3>采样明细</h3><span>按采样时间倒序显示最近 50 条</span></div>
+                </div>
+                <div class="history-sample-window"><span>{{ historySampleWindow.start }}</span><i></i><span>{{ historySampleWindow.end }}</span></div>
+              </div>
+              <div v-if="historyRecentItems.length" class="history-table-wrap">
+                <table class="history-table">
+                  <thead><tr><th>采样时间</th><th>温度（°C）</th><th>湿度（%RH）</th><th>温度目标（°C）</th><th>湿度目标（%RH）</th><th>运行状态</th></tr></thead>
+                  <tbody>
+                    <tr v-for="item in historyRecentItems" :key="`${item.recorded_at}-${item.device_id}`">
+                      <td class="history-time-cell">{{ formatHistoryTime(item.recorded_at) }}</td>
+                      <td class="history-temp-cell">{{ formatHistoryNumber(item.temperature) }}</td>
+                      <td class="history-hum-cell">{{ formatHistoryNumber(item.humidity) }}</td>
+                      <td>{{ formatHistoryNumber(item.temperature_target) }}</td>
+                      <td>{{ formatHistoryNumber(item.humidity_target) }}</td>
+                      <td><span class="history-run-state" :class="`history-run-state-${String(item.run_state || '').toLowerCase()}`">{{ historyRunStateLabel(item.run_state) }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else-if="!historyLoading" class="history-table-empty" role="status">暂无可展示的采样明细</div>
             </section>
           </section>
 
@@ -775,7 +872,7 @@
         </Transition>
       </main>
       <WorkspaceRefresh
-        v-if="workspaceRefresh"
+        v-if="workspaceRefresh && !deviceTransitionInProgress"
         :key="`${activeView}-${selectedDeviceId}-${selectedDeviceSection}-${operationTab}-${parameterTab}`"
         :target="workspaceContent"
         :pending="workspaceRefresh.state.pending"
@@ -821,17 +918,17 @@
         <form class="program-editor-form" @submit.prevent="saveProgram">
           <div class="program-editor-group-fields"><label class="program-editor-name"><span>程序名称</span><input v-model.trim="programDraft.name" type="text" maxlength="128" required></label></div>
           <div class="program-steps-editor-header"><h4>步骤明细</h4><button class="ghost-action" type="button" @click="addProgramStep">＋ 添加步骤</button></div>
-          <div class="program-steps-editor-wrap"><table class="program-steps-editor"><thead><tr><th>段号</th><th>时间（时:分:秒）</th><th>温度</th><th>湿度</th><th>气压</th><th>事件</th><th></th></tr></thead><tbody><tr v-for="(step, index) in programDraft.steps" :key="index"><td><span class="program-step-number">{{ index + 1 }}</span></td><td><input v-model.trim="step.timeText" type="time" step="1" required aria-label="步骤时间（时:分:秒）"></td><td><span class="program-step-value-with-unit"><input v-model.number="step.temp" type="number" step="0.1" required><small>°C</small></span></td><td><span class="program-step-value-with-unit"><input v-model.number="step.humi" type="number" step="0.1" required><small>%RH</small></span></td><td><input v-model.number="step.pressure" type="number" step="0.1" required aria-label="步骤气压"></td><td><input class="program-step-event-input" type="text" :value="formatEventBits(step.event_bits)" readonly @click="openProgramStepEventDialog(index)" @keydown.enter.prevent="openProgramStepEventDialog(index)" @keydown.space.prevent="openProgramStepEventDialog(index)" :aria-label="`步骤${index + 1}事件，点击选择`"></td><td><button class="table-icon-button" type="button" title="删除步骤" :disabled="programDraft.steps.length <= 1" @click="removeProgramStep(index)">×</button></td></tr><tr v-if="!programDraft.steps.length"><td colspan="7" class="program-empty-cell">请添加至少一个步骤</td></tr></tbody></table></div>
+          <div class="program-steps-editor-wrap"><table class="program-steps-editor"><thead><tr><th>段号</th><th>时间（时:分:秒）</th><th>温度</th><th>湿度</th><th>气压</th><th>事件</th><th></th></tr></thead><tbody><tr v-for="(step, index) in programDraft.steps" :key="index"><td><span class="program-step-number">{{ index + 1 }}</span></td><td><input v-model.trim="step.timeText" type="time" step="1" required aria-label="步骤时间（时:分:秒）"></td><td><NumericSlider v-model="step.temp" label="步骤温度" unit="°C" step="0.1" palette="temperature" compact required /></td><td><NumericSlider v-model="step.humi" label="步骤湿度" unit="%RH" step="0.1" palette="humidity" compact required /></td><td><NumericSlider v-model="step.pressure" label="步骤气压" step="0.1" palette="temperature" compact required /></td><td><input class="program-step-event-input" type="text" :value="formatEventBits(step.event_bits)" readonly @click="openProgramStepEventDialog(index)" @keydown.enter.prevent="openProgramStepEventDialog(index)" @keydown.space.prevent="openProgramStepEventDialog(index)" :aria-label="`步骤${index + 1}事件，点击选择`"></td><td><button class="table-icon-button" type="button" title="删除步骤" :disabled="programDraft.steps.length <= 1" @click="removeProgramStep(index)">×</button></td></tr><tr v-if="!programDraft.steps.length"><td colspan="7" class="program-empty-cell">请添加至少一个步骤</td></tr></tbody></table></div>
           <section class="program-loop-section" aria-labelledby="program-loop-title">
             <div class="program-loop-section-header"><h4 id="program-loop-title">循环</h4><div><button class="ghost-action" type="button" :disabled="programDraft.loopCount >= 4" @click="addProgramLoop">＋ 添加循环</button></div></div>
             <div class="program-loop-layout">
               <div class="program-loop-list">
                 <div class="program-loop-heading"><span>循环</span><span>起始段</span><span>结束段</span><span>次数</span><span></span></div>
-                <label v-for="loopIndex in programDraft.loopCount" :key="loopIndex" class="program-loop-row"><strong>循环{{ loopIndex }}</strong><select v-model.number="programDraft[`loop${loopIndex}_start`]" :aria-label="`循环${loopIndex}起始段`"><option :value="0">选择段号</option><option v-for="step in programDraft.steps" :key="`loop-${loopIndex}-start-${step.step_no}`" :value="Number(step.step_no)">{{ step.step_no }}</option></select><select v-model.number="programDraft[`loop${loopIndex}_end`]" :aria-label="`循环${loopIndex}结束段`"><option :value="0">选择段号</option><option v-for="step in programDraft.steps" :key="`loop-${loopIndex}-end-${step.step_no}`" :value="Number(step.step_no)">{{ step.step_no }}</option></select><input v-model.number="programDraft[`loop${loopIndex}_times`]" type="number" min="0" step="1" :aria-label="`循环${loopIndex}次数`"><button class="program-loop-remove" type="button" title="删除循环" :disabled="programDraft.loopCount <= 1" @click="removeProgramLoop(loopIndex)">×</button></label>
+                <label v-for="loopIndex in programDraft.loopCount" :key="loopIndex" class="program-loop-row"><strong>循环{{ loopIndex }}</strong><select v-model.number="programDraft[`loop${loopIndex}_start`]" :aria-label="`循环${loopIndex}起始段`"><option :value="0">选择段号</option><option v-for="step in programDraft.steps" :key="`loop-${loopIndex}-start-${step.step_no}`" :value="Number(step.step_no)">{{ step.step_no }}</option></select><select v-model.number="programDraft[`loop${loopIndex}_end`]" :aria-label="`循环${loopIndex}结束段`"><option :value="0">选择段号</option><option v-for="step in programDraft.steps" :key="`loop-${loopIndex}-end-${step.step_no}`" :value="Number(step.step_no)">{{ step.step_no }}</option></select><NumericSlider v-model="programDraft[`loop${loopIndex}_times`]" :label="`循环${loopIndex}次数`" unit="次" :min="0" step="1" palette="temperature" /><button class="program-loop-remove" type="button" title="删除循环" :disabled="programDraft.loopCount <= 1" @click="removeProgramLoop(loopIndex)">×</button></label>
               </div>
               <div class="program-loop-extra">
                 <label class="program-loop-total-time"><span>总运行时间</span><output>{{ formatDuration(programCalculatedTotalTime) }}</output></label>
-                <label><span>总循环次数</span><input v-model.number="programDraft.full_cycle" type="number" min="0" step="1" aria-label="总循环次数"></label>
+                <label><span>总循环次数</span><NumericSlider v-model="programDraft.full_cycle" label="总循环次数" unit="次" :min="0" step="1" palette="temperature" compact /></label>
                 <label><span>链接</span><select v-model.number="programDraft.link_no" aria-label="链接程序号"><option :value="0">不链接</option><template v-for="program in programs" :key="`link-program-${program.pro_no}`"><option v-if="Number(program.pro_no) !== Number(programDraft.pro_no)" :value="Number(program.pro_no)">程序{{ program.pro_no }}：{{ program.name || '未命名程序' }}</option></template></select></label>
               </div>
             </div>
@@ -947,7 +1044,7 @@
           </button>
         </div>
         <div class="run-mode-preview" aria-live="polite">
-          <div class="run-mode-preview-heading"><span>当前模式预览</span><button v-if="runModeSelection === '1'" class="run-mode-preview-link" type="button" @click="openSetpointSettings">定制修改</button></div>
+          <div class="run-mode-preview-heading"><span>当前模式预览</span><button v-if="runModeSelection === '1'" class="run-mode-preview-link" type="button" @click="openSetpointSettings">定值修改</button></div>
           <Transition name="settings-tab" mode="out-in" @before-leave="prepareWorkspaceLeave">
           <div v-if="runModeSelection === '1'" key="fixed" class="run-mode-preview-grid">
             <div><span>温度目标</span><strong>{{ operationForm.targetTemp }} °C</strong></div>
@@ -961,7 +1058,7 @@
           </Transition>
         </div>
         <div class="run-mode-footer">
-          <div><button class="primary-action" type="button" @click="confirmRunModeSelection">确认启动</button></div>
+          <button class="primary-action" type="button" @click="confirmRunModeSelection">确认启动</button>
         </div>
     </MotionDialog>
 
@@ -1035,6 +1132,7 @@ import AppIcon from "./components/AppIcon.vue";
 import HmiDashboard from "./components/HmiDashboard.vue";
 import ProfileCenter from "./components/ProfileCenter.vue";
 import MotionDialog from "./components/MotionDialog.vue";
+import NumericSlider from "./components/NumericSlider.vue";
 import WorkspaceRefresh from "./components/WorkspaceRefresh.vue";
 import { useRefreshTask } from "./composables/useRefreshTask";
 import { useSelectionIndicator } from "./composables/useSelectionIndicator";
@@ -1104,7 +1202,7 @@ const pidSettingFieldKeys = [
   ).flat()
 ];
 
-const activeView = ref("device-detail");
+const activeView = ref("dashboard");
 const devices = ref([{
   device_id: "EDGE-CHAMBER-001",
   name: "环境试验箱（本机）",
@@ -1123,6 +1221,7 @@ const snapshot = ref(null);
 const routerReadAt = ref(null);
 const connectionText = ref("连接中");
 const selectedDeviceId = ref("EDGE-CHAMBER-001");
+const deviceTransitionInProgress = ref(false);
 const selectedDeviceSection = ref("monitor");
 const operationTab = ref("protection");
 const parameterTab = ref("basic");
@@ -1249,6 +1348,13 @@ const historyItems = ref([]);
 const historyLoading = computed(() => historyRefresh.state.pending);
 const historyError = computed(() => historyRefresh.state.error);
 const historyQuery = ref({ range: "24h", startTime: toDateTimeInput(Date.now() - 24 * 60 * 60 * 1000), endTime: toDateTimeInput(Date.now()), runState: "" });
+const historyRangeOptions = [
+  { value: "1h", label: "近 1 小时" },
+  { value: "6h", label: "近 6 小时" },
+  { value: "24h", label: "近 24 小时" },
+  { value: "7d", label: "近 7 天" },
+  { value: "custom", label: "自定义" }
+];
 const currentTimeText = ref(new Date().toLocaleTimeString());
 const commandStatusById = ref({});
 const sessionUser = ref({ ...props.initialUser });
@@ -1265,7 +1371,6 @@ const trendCenterOffsetMs = ref(0);
 const trendYScale = ref(1);
 const trendYOffsetRatio = ref(0);
 const isTrendDragging = ref(false);
-const isSidebarCollapsed = ref(false);
 const isLayoutEditorOpen = ref(false);
 const isLightOn = ref(true);
 const isLightCommandPending = ref(false);
@@ -1453,7 +1558,7 @@ const activeSidebarKey = computed(() => {
   if (activeView.value === "device-detail") return selectedDeviceSection.value;
   return activeView.value;
 });
-const sidebarIndicator = useSelectionIndicator(sidebarNav, activeSidebarKey);
+const sidebarIndicator = useSelectionIndicator(sidebarNav, activeSidebarKey, { resizeDebounceMs: 48 });
 const operationIndicator = useSelectionIndicator(operationNav, operationTab);
 const parameterIndicator = useSelectionIndicator(parameterNav, parameterTab);
 const displayModeIndicator = useSelectionIndicator(displayModeNav, deviceDisplayMode);
@@ -1573,29 +1678,63 @@ const activeNotifications = computed(() => {
   return deviceNotifications.value;
 });
 const historyRangeLabel = computed(() => `${historyQuery.value.startTime.replace("T", " ")} 至 ${historyQuery.value.endTime.replace("T", " ")}`);
-const historyRecentItems = computed(() => [...historyItems.value].reverse().slice(0, 50));
-const historyChartValues = computed(() => {
-  const values = historyItems.value.flatMap(item => [Number(item.temperature), Number(item.humidity)]).filter(Number.isFinite);
-  if (!values.length) return { min: 0, max: 100 };
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const padding = Math.max((max - min) * 0.12, 1);
-  return { min: min - padding, max: max + padding };
+const historySortedItems = computed(() => historyItems.value
+  .map(item => ({ item, time: historyTimestamp(item.recorded_at) }))
+  .filter(entry => Number.isFinite(entry.time))
+  .sort((a, b) => a.time - b.time));
+const historyRecentItems = computed(() => historySortedItems.value.slice(-50).reverse().map(entry => entry.item));
+const historySampleWindow = computed(() => {
+  const items = historySortedItems.value;
+  return {
+    start: items.length ? formatHistoryTime(items[0].item.recorded_at) : "--",
+    end: items.length ? formatHistoryTime(items[items.length - 1].item.recorded_at) : "--"
+  };
 });
-const historyTempPoints = computed(() => historySeriesPoints("temperature"));
-const historyHumPoints = computed(() => historySeriesPoints("humidity"));
-const historyGridLines = [20, 82, 144, 206, 268];
-const historyXAxis = [58, 288, 518, 748, 978];
-const historyYAxisLabels = computed(() => {
-  const { min, max } = historyChartValues.value;
-  return historyGridLines.map((y, index) => ({ x: 50, y: y + 4, text: formatHistoryNumber(max - (max - min) * index / 4) }));
+const historyChartItems = computed(() => {
+  const items = historySortedItems.value.filter(({ item }) =>
+    Number.isFinite(historyValue(item.temperature)) || Number.isFinite(historyValue(item.humidity)));
+  if (items.length <= 720) return items;
+  const bucketSize = Math.ceil(items.length / 120);
+  const sampled = [];
+  for (let offset = 0; offset < items.length; offset += bucketSize) {
+    const end = Math.min(offset + bucketSize, items.length);
+    const chosen = new Set([offset, end - 1]);
+    for (const field of ["temperature", "humidity"]) {
+      let lowest = -1;
+      let highest = -1;
+      for (let index = offset; index < end; index++) {
+        const value = historyValue(items[index].item[field]);
+        if (!Number.isFinite(value)) continue;
+        if (lowest < 0 || value < historyValue(items[lowest].item[field])) lowest = index;
+        if (highest < 0 || value > historyValue(items[highest].item[field])) highest = index;
+      }
+      if (lowest >= 0) chosen.add(lowest);
+      if (highest >= 0) chosen.add(highest);
+    }
+    for (const index of [...chosen].sort((a, b) => a - b)) sampled.push(items[index]);
+  }
+  return sampled;
 });
+const historyTempDomain = computed(() => historySeriesDomain("temperature"));
+const historyHumDomain = computed(() => historySeriesDomain("humidity"));
+const historyTempCoordinates = computed(() => historySeriesCoordinates("temperature", historyTempDomain.value));
+const historyHumCoordinates = computed(() => historySeriesCoordinates("humidity", historyHumDomain.value));
+const historyTempPoints = computed(() => historyTempCoordinates.value.map(({ x, y }) => `${x},${y}`).join(" "));
+const historyHumPoints = computed(() => historyHumCoordinates.value.map(({ x, y }) => `${x},${y}`).join(" "));
+const historyTempAreaPath = computed(() => historyAreaPath(historyTempCoordinates.value));
+const historyHumAreaPath = computed(() => historyAreaPath(historyHumCoordinates.value));
+const historyTempLatest = computed(() => historyTempCoordinates.value.at(-1) || null);
+const historyHumLatest = computed(() => historyHumCoordinates.value.at(-1) || null);
+const historyGridLines = [40, 105, 170, 235, 300];
+const historyXAxis = [92, 296, 500, 704, 908];
+const historyTempYAxisLabels = computed(() => historyAxisLabels(historyTempDomain.value, 78));
+const historyHumYAxisLabels = computed(() => historyAxisLabels(historyHumDomain.value, 922));
 const historyXAxisLabels = computed(() => {
-  const times = historyItems.value.map(item => historyTimestamp(item.recorded_at)).filter(Number.isFinite);
-  if (!times.length) return [];
-  const start = Math.min(...times);
-  const end = Math.max(...times);
-  return historyXAxis.map((x, index) => ({ x, text: formatHistoryTime(new Date(start + (end - start) * index / 4).toISOString()) }));
+  const items = historyChartItems.value;
+  if (!items.length) return [];
+  const start = items[0].time;
+  const end = items[items.length - 1].time;
+  return historyXAxis.map((x, index) => ({ x, text: formatHistoryAxisTime(start + (end - start) * index / 4) }));
 });
 const selectedDeviceAlarmState = computed(() => {
   const status = selectedDevice.value?.status || {};
@@ -2069,7 +2208,7 @@ function loadMonitorLayout() {
   }
 }
 
-function openDeviceDetail(deviceId) {
+function showDeviceDetail(deviceId) {
   selectedDeviceId.value = deviceId;
   const device = devices.value.find(item => item.device_id === deviceId);
   parameterForm.value.deviceName = device?.name || "";
@@ -2077,14 +2216,87 @@ function openDeviceDetail(deviceId) {
   activeView.value = "device-detail";
 }
 
+function visibleProductRect(image) {
+  const box = image.getBoundingClientRect();
+  const aspect = image.naturalWidth / image.naturalHeight || box.width / box.height || 1;
+  const width = Math.min(box.width, box.height * aspect);
+  const height = width / aspect;
+  return {
+    left: box.left + (box.width - width) / 2,
+    top: box.top + (box.height - height) / 2,
+    width,
+    height
+  };
+}
+
+async function openDeviceDetail(deviceId) {
+  if (deviceTransitionInProgress.value) return;
+  const sourceImage = [...document.querySelectorAll(".overview-product-image img, .device-card-product-image img")]
+    .find(image => image.dataset.deviceId === deviceId);
+  if (!sourceImage || !sourceImage.naturalWidth || !sourceImage.animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    showDeviceDetail(deviceId);
+    return;
+  }
+
+  const source = visibleProductRect(sourceImage);
+  const overlay = document.createElement("div");
+  const movingImage = sourceImage.cloneNode();
+  movingImage.removeAttribute("data-device-id");
+  movingImage.removeAttribute("style");
+  overlay.className = "device-product-overlay";
+  overlay.setAttribute("aria-hidden", "true");
+  overlay.style.left = `${source.left}px`;
+  overlay.style.top = `${source.top}px`;
+  overlay.style.width = `${source.width}px`;
+  overlay.style.height = `${source.height}px`;
+  overlay.append(movingImage);
+  document.body.append(overlay);
+  document.documentElement.classList.add("device-product-transition");
+  deviceTransitionInProgress.value = true;
+  try {
+    showDeviceDetail(deviceId);
+    await nextTick();
+    const targetImage = document.querySelector(".monitor-product-image img");
+    if (!targetImage) return;
+
+    const target = visibleProductRect(targetImage);
+    const sourceCenterX = source.left + source.width / 2;
+    const sourceCenterY = source.top + source.height / 2;
+    const targetCenterX = target.left + target.width / 2;
+    const targetCenterY = target.top + target.height / 2;
+    const middleX = (sourceCenterX + targetCenterX) / 2;
+    const middleY = (sourceCenterY + targetCenterY) / 2;
+    const maxWidth = 2 * Math.min(middleX - 24, window.innerWidth - middleX - 24);
+    const maxHeight = 2 * Math.min(middleY - 24, window.innerHeight - middleY - 24);
+    const peakWidth = Math.max(source.width, target.width, Math.min(target.width * 1.2, maxWidth, maxHeight * source.width / source.height));
+    const duration = 920;
+    const move = overlay.animate([
+      { transform: "translate3d(0, 0, 0)" },
+      { transform: `translate3d(${targetCenterX - sourceCenterX}px, ${targetCenterY - sourceCenterY}px, 0)` }
+    ], { duration, easing: "cubic-bezier(.45, 0, .55, 1)", fill: "forwards" });
+    const zoom = movingImage.animate([
+      { transform: "scale(1)", offset: 0 },
+      { transform: `scale(${peakWidth / source.width})`, offset: .5 },
+      { transform: `scale(${target.width / source.width})`, offset: 1 }
+    ], { duration, easing: "cubic-bezier(.45, 0, .55, 1)", fill: "forwards" });
+    await Promise.all([move.finished, zoom.finished]);
+  } catch {
+    if (activeView.value !== "device-detail") showDeviceDetail(deviceId);
+  } finally {
+    document.documentElement.classList.remove("device-product-transition");
+    overlay.remove();
+    if (activeView.value === "device-detail") refreshWorkspace();
+    deviceTransitionInProgress.value = false;
+    drawSelectedTrend();
+  }
+}
+
 function returnToDashboard() {
   activeView.value = "dashboard";
-  isSidebarCollapsed.value = false;
 }
 
 function openProfile() {
   activeView.value = "profile";
-  isSidebarCollapsed.value = false;
 }
 
 function updateSessionUser(user) {
@@ -2095,7 +2307,6 @@ function updateSessionUser(user) {
 function returnToMonitoring() {
   selectedDeviceSection.value = "monitor";
   activeView.value = "device-detail";
-  isSidebarCollapsed.value = false;
 }
 
 function forceLogout() {
@@ -2739,10 +2950,20 @@ function toDateTimeInput(timestamp) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function applyHistoryRange() {
-  if (historyQuery.value.range === "custom") return;
-  updateHistoryRange();
-  loadEnvironmentalHistory();
+function selectHistoryRange(range) {
+  historyQuery.value.range = range;
+  if (range !== "custom") loadEnvironmentalHistory();
+}
+
+function activateHistoryDatePicker(event) {
+  historyQuery.value.range = "custom";
+  const input = event.currentTarget;
+  if (typeof input.showPicker !== "function") return;
+  try {
+    input.showPicker();
+  } catch {
+    input.focus();
+  }
 }
 
 function updateHistoryRange() {
@@ -2764,6 +2985,12 @@ function formatHistoryTime(value) {
   return Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString("zh-CN", { hour12: false }) : "--";
 }
 
+function formatHistoryAxisTime(timestamp) {
+  const date = new Date(timestamp);
+  const pad = value => String(value).padStart(2, "0");
+  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function formatHistoryNumber(value) {
   return value == null || value === "" || !Number.isFinite(Number(value)) ? "--" : Number(value).toFixed(2);
 }
@@ -2772,28 +2999,52 @@ function historyRunStateLabel(value) {
   return stateTextMap[String(value || "").toUpperCase()] || value || "--";
 }
 
-function historySeriesPoints(field) {
-  const items = historyItems.value;
-  if (!items.length) return "";
-  const times = items.map(item => historyTimestamp(item.recorded_at));
-  const validTimes = times.filter(Number.isFinite);
-  const start = Math.min(...validTimes);
-  const end = Math.max(...validTimes);
-  const range = Math.max(end - start, 1);
-  const { min, max } = historyChartValues.value;
-  return items.map((item, index) => {
-    const time = times[index];
-    const value = Number(item[field]);
-    if (!Number.isFinite(time) || !Number.isFinite(value)) return null;
-    const x = 58 + ((time - start) / range) * 920;
-    const y = 268 - ((value - min) / Math.max(max - min, 1)) * 248;
-    return `${x.toFixed(1)},${Math.max(20, Math.min(268, y)).toFixed(1)}`;
-  }).filter(Boolean).join(" ");
+function historyValue(value) {
+  return value == null || value === "" ? NaN : Number(value);
+}
+
+function historySeriesDomain(field) {
+  const values = historyChartItems.value.map(({ item }) => historyValue(item[field])).filter(Number.isFinite);
+  if (!values.length) return field === "humidity" ? { min: 0, max: 100 } : { min: 0, max: 40 };
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const padding = Math.max((max - min) * 0.12, field === "humidity" ? 2 : 0.5);
+  return { min: min - padding, max: max + padding };
+}
+
+function historySeriesCoordinates(field, domain) {
+  const items = historyChartItems.value;
+  if (!items.length) return [];
+  const start = items[0].time;
+  const span = Math.max(items[items.length - 1].time - start, 1);
+  return items.flatMap(({ item, time }) => {
+    const value = historyValue(item[field]);
+    if (!Number.isFinite(value)) return [];
+    return [{
+      x: (92 + (time - start) / span * 816).toFixed(1),
+      y: (300 - (value - domain.min) / (domain.max - domain.min) * 260).toFixed(1),
+      value
+    }];
+  });
+}
+
+function historyAreaPath(points) {
+  if (points.length < 2) return "";
+  return `M ${points[0].x} 300 L ${points.map(point => `${point.x} ${point.y}`).join(" L ")} L ${points[points.length - 1].x} 300 Z`;
+}
+
+function historyAxisLabels(domain, x) {
+  return historyGridLines.map((y, index) => ({
+    x,
+    y: y + 4,
+    text: (domain.max - (domain.max - domain.min) * index / 4).toFixed(1)
+  }));
 }
 
 async function loadEnvironmentalHistory() {
   if (!selectedDeviceId.value) return;
   return historyRefresh.run(async signal => {
+    if (historyQuery.value.range !== "custom") updateHistoryRange();
     const start = new Date(historyQuery.value.startTime).getTime();
     const end = new Date(historyQuery.value.endTime).getTime();
     if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw new Error("请选择有效的时间范围");
@@ -2848,35 +3099,6 @@ function syncCorrectionRefresh() {
     loadCorrectionSettings,
     CORRECTION_REFRESH_MS
   );
-}
-
-function stepOperationNumber(field, delta, min = null, max = null) {
-  const currentValue = Number(operationForm.value[field]);
-  const baseValue = Number.isFinite(currentValue) ? currentValue : 0;
-  const decimals = String(Math.abs(delta)).split(".")[1]?.length || 0;
-  let nextValue = Number((baseValue + delta).toFixed(decimals));
-  if (min !== null) nextValue = Math.max(min, nextValue);
-  if (max !== null) nextValue = Math.min(max, nextValue);
-  operationForm.value[field] = nextValue;
-}
-
-function clampOperationNumber(field, min, max) {
-  const currentValue = Number(operationForm.value[field]);
-  if (!Number.isFinite(currentValue)) {
-    operationForm.value[field] = min;
-    return;
-  }
-  operationForm.value[field] = Math.min(max, Math.max(min, currentValue));
-}
-
-function stepParameterNumber(field, delta, min = null, max = null) {
-  const currentValue = Number(parameterForm.value[field]);
-  const baseValue = Number.isFinite(currentValue) ? currentValue : 0;
-  const decimals = String(Math.abs(delta)).split(".")[1]?.length || 0;
-  let nextValue = Number((baseValue + delta).toFixed(decimals));
-  if (min !== null) nextValue = Math.max(min, nextValue);
-  if (max !== null) nextValue = Math.min(max, nextValue);
-  parameterForm.value[field] = nextValue;
 }
 
 const selectedPidModeConfig = computed(() =>
@@ -3438,7 +3660,9 @@ function pushTrendSamples(deviceList, writtenAt) {
 }
 
 function drawSelectedTrend() {
+  if (deviceTransitionInProgress.value) return;
   nextTick(() => {
+    if (deviceTransitionInProgress.value) return;
     const canvas = selectedTrendCanvas.value;
     if (!canvas) return;
 
@@ -3733,6 +3957,7 @@ onBeforeUnmount(() => {
 
 watch([activeView, selectedDeviceId, selectedDeviceSection, visibleMonitorCards], () => nextTick(drawSelectedTrend));
 watch([activeView, selectedDeviceId, selectedDeviceSection, operationTab, parameterTab], (current, previous) => {
+  if (deviceTransitionInProgress.value) return;
   if (current.slice(0, 3).some((value, index) => value !== previous?.[index])
     || (current[2] === "operation" && current[3] !== previous?.[3])
     || (current[2] === "parameters" && current[4] !== previous?.[4])) refreshWorkspace();
