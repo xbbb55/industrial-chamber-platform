@@ -1,5 +1,6 @@
 <template>
   <main class="login-page">
+    <WindowControls />
     <div class="login-grid-mark" aria-hidden="true"></div>
     <section class="login-aside">
       <div class="login-brand">
@@ -26,6 +27,7 @@
 <script setup>
 import { ref } from "vue";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from "lucide-vue-next";
+import WindowControls from "./components/WindowControls.vue";
 
 const emit = defineEmits(["authenticated"]);
 const username = ref("");

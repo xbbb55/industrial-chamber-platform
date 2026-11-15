@@ -114,6 +114,7 @@
               <AppIcon name="user" :size="18" :stroke-width="1.8" />
             </div>
           </button>
+          <WindowControls />
         </div>
       </header>
 
@@ -1134,6 +1135,7 @@ import ProfileCenter from "./components/ProfileCenter.vue";
 import MotionDialog from "./components/MotionDialog.vue";
 import NumericSlider from "./components/NumericSlider.vue";
 import WorkspaceRefresh from "./components/WorkspaceRefresh.vue";
+import WindowControls from "./components/WindowControls.vue";
 import { useRefreshTask } from "./composables/useRefreshTask";
 import { useSelectionIndicator } from "./composables/useSelectionIndicator";
 import { hasOpenDialogs } from "./composables/useDialogStack";
