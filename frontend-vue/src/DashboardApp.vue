@@ -22,7 +22,7 @@
       </nav>
 
       <div class="sidebar-foot">
-        <div v-if="activeView === 'device-detail'" class="sidebar-device-actions">
+        <div v-if="deviceNavigationActive" class="sidebar-device-actions">
           <button
             class="sidebar-return-button"
             type="button"
@@ -1430,6 +1430,8 @@ const deviceNavItems = [
   { key: "faults", label: "故障查询", icon: "故", scope: "device" }
 ];
 
+const deviceNavigationActive = computed(() => activeView.value === "device-detail" || activeView.value === "profile");
+
 const optionalMonitorCards = [
   { key: "trend", label: "温湿度趋势", icon: "chart" },
   { key: "dut-temperatures", label: "试品温度", icon: "temperature" },
@@ -1553,11 +1555,11 @@ const stateTextMap = {
 };
 
 const sidebarItems = computed(() => {
-  if (activeView.value === "device-detail") return deviceNavItems;
+  if (deviceNavigationActive.value) return deviceNavItems;
   return navItems;
 });
 const activeSidebarKey = computed(() => {
-  if (activeView.value === "device-detail") return selectedDeviceSection.value;
+  if (deviceNavigationActive.value) return selectedDeviceSection.value;
   return activeView.value;
 });
 const sidebarIndicator = useSelectionIndicator(sidebarNav, activeSidebarKey, { resizeDebounceMs: 48 });
@@ -2298,6 +2300,7 @@ function returnToDashboard() {
 }
 
 function openProfile() {
+  selectedDeviceSection.value = "monitor";
   activeView.value = "profile";
 }
 
@@ -2307,8 +2310,7 @@ function updateSessionUser(user) {
 }
 
 function returnToMonitoring() {
-  selectedDeviceSection.value = "monitor";
-  activeView.value = "device-detail";
+  showDeviceDetail(selectedDevice.value?.device_id || devices.value[0]?.device_id || selectedDeviceId.value);
 }
 
 function forceLogout() {
@@ -2780,6 +2782,7 @@ async function confirmDeleteProgram() {
 function handleSidebarSelect(item) {
   if (item.scope === "device") {
     selectedDeviceSection.value = item.key;
+    activeView.value = "device-detail";
     return;
   }
   activeView.value = item.key;

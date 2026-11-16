@@ -2,10 +2,6 @@
   <div class="profile-center">
   <section class="page-stack profile-page">
     <div class="section-head profile-section-head profile-page-head">
-      <div>
-        <h2>个人中心</h2>
-        <span>查看账户资料、维护登录凭据和管理平台账户</span>
-      </div>
       <nav ref="profileTabNav" class="profile-tabs motion-nav" :class="{ 'motion-ready': profileIndicator }" aria-label="个人中心页面">
         <span v-if="profileIndicator" class="motion-selection" :style="profileIndicator" aria-hidden="true"></span>
         <button data-motion-key="profile" type="button" :class="{ active: activeTab === 'profile' }" @click="selectTab('profile')">个人中心</button>
@@ -18,8 +14,8 @@
     </div>
 
     <Transition name="settings-tab" mode="out-in">
-    <div v-if="activeTab === 'profile'" key="profile" class="profile-tab-content">
-    <section class="profile-hero panel" aria-label="当前账户概览">
+    <div v-if="activeTab === 'profile'" key="profile" class="profile-tab-content profile-workspace panel">
+    <section class="profile-hero" aria-label="当前账户概览">
       <div class="profile-identity-block">
         <div class="profile-avatar">{{ avatarText }}</div>
         <div class="profile-identity">
@@ -27,31 +23,16 @@
             <h3>{{ user.display_name }}</h3>
             <span class="profile-status"><i></i>在线</span>
           </div>
-          <p>{{ user.role_label }} · 工业试验箱平台</p>
-          <span class="profile-id">账户：{{ user.username }}</span>
+          <p>{{ user.role_label }}<span aria-hidden="true"> · </span>账户 {{ user.username }}</p>
         </div>
       </div>
-      <div class="profile-hero-summary">
-        <div class="profile-summary-item">
-          <span>权限组</span>
-          <strong>{{ user.role_label }}</strong>
-        </div>
-        <div class="profile-summary-item">
-          <span>会话状态</span>
-          <strong class="profile-online-value">已验证</strong>
-        </div>
-        <div class="profile-summary-item profile-session-time">
-          <span>当前会话</span>
-          <strong>{{ currentTime }}</strong>
-        </div>
-      </div>
+      <div class="profile-session-meta"><span>当前时间</span><time>{{ currentTime }}</time></div>
     </section>
 
     <div class="profile-grid">
-      <section class="panel profile-info-panel">
+      <section class="profile-info-panel">
         <div class="panel-title profile-panel-heading">
-          <div><h3>个人资料</h3><span>账户登记信息</span></div>
-          <AppIcon name="users" :size="18" />
+          <h3>个人资料</h3>
         </div>
         <dl class="profile-fields">
           <div><dt>姓名</dt><dd>{{ user.display_name }}</dd></div>
@@ -63,10 +44,9 @@
         </dl>
       </section>
 
-      <section class="panel profile-security-panel">
+      <section class="profile-security-panel">
         <div class="panel-title profile-panel-heading">
-          <div><h3>账户安全</h3><span>密码规则：至少 5 位数字</span></div>
-          <AppIcon name="shield" :size="18" />
+          <h3>账户安全</h3>
         </div>
         <div class="security-item security-item-primary">
           <AppIcon name="key" :size="17" />
@@ -78,26 +58,21 @@
           <div><strong>权限组</strong><span>权限在登录后按权限组统一生效</span></div>
           <strong class="role-value">{{ user.role_label }}</strong>
         </div>
-        <div v-if="canManageUsers" class="security-item">
-          <AppIcon name="users" :size="17" />
-          <div><strong>用户管理</strong><span>可创建用户并调整权限组</span></div>
-          <button type="button" @click="loadUsers">刷新</button>
-        </div>
       </section>
     </div>
 
-    <section v-if="canManageUsers" class="panel profile-users-panel">
+    <section v-if="canManageUsers" class="profile-users-panel">
       <div class="panel-title profile-users-title">
-        <div><h3>用户管理</h3><span>当前所有权限组均可访问；可调整账户权限组</span></div>
+        <div><h3>用户管理</h3><span>{{ users.length }} 个账户</span></div>
         <div class="profile-users-actions">
-          <div class="profile-user-count" aria-label="账户统计"><strong>{{ users.length }}</strong><span>个账户</span></div>
+          <button class="profile-secondary-button" type="button" :disabled="usersLoading" @click="loadUsers">刷新</button>
         <button class="profile-primary-button" type="button" @click="openCreateUserDialog">
           <AppIcon name="plus" :size="16" />
           <span>新增用户</span>
         </button>
         </div>
       </div>
-      <div class="profile-role-note"><AppIcon name="shield" :size="15" /><span>当前管理员、工程师与销售拥有相同业务权限。</span></div>
+      <p class="profile-role-note">当前管理员、工程师与销售拥有相同业务权限。</p>
       <p v-if="usersError" class="profile-error" role="alert">{{ usersError }}</p>
       <div v-if="users.length" class="user-list" role="table" aria-label="用户列表">
         <div class="user-list-head" role="row"><span>用户</span><span>账户名</span><span>权限组</span><span>操作</span></div>
@@ -121,7 +96,7 @@
 
     <section v-else key="logs" class="panel operation-log-panel" aria-labelledby="operation-log-title">
       <div class="panel-title operation-log-title">
-        <div><h3 id="operation-log-title">操作日志</h3><span>记录账户登录、设备控制与参数修改等操作</span></div>
+        <div><h3 id="operation-log-title">操作日志</h3><span>账户登录、设备控制与参数修改记录</span></div>
         <button class="profile-secondary-button" type="button" :disabled="logsLoading" @click="loadOperationLogs(1)">刷新</button>
       </div>
 

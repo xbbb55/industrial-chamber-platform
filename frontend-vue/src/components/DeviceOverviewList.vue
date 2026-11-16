@@ -1,5 +1,14 @@
 <template>
   <div class="overview-list">
+    <div v-if="devices.length" class="overview-list-head" aria-hidden="true">
+      <span>设备</span>
+      <span>通讯状态</span>
+      <span>当前温度</span>
+      <span>当前湿度</span>
+      <span>运行状态</span>
+      <span>报警</span>
+      <span></span>
+    </div>
     <button
       v-for="device in devices"
       :key="device.device_id"
@@ -16,42 +25,42 @@
           />
         </span>
         <span :class="['state-dot', stateClass(device)]"></span>
-        <div>
+        <div class="overview-device-copy">
           <strong>{{ device.device_id }}</strong>
           <p>{{ device.name }}</p>
+          <small>IP {{ device.device_ip || device.ip_address || device.ip || "--" }}</small>
         </div>
       </div>
 
-      <div class="overview-cell">
-        <span>IP 地址</span>
-        <strong>{{ device.device_ip || device.ip_address || device.ip || "--" }}</strong>
-      </div>
-
-      <div class="overview-cell">
-        <span>通讯状态</span>
-        <strong :class="deviceCommunicationClass(device)">{{ deviceCommunicationLabel(device) }}</strong>
+      <div class="overview-cell overview-communication">
+        <span class="overview-mobile-label">通讯状态</span>
+        <strong class="overview-communication-status" :class="deviceCommunicationClass(device)">
+          <i aria-hidden="true"></i>{{ deviceCommunicationLabel(device) }}
+        </strong>
         <small class="communication-health">{{ communicationHealthLabel(device) }}</small>
       </div>
 
-      <div class="overview-cell">
-        <span>当前温度</span>
-        <strong>{{ formatNumber(device.current_temperature) }} C</strong>
+      <div class="overview-cell overview-temperature">
+        <span class="overview-mobile-label">当前温度</span>
+        <strong class="overview-reading">{{ formatNumber(device.current_temperature) }}<small>°C</small></strong>
       </div>
 
-      <div class="overview-cell">
-        <span>当前湿度</span>
-        <strong>{{ formatNumber(device.current_humidity) }} %</strong>
+      <div class="overview-cell overview-humidity">
+        <span class="overview-mobile-label">当前湿度</span>
+        <strong class="overview-reading">{{ formatNumber(device.current_humidity) }}<small>%RH</small></strong>
       </div>
 
-      <div class="overview-cell">
-        <span>运行状态</span>
+      <div class="overview-cell overview-run-state">
+        <span class="overview-mobile-label">运行状态</span>
         <strong :class="stateClass(device)">{{ runStateLabel(device.run_state) }}</strong>
       </div>
 
-      <div class="overview-cell">
-        <span>报警</span>
+      <div class="overview-cell overview-alarm">
+        <span class="overview-mobile-label">报警</span>
         <strong :class="{ alarm: device.alarm }">{{ device.alarm || "无" }}</strong>
       </div>
+
+      <AppIcon class="overview-enter-icon" name="chevronRight" :size="18" />
     </button>
 
     <div v-if="!devices.length" class="overview-empty">
@@ -62,6 +71,7 @@
 </template>
 
 <script setup>
+import AppIcon from "./AppIcon.vue";
 import {
   communicationHealthLabel,
   deviceCommunicationClass,
@@ -75,25 +85,6 @@ defineProps({
 
 defineEmits(["select"]);
 
-const stateTextMap = {
-  OFFLINE: "离线",
-  IDLE: "空闲",
-  READY: "就绪",
-  WAIT_LOCAL_CONFIRM: "等待本机确认",
-  RUNNING: "运行中",
-  PAUSED: "已暂停",
-  COMPLETED: "已完成",
-  STOPPED: "已停止",
-  STOPPING: "停止中",
-  ABORTING: "中止中",
-  ALARM: "报警",
-  MAINTENANCE: "维护中"
-};
-
-function stateLabel(state) {
-  return stateTextMap[state] || state || "未知";
-}
-
 function stateClass(device) {
   if (device.run_state === "ALARM" || device.alarm) return "alarm";
   if (["STOPPED", "STOPPING", "ABORTING"].includes(device.run_state)) return "stopped";
@@ -104,6 +95,6 @@ function stateClass(device) {
 }
 
 function formatNumber(value) {
-  return Number(value ?? 0).toFixed(1);
+  return value == null || value === "" || !Number.isFinite(Number(value)) ? "--" : Number(value).toFixed(1);
 }
 </script>

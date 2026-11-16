@@ -356,52 +356,74 @@ body {
   box-shadow: 0 3px 8px rgba(32, 35, 38, .16);
 }
 
+.app-shell:not(:has(.monitor-layout)) .overview-list {
+  --overview-columns: minmax(240px, 2fr) minmax(150px, 1.15fr) repeat(3, minmax(100px, .8fr)) minmax(115px, .9fr) 18px;
+  display: block;
+  padding: 0 20px 20px;
+  container: device-list / inline-size;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-list-head,
 .app-shell:not(:has(.monitor-layout)) .overview-row {
-  border: 1px solid var(--system-line);
-  border-radius: 16px;
-  border-top-color: var(--system-line);
-  background: rgba(249, 250, 251, .72);
-  clip-path: none;
-  overflow: hidden;
-  color: var(--system-ink);
-  transition: background-color .16s ease, transform .16s ease;
+  display: grid;
+  grid-template-columns: var(--overview-columns);
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  text-align: left;
 }
 
-.app-shell:not(:has(.monitor-layout)) .overview-row:hover,
-.app-shell:not(:has(.monitor-layout)) .overview-row:focus-visible {
-  border-color: rgba(32, 35, 38, .18);
-  background: rgba(255, 255, 255, .55);
-  outline: none;
-  box-shadow: 0 14px 30px rgba(47, 55, 63, .1);
-  transform: translateY(-2px);
-}
-
-.app-shell:not(:has(.monitor-layout)) .overview-device strong,
-.app-shell:not(:has(.monitor-layout)) .overview-cell strong {
-  color: var(--system-ink);
-}
-
-.app-shell:not(:has(.monitor-layout)) .overview-device p,
-.app-shell:not(:has(.monitor-layout)) .overview-cell span {
+.app-shell:not(:has(.monitor-layout)) .overview-list-head {
+  min-height: 46px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--system-line-strong);
   color: var(--system-ink-muted);
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .app-shell:not(:has(.monitor-layout)) .overview-row {
-  grid-template-columns: minmax(240px, 1.6fr) repeat(6, minmax(105px, 1fr));
-  gap: 12px;
-  min-height: 106px;
+  position: relative;
+  width: 100%;
+  min-height: 108px;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--system-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  clip-path: none;
+  color: var(--system-ink);
+  transition: background-color .16s ease;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-row:hover {
+  border-bottom-color: var(--system-line);
+  background: rgba(231, 236, 240, .58);
+  box-shadow: none;
+  transform: none;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-row:focus-visible {
+  outline: 2px solid var(--system-ink-soft);
+  outline-offset: -2px;
+  background: rgba(231, 236, 240, .58);
+  box-shadow: none;
+  transform: none;
 }
 
 .app-shell:not(:has(.monitor-layout)) .overview-device {
   position: relative;
+  gap: 14px;
+  min-width: 0;
 }
 
 .app-shell:not(:has(.monitor-layout)) .overview-product-image {
   position: relative;
-  flex: 0 0 64px;
-  width: 64px;
-  height: 70px;
-  border-radius: 10px;
+  flex: 0 0 72px;
+  width: 72px;
+  height: 76px;
+  border-radius: 8px;
   background: var(--system-surface-soft);
 }
 
@@ -416,15 +438,151 @@ body {
 
 .app-shell:not(:has(.monitor-layout)) .overview-device .state-dot {
   position: absolute;
-  bottom: 3px;
-  left: 55px;
+  bottom: 4px;
+  left: 63px;
   border: 2px solid var(--system-surface-strong);
   box-sizing: content-box;
 }
 
-.app-shell:not(:has(.monitor-layout)) .overview-device > div {
+.app-shell:not(:has(.monitor-layout)) .overview-device-copy,
+.app-shell:not(:has(.monitor-layout)) .overview-cell {
   min-width: 0;
 }
+
+.app-shell:not(:has(.monitor-layout)) .overview-device-copy strong {
+  display: block;
+  color: var(--system-ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-device-copy p {
+  margin: 4px 0 0;
+  color: var(--system-ink-soft);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-device-copy small {
+  display: block;
+  margin-top: 5px;
+  color: var(--system-ink-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-cell strong {
+  margin: 0;
+  color: var(--system-ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-cell .overview-mobile-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-communication-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 5px 9px;
+  border: 1px solid var(--system-line);
+  border-radius: 6px;
+  background: var(--system-surface-soft);
+  white-space: nowrap;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-communication-status i {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-communication-status.online {
+  border-color: rgba(32, 122, 90, .18);
+  background: rgba(32, 122, 90, .07);
+  color: #207a5a;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-communication-status.stale {
+  border-color: rgba(155, 107, 28, .2);
+  background: rgba(155, 107, 28, .08);
+  color: #8d611c;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-communication-status.offline {
+  border-color: rgba(165, 63, 66, .18);
+  background: rgba(165, 63, 66, .07);
+  color: #a53f42;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-cell .communication-health {
+  display: block;
+  margin-top: 6px;
+  color: var(--system-ink-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-cell .overview-reading {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--system-ink);
+  font-family: "Roboto Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-reading small {
+  color: var(--system-ink-muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-run-state strong.running { color: #207a5a; }
+.app-shell:not(:has(.monitor-layout)) .overview-run-state strong.stopped { color: #8d611c; }
+.app-shell:not(:has(.monitor-layout)) .overview-run-state strong.alarm,
+.app-shell:not(:has(.monitor-layout)) .overview-alarm strong.alarm { color: #a53f42; }
+
+.app-shell:not(:has(.monitor-layout)) .overview-enter-icon {
+  color: var(--system-ink-muted);
+  transition: transform .16s ease, color .16s ease;
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-row:hover .overview-enter-icon,
+.app-shell:not(:has(.monitor-layout)) .overview-row:focus-visible .overview-enter-icon {
+  color: var(--system-ink);
+  transform: translateX(2px);
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-empty {
+  margin: 16px 20px 20px;
+  border-color: var(--system-line-strong);
+  border-radius: 8px;
+  background: var(--system-surface-soft);
+  color: var(--system-ink-muted);
+}
+
+.app-shell:not(:has(.monitor-layout)) .overview-empty strong { color: var(--system-ink); }
 
 .app-shell:not(:has(.monitor-layout)) .device-card-list {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 650px), 1fr));
@@ -473,13 +631,49 @@ body {
   min-width: 0;
 }
 
-@media (max-width: 1450px) {
+@container device-list (max-width: 1060px) {
+  .app-shell:not(:has(.monitor-layout)) .overview-list-head { display: none; }
+
   .app-shell:not(:has(.monitor-layout)) .overview-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    row-gap: 16px;
   }
 
-  .app-shell:not(:has(.monitor-layout)) .overview-device {
-    grid-column: 1 / -1;
+  .app-shell:not(:has(.monitor-layout)) .overview-device { grid-column: 1 / -1; }
+  .app-shell:not(:has(.monitor-layout)) .overview-cell .overview-mobile-label {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    margin-bottom: 5px;
+    overflow: visible;
+    clip-path: none;
+  }
+  .app-shell:not(:has(.monitor-layout)) .overview-enter-icon { position: absolute; top: 40px; right: 16px; }
+}
+
+@container device-list (max-width: 760px) {
+  .app-shell:not(:has(.monitor-layout)) .overview-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: "device device" "temperature humidity" "communication run" "alarm alarm";
+    gap: 16px 12px;
+  }
+
+  .app-shell:not(:has(.monitor-layout)) .overview-device { grid-area: device; }
+  .app-shell:not(:has(.monitor-layout)) .overview-communication { grid-area: communication; }
+  .app-shell:not(:has(.monitor-layout)) .overview-temperature { grid-area: temperature; }
+  .app-shell:not(:has(.monitor-layout)) .overview-humidity { grid-area: humidity; }
+  .app-shell:not(:has(.monitor-layout)) .overview-run-state { grid-area: run; }
+  .app-shell:not(:has(.monitor-layout)) .overview-alarm { grid-area: alarm; }
+  .app-shell:not(:has(.monitor-layout)) .overview-enter-icon { top: 42px; }
+}
+
+@media (max-width: 700px) {
+  .app-shell:not(:has(.monitor-layout)) .overview-panel .panel-actions {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 
@@ -493,9 +687,6 @@ body {
     height: 220px;
   }
 
-  .app-shell:not(:has(.monitor-layout)) .overview-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .app-shell:not(:has(.monitor-layout)) .device-card-list .detail-card::before {
@@ -1422,6 +1613,14 @@ body {
   backdrop-filter: blur(4px);
 }
 
+.app-shell .profile-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
 .app-shell:not(:has(.monitor-layout)) .notification-modal,
 .app-shell:not(:has(.monitor-layout)) .save-confirm-modal,
 .app-shell:not(:has(.monitor-layout)) .event-dialog,
@@ -2094,251 +2293,207 @@ body {
   box-shadow: none;
 }
 
-/* Profile center refinement. */
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-page {
-  gap: 18px;
-  padding-bottom: 28px;
+/* Profile content uses one continuous workspace surface. */
+.app-shell:not(:has(.monitor-layout)) .profile-page { gap: 12px; padding-bottom: 24px; }
+.app-shell:not(:has(.monitor-layout)) .profile-page-head { min-height: 44px; margin: 0; padding: 0; }
+.app-shell:not(:has(.monitor-layout)) .profile-tabs { margin: 0 auto 0 0; }
+.app-shell:not(:has(.monitor-layout)) .profile-back-button { min-width: 86px; justify-content: center; }
+.app-shell:not(:has(.monitor-layout)) .profile-workspace,
+.app-shell:not(:has(.monitor-layout)) .operation-log-panel {
+  padding: 0 28px 20px;
+  border: 1px solid var(--system-line);
+  border-radius: var(--system-radius);
+  background: var(--system-surface);
+  box-shadow: var(--system-shadow);
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-page-head {
-  min-height: 58px;
-  margin-bottom: 0;
-  padding-inline: 2px;
-  gap: 18px;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-page-head > div {
-  gap: 4px;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-page-head h2 {
-  color: var(--system-ink);
-  font-size: 26px;
-  letter-spacing: -.02em;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-tabs {
-  margin-left: auto;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-back-button {
-  min-width: 86px;
-  justify-content: center;
-  background: rgba(255, 255, 255, .64);
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-hero {
-  min-height: 164px;
-  padding: 24px 26px;
-  border: 1px solid rgba(255, 255, 255, .86);
-  border-radius: 18px;
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, .96), rgba(239, 243, 245, .82)),
-    var(--system-surface);
-  box-shadow: 0 16px 34px rgba(47, 55, 63, .1);
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-hero::after {
-  display: none;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-identity-block {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.app-shell:not(:has(.monitor-layout)) .profile-workspace {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   min-width: 0;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-avatar {
-  width: 76px;
-  height: 76px;
+.app-shell:not(:has(.monitor-layout)) .profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 120px;
+  padding: 22px 0;
   border: 0;
-  border-radius: 22px;
-  box-shadow: 0 12px 22px rgba(32, 35, 38, .16);
+  border-bottom: 1px solid var(--system-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-identity {
-  gap: 6px;
+.app-shell:not(:has(.monitor-layout)) .profile-hero::after { display: none; }
+.app-shell:not(:has(.monitor-layout)) .profile-avatar {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 12px;
+  background: #202326;
+  box-shadow: none;
+  font-size: 23px;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-name-row {
-  gap: 9px;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-name-row h3 {
-  font-size: 25px;
-  letter-spacing: -.02em;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-status {
-  min-height: 24px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(218, 243, 233, .76);
-  font-size: 11px;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-hero-summary {
+.app-shell:not(:has(.monitor-layout)) .profile-identity-block { gap: 14px; }
+.app-shell:not(:has(.monitor-layout)) .profile-identity { gap: 5px; }
+.app-shell:not(:has(.monitor-layout)) .profile-name-row h3 { font-size: 20px; }
+.app-shell:not(:has(.monitor-layout)) .profile-identity p { color: var(--system-ink-muted); font-size: 12px; }
+.app-shell:not(:has(.monitor-layout)) .profile-status { font-size: 11px; }
+.app-shell:not(:has(.monitor-layout)) .profile-status i { box-shadow: none; }
+.app-shell:not(:has(.monitor-layout)) .profile-session-meta {
   display: grid;
-  grid-template-columns: repeat(3, minmax(112px, 1fr));
-  gap: 0;
-  min-width: min(440px, 48%);
+  gap: 5px;
   margin-left: auto;
-  overflow: hidden;
-  border: 1px solid var(--system-line);
-  border-radius: 13px;
-  background: rgba(247, 249, 250, .82);
+  color: var(--system-ink-muted);
+  font-size: 12px;
+  text-align: right;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-summary-item {
-  min-height: 82px;
-  padding: 15px 17px;
-  border-right: 1px solid var(--system-line);
+.app-shell:not(:has(.monitor-layout)) .profile-session-meta time {
+  color: var(--system-ink-soft);
+  font-variant-numeric: tabular-nums;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-summary-item:last-child {
-  border-right: 0;
+.app-shell:not(:has(.monitor-layout)) .profile-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  min-width: 0;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-summary-item strong {
-  display: block;
-  margin-top: 7px;
+.app-shell:not(:has(.monitor-layout)) .profile-info-panel,
+.app-shell:not(:has(.monitor-layout)) .profile-security-panel { min-width: 0; padding: 24px 0 28px; }
+.app-shell:not(:has(.monitor-layout)) .profile-info-panel { padding-right: 28px; }
+.app-shell:not(:has(.monitor-layout)) .profile-security-panel {
+  padding-left: 28px;
+  border-left: 1px solid var(--system-line);
+}
+.app-shell:not(:has(.monitor-layout)) .profile-panel-heading {
+  min-height: 32px;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.app-shell:not(:has(.monitor-layout)) .profile-panel-heading h3,
+.app-shell:not(:has(.monitor-layout)) .profile-users-title h3,
+.app-shell:not(:has(.monitor-layout)) .operation-log-title h3 {
+  color: var(--system-ink);
   font-size: 16px;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-grid {
-  grid-template-columns: minmax(0, 1.06fr) minmax(360px, .94fr);
-  gap: 18px;
+.app-shell:not(:has(.monitor-layout)) .profile-fields { display: block; margin: 0; }
+.app-shell:not(:has(.monitor-layout)) .profile-fields > div {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 47px;
+  padding: 9px 0;
+  border: 0;
+  border-bottom: 1px solid var(--system-line);
+  border-radius: 0;
+  background: transparent;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-info-panel,
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-security-panel,
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-users-panel,
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .operation-log-panel {
-  padding: 22px;
-  border: 1px solid rgba(255, 255, 255, .84);
-  border-radius: 16px;
-  background: rgba(248, 250, 251, .86);
-  box-shadow: 0 12px 28px rgba(47, 55, 63, .07);
+.app-shell:not(:has(.monitor-layout)) .profile-fields dt { color: var(--system-ink-muted); font-size: 12px; }
+.app-shell:not(:has(.monitor-layout)) .profile-fields dd {
+  margin: 0;
+  color: var(--system-ink);
+  font-size: 13px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-panel-heading,
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-users-title,
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .operation-log-title {
-  min-height: 52px;
-  margin-bottom: 14px;
-  padding: 0 0 14px;
+.app-shell:not(:has(.monitor-layout)) .profile-fields .profile-empty-value { color: var(--system-ink-muted); }
+.app-shell:not(:has(.monitor-layout)) .security-item {
+  min-height: 68px;
+  margin: 0;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--system-line);
+  border-radius: 0;
+  background: transparent;
+}
+.app-shell:not(:has(.monitor-layout)) .security-item > svg {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--system-ink-soft);
+}
+.app-shell:not(:has(.monitor-layout)) .security-item strong { color: var(--system-ink); font-size: 13px; }
+.app-shell:not(:has(.monitor-layout)) .security-item span { color: var(--system-ink-muted); font-size: 11px; }
+.app-shell:not(:has(.monitor-layout)) .security-item .role-value { font-size: 12px; white-space: nowrap; }
+.app-shell:not(:has(.monitor-layout)) .security-item button { min-width: 58px; }
+.app-shell:not(:has(.monitor-layout)) .profile-users-panel {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 22px 0 4px;
+  border-top: 1px solid var(--system-line);
+}
+.app-shell:not(:has(.monitor-layout)) .profile-users-title {
+  min-height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.app-shell:not(:has(.monitor-layout)) .profile-users-title > div:first-child { display: flex; align-items: baseline; gap: 10px; }
+.app-shell:not(:has(.monitor-layout)) .profile-users-title > div > span { color: var(--system-ink-muted); font-size: 12px; }
+.app-shell:not(:has(.monitor-layout)) .profile-role-note {
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--system-ink-muted);
+  font-size: 11px;
+}
+.app-shell:not(:has(.monitor-layout)) .user-list { max-width: 100%; margin-top: 16px; border: 1px solid var(--system-line); border-radius: 8px; }
+.app-shell:not(:has(.monitor-layout)) .user-list-head { background: var(--system-surface-soft); }
+.app-shell:not(:has(.monitor-layout)) .profile-logout-row {
+  justify-content: flex-start;
+  margin: 18px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--system-line);
+}
+.app-shell:not(:has(.monitor-layout)) .profile-logout-button {
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #a44848;
+}
+.app-shell:not(:has(.monitor-layout)) .profile-logout-button:hover { border-color: rgba(179, 73, 73, .24); background: rgba(179, 73, 73, .07); }
+.app-shell:not(:has(.monitor-layout)) .operation-log-panel { gap: 0; padding-top: 22px; }
+.app-shell:not(:has(.monitor-layout)) .operation-log-title {
+  margin: 0 0 18px;
+  padding: 0 0 18px;
   border-bottom: 1px solid var(--system-line);
   background: transparent;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-panel-heading h3,
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-users-title h3,
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .operation-log-title h3 {
-  color: var(--system-ink);
-  font-size: 19px;
+.app-shell:not(:has(.monitor-layout)) .operation-log-filters {
+  padding: 0 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--system-line);
+  border-radius: 0;
+  background: transparent;
 }
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-panel-heading > svg {
-  color: #5b6871;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-fields {
-  gap: 11px;
-  margin-top: 16px;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-fields > div {
-  min-height: 70px;
-  padding: 13px 15px;
-  border: 1px solid var(--system-line);
-  border-radius: 12px;
-  background: rgba(232, 236, 239, .56);
-  transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-fields > div:hover {
-  border-color: rgba(32, 35, 38, .18);
-  background: rgba(255, 255, 255, .76);
-  transform: translateY(-1px);
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-fields dd {
-  margin: 0;
-  color: var(--system-ink);
-  font-size: 16px;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .security-item {
-  min-height: 70px;
-  gap: 12px;
-  padding: 13px 0;
-  border-bottom-color: var(--system-line);
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .security-item > svg {
-  width: 34px;
-  height: 34px;
-  padding: 8px;
-  border: 1px solid var(--system-line);
-  border-radius: 10px;
-  background: rgba(232, 239, 242, .76);
-  color: #4f606b;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .security-item strong {
-  color: var(--system-ink);
-  font-size: 15px;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .security-item span {
-  color: var(--system-ink-muted);
-  font-size: 13px;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .security-item-primary {
-  margin-inline: -8px;
-  padding-inline: 8px;
-  border: 1px solid var(--system-line);
-  border-radius: 12px;
-  background: rgba(240, 245, 247, .72);
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .security-item button {
-  min-width: 58px;
-  background: rgba(255, 255, 255, .72);
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-role-note {
-  margin-top: 14px;
-  border-radius: 10px;
-  background: rgba(232, 236, 239, .56);
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-users-panel {
-  margin-top: 0;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-logout-row {
-  padding-top: 0;
-}
-
-.app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-logout-button {
-  min-height: 36px;
-  border-radius: 10px;
-}
-
+.app-shell:not(:has(.monitor-layout)) .operation-log-table-wrap { margin-top: 18px; border-radius: 8px; }
+.app-shell:not(:has(.monitor-layout)) .operation-log-pagination { margin-top: 18px; }
 @media (max-width: 920px) {
-  .app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-hero {
-    align-items: flex-start;
-    flex-direction: column;
+  .app-shell:not(:has(.monitor-layout)) .profile-grid { grid-template-columns: 1fr; }
+  .app-shell:not(:has(.monitor-layout)) .profile-info-panel { padding-right: 0; }
+  .app-shell:not(:has(.monitor-layout)) .profile-security-panel {
+    padding: 20px 0 28px;
+    border-top: 1px solid var(--system-line);
+    border-left: 0;
   }
-
-  .app-shell:not(:has(.monitor-layout)):has(.profile-page) .profile-hero-summary {
-    width: 100%;
-    min-width: 0;
-    margin-left: 0;
-  }
+}
+@media (max-width: 600px) {
+  .app-shell:not(:has(.monitor-layout)) .profile-workspace,
+  .app-shell:not(:has(.monitor-layout)) .operation-log-panel { padding-right: 16px; padding-left: 16px; }
+  .app-shell:not(:has(.monitor-layout)) .profile-hero { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .app-shell:not(:has(.monitor-layout)) .profile-session-meta { display: flex; gap: 12px; margin-left: 70px; text-align: left; }
+  .app-shell:not(:has(.monitor-layout)) .profile-fields > div { grid-template-columns: 80px minmax(0, 1fr); }
 }
 
 /* Operation settings uses the same light sidebar shell as the dashboard. */
