@@ -268,7 +268,7 @@
                   :class="{ active: isLayoutEditorOpen }"
                   title="更多部件"
                   aria-label="更多部件"
-                  @click="isLayoutEditorOpen = true"
+                  @click="openMonitorLayoutEditor"
                 >
                   <AppIcon name="sliders" :size="16" />
                   <span>更多部件</span>
@@ -899,18 +899,18 @@
       />
     </section>
 
-    <MotionDialog :open="isLayoutEditorOpen" backdrop-class="layout-modal-backdrop" panel-class="layout-modal" labelledby="layout-modal-title" @close="isLayoutEditorOpen = false">
+    <MotionDialog :open="isLayoutEditorOpen" backdrop-class="layout-modal-backdrop" panel-class="layout-modal" labelledby="layout-modal-title" @close="isLayoutEditorOpen = false" @after-close="applyMonitorLayout">
       <div class="layout-modal-header">
         <div><h3 id="layout-modal-title">选择显示卡片</h3><span>配置仅保存在当前浏览器</span></div>
         <button class="layout-modal-close" type="button" title="关闭" aria-label="关闭" @click="isLayoutEditorOpen = false"><AppIcon name="close" :size="17" /></button>
       </div>
       <div class="layout-editor">
         <label v-for="card in optionalMonitorCards" :key="card.key" class="layout-option">
-          <input type="checkbox" :checked="visibleMonitorCards.includes(card.key)" @change="toggleMonitorCard(card.key)" />
+          <input type="checkbox" :checked="draftMonitorCards.includes(card.key)" @change="toggleMonitorCard(card.key)" />
           <AppIcon :name="card.icon" :size="15" /><span>{{ card.label }}</span>
         </label>
       </div>
-      <div class="layout-modal-footer"><span>{{ visibleMonitorCards.length }} 项已显示</span><button class="layout-modal-confirm" type="button" @click="isLayoutEditorOpen = false">完成</button></div>
+      <div class="layout-modal-footer"><span>{{ draftMonitorCards.length }} 项已显示</span><button class="layout-modal-confirm" type="button" @click="isLayoutEditorOpen = false">完成</button></div>
     </MotionDialog>
 
     <MotionDialog :open="isSaveConfirmOpen" backdrop-class="save-confirm-backdrop" panel-class="save-confirm-modal" labelledby="save-confirm-title" return-focus=".operation-nav button.active" @close="closeSaveConfirm">
@@ -1421,6 +1421,7 @@ const programDraft = ref(createProgramDraft());
 const pendingSaveTarget = ref(null);
 const deviceStartTimes = ref({});
 const visibleMonitorCards = ref(["trend"]);
+const draftMonitorCards = ref([]);
 const deviceNotifications = ref([]);
 const operationLogs = ref([]);
 const previousDeviceStates = ref({});
@@ -2222,13 +2223,22 @@ function formatSnapshotTime(value) {
   return Number.isNaN(date.getTime()) ? "--" : date.toLocaleTimeString("zh-CN", { hour12: false });
 }
 
+function openMonitorLayoutEditor() {
+  draftMonitorCards.value = [...visibleMonitorCards.value];
+  isLayoutEditorOpen.value = true;
+}
+
 function toggleMonitorCard(cardKey) {
-  const current = visibleMonitorCards.value;
-  visibleMonitorCards.value = current.includes(cardKey)
+  const current = draftMonitorCards.value;
+  draftMonitorCards.value = current.includes(cardKey)
     ? current.filter(key => key !== cardKey)
     : [...current, cardKey];
+}
+
+function applyMonitorLayout() {
+  if (draftMonitorCards.value.join("|") === visibleMonitorCards.value.join("|")) return;
+  visibleMonitorCards.value = [...draftMonitorCards.value];
   saveMonitorLayout();
-  nextTick(drawSelectedTrend);
 }
 
 function saveMonitorLayout() {

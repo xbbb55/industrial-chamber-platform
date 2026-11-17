@@ -5320,6 +5320,12 @@ body,
   .app-shell:has(.monitor-layout) .monitor-primary-runtime { grid-column: 1 / -1; grid-row: 2; }
 }
 
+@media (max-width: 1050px) {
+  .app-shell:has(.monitor-layout) .monitor-primary-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 760px) {
   .app-shell:has(.monitor-layout) {
     width: 100%;

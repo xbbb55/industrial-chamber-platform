@@ -106,7 +106,6 @@ const statusItems = computed(() => [
 .hmi-dashboard {
   --metric-temp: #267fa5;
   --metric-humidity: #258a78;
-  container: hmi-dashboard / inline-size;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 18px;
@@ -320,7 +319,7 @@ const statusItems = computed(() => [
   .status-item { padding-inline: 8px; }
 }
 
-@container hmi-dashboard (max-width: 560px) {
+@media (max-width: 700px) {
   .env-reading-grid { grid-template-columns: minmax(0, 1fr); }
   .env-reading-card { padding: 12px 8px; }
   .env-reading-card + .env-reading-card { border-top: 1px solid #e2e7ea; border-left: 0; }
@@ -328,5 +327,11 @@ const statusItems = computed(() => [
   .status-item:nth-child(odd) { border-left: 0; }
   .status-item:nth-child(n + 3) { border-top: 1px solid #e2e7ea; }
   .metric-reading strong { font-size: 44px; }
+}
+
+@media (min-width: 861px) and (max-width: 950px) {
+  .env-reading-grid { grid-template-columns: minmax(0, 1fr); }
+  .env-reading-card { padding: 12px 8px; }
+  .env-reading-card + .env-reading-card { border-top: 1px solid #e2e7ea; border-left: 0; }
 }
 </style>

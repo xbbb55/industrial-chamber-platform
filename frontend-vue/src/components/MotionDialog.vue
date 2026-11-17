@@ -21,7 +21,7 @@ const props = defineProps({
   labelledby: { type: String, required: true },
   returnFocus: { type: String, default: "" }
 });
-const emit = defineEmits(["close"]);
+const emit = defineEmits(["close", "after-close"]);
 const panel = ref(null);
 const { isTop, layer, register, release } = useDialogStack();
 let opener;
@@ -42,6 +42,7 @@ async function finishLeave() {
   await nextTick();
   const target = opener?.isConnected && !opener.closest("[inert]") ? opener : document.querySelector(props.returnFocus || ".nav-list button.active");
   if (!props.open) target?.focus({ preventScroll: true });
+  emit("after-close");
 }
 
 function handleKeydown(event) {
