@@ -281,29 +281,41 @@
                 <section v-if="visibleMonitorCards.includes('trend')" class="monitor-card trend-panel monitor-card-wide">
                   <div class="trend-header">
                     <div class="trend-title-block">
-                      <h3>实时温湿度曲线</h3>
-                      <span>过去 5 分钟 / 未来 5 分钟</span>
+                      <div class="trend-heading-line">
+                        <h3>实时温湿度曲线</h3>
+                        <span class="trend-connection-state" :class="{ offline: !selectedDevice?.online || connectionText !== '已连接' }">
+                          {{ trendConnectionLabel }}
+                        </span>
+                      </div>
+                      <span>{{ selectedDevice?.name || selectedDevice?.device_id || '当前设备' }} · 最近 {{ trendWindowText }}</span>
                     </div>
                     <div class="chart-legend" aria-label="曲线图例">
-                      <span><i class="temp-line"></i>温度</span>
-                      <span><i class="hum-line"></i>湿度</span>
-                      <span class="now-label">当前时刻</span>
-                    </div>
-                    <div class="trend-toolbar" aria-label="曲线缩放控制">
-                      <span>{{ trendWindowText }}</span>
-                      <span class="trend-toolbar-label">时间轴</span>
-                      <button type="button" title="放大曲线" aria-label="放大曲线" @click="zoomTrend(0.72)"><AppIcon name="zoomIn" :size="16" /></button>
-                      <button type="button" title="缩小曲线" aria-label="缩小曲线" @click="zoomTrend(1.38)"><AppIcon name="zoomOut" :size="16" /></button>
-                      <button type="button" title="复位时间窗口" aria-label="复位时间窗口" @click="resetTrendZoom"><AppIcon name="reset" :size="16" /></button>
-                      <span class="trend-toolbar-label">纵轴</span>
-                      <button type="button" title="放大纵轴" aria-label="放大纵轴" @click="zoomTrendY(0.78)"><AppIcon name="zoomIn" :size="16" /></button>
-                      <button type="button" title="缩小纵轴" aria-label="缩小纵轴" @click="zoomTrendY(1.28)"><AppIcon name="zoomOut" :size="16" /></button>
-                      <button type="button" title="复位纵轴" aria-label="复位纵轴" @click="resetTrendY"><AppIcon name="reset" :size="16" /></button>
+                      <button type="button" class="trend-series-toggle temperature" :class="{ disabled: !trendVisibleSeries.temperature }" :aria-pressed="trendVisibleSeries.temperature" @click="toggleTrendSeries('temperature')">
+                        <i class="temp-line"></i><span>温度</span><strong>{{ formatTrendReading(selectedDevice?.current_temperature) }} °C</strong>
+                      </button>
+                      <button type="button" class="trend-series-toggle humidity" :class="{ disabled: !trendVisibleSeries.humidity }" :aria-pressed="trendVisibleSeries.humidity" @click="toggleTrendSeries('humidity')">
+                        <i class="hum-line"></i><span>湿度</span><strong>{{ formatTrendReading(selectedDevice?.current_humidity) }} %RH</strong>
+                      </button>
                     </div>
                   </div>
-                  <canvas ref="selectedTrendCanvas" width="1080" height="220" @mousedown="handleTrendPointerDown" @mousemove="handleTrendPointerMove" @mouseup="handleTrendPointerUp" @mouseleave="handleTrendPointerUp" @dblclick="resetTrendZoom"></canvas>
-                  <div class="trend-time-axis" aria-label="曲线时间刻度"><span v-for="label in trendAxisLabels" :key="label">{{ label }}</span></div>
-                  <div class="trend-hint">左右拖拽平移时间轴，使用按钮缩放或复位</div>
+                  <div class="trend-toolbar" aria-label="曲线控制">
+                    <div class="trend-range-control" role="group" aria-label="时间窗口">
+                      <button v-for="range in trendWindowOptions" :key="range.value" type="button" :class="{ active: trendWindowMs === range.value }" :aria-pressed="trendWindowMs === range.value" @click="selectTrendWindow(range.value)">{{ range.label }}</button>
+                    </div>
+                    <button v-if="!trendIsLive" type="button" class="trend-live-button" @click="returnTrendToLive"><AppIcon name="activity" :size="15" />回到实时</button>
+                    <span v-else class="trend-live-indicator"><i></i>实时跟随</span>
+                    <span class="trend-toolbar-spacer"></span>
+                    <span class="trend-toolbar-label">时间轴</span>
+                    <button type="button" title="放大时间范围" aria-label="放大时间范围" @click="zoomTrend(0.72)"><AppIcon name="zoomIn" :size="16" /></button>
+                    <button type="button" title="缩小时间范围" aria-label="缩小时间范围" @click="zoomTrend(1.38)"><AppIcon name="zoomOut" :size="16" /></button>
+                    <span class="trend-toolbar-divider"></span>
+                    <span class="trend-toolbar-label">纵轴</span>
+                    <button type="button" title="放大纵轴范围" aria-label="放大纵轴范围" @click="zoomTrendY(0.78)"><AppIcon name="zoomIn" :size="16" /></button>
+                    <button type="button" title="缩小纵轴范围" aria-label="缩小纵轴范围" @click="zoomTrendY(1.28)"><AppIcon name="zoomOut" :size="16" /></button>
+                    <button type="button" title="复位曲线" aria-label="复位曲线" @click="resetTrendZoom"><AppIcon name="reset" :size="16" /></button>
+                  </div>
+                  <canvas ref="selectedTrendCanvas" width="1080" height="220" role="img" aria-label="温度和湿度实时趋势图" @pointerdown="handleTrendPointerDown" @pointermove="handleTrendPointerMove" @pointerup="handleTrendPointerUp" @pointercancel="handleTrendPointerUp" @pointerleave="handleTrendPointerLeave" @dblclick="resetTrendZoom"></canvas>
+                  <div class="trend-hint">悬停查看采样值 · 拖动查看历史 · 双击复位</div>
                 </section>
 
                 <section v-if="false && visibleMonitorCards.includes('status')" class="monitor-card info-monitor-card">
@@ -1149,12 +1161,18 @@ const props = defineProps({
   }
 });
 
-const TREND_PAST_MS = 5 * 60 * 1000;
-const TREND_FUTURE_MS = 5 * 60 * 1000;
-const TREND_DEFAULT_WINDOW_MS = TREND_PAST_MS + TREND_FUTURE_MS;
+const TREND_DEFAULT_WINDOW_MS = 10 * 60 * 1000;
 const TREND_MIN_WINDOW_MS = 30 * 1000;
 const TREND_MAX_WINDOW_MS = 60 * 60 * 1000;
 const TREND_HISTORY_RETENTION_MS = 2 * 60 * 60 * 1000;
+const TREND_RENDER_INTERVAL_MS = 100;
+const TREND_GAP_THRESHOLD_MS = 5000;
+const trendWindowOptions = [
+  { value: 60 * 1000, label: "1 分" },
+  { value: 5 * 60 * 1000, label: "5 分" },
+  { value: 10 * 60 * 1000, label: "10 分" },
+  { value: 30 * 60 * 1000, label: "30 分" }
+];
 const TREND_Y_MIN_SCALE = 0.18;
 const TREND_Y_MAX_SCALE = 3.5;
 const MONITOR_LAYOUT_STORAGE_KEY = "industrial-chamber-monitor-layout-v1";
@@ -1345,7 +1363,8 @@ const parameterForm = ref({
 });
 const deviceDisplayMode = ref("list");
 const selectedTrendCanvas = ref(null);
-const trendHistory = ref({});
+const trendHistory = new Map();
+const trendRevision = ref(0);
 const historyItems = ref([]);
 const historyLoading = computed(() => historyRefresh.state.pending);
 const historyError = computed(() => historyRefresh.state.error);
@@ -1373,6 +1392,8 @@ const trendCenterOffsetMs = ref(0);
 const trendYScale = ref(1);
 const trendYOffsetRatio = ref(0);
 const isTrendDragging = ref(false);
+const trendHoverRatio = ref(null);
+const trendVisibleSeries = ref({ temperature: true, humidity: true });
 const isLayoutEditorOpen = ref(false);
 const isLightOn = ref(true);
 const isLightCommandPending = ref(false);
@@ -1407,6 +1428,10 @@ const previousDeviceStates = ref({});
 let socket = null;
 let reconnectTimer = null;
 let clockTimer = null;
+let trendDrawTimer = 0;
+let trendDrawFrame = 0;
+let trendDrawPending = false;
+let lastTrendDrawAt = 0;
 let correctionRefreshTimer = null;
 let correctionRequestPending = false;
 let correctionController;
@@ -1645,18 +1670,22 @@ const memoryName = computed(() => "industrial_chamber_realtime_v1");
 const memoryTotal = computed(() => "256KB");
 const memoryStableText = computed(() => snapshot.value ? "稳定可读" : "等待数据");
 const formattedSnapshot = computed(() => JSON.stringify(snapshot.value, null, 2));
-const trendAxisLabels = computed(() => {
-  const range = getTrendTimeRange(trendClockMs.value);
-  return [0, 0.25, 0.5, 0.75, 1].map(ratio => {
-    return formatTimeLabel(range.startMs + (range.endMs - range.startMs) * ratio);
-  });
-});
 const trendWindowText = computed(() => {
   const totalSeconds = Math.round(trendWindowMs.value / 1000);
-  if (totalSeconds < 60) return `当前窗口 ${totalSeconds} 秒`;
+  if (totalSeconds < 60) return `${totalSeconds} 秒`;
   const minutes = totalSeconds / 60;
-  if (minutes < 60) return `当前窗口 ${minutes.toFixed(minutes >= 10 ? 0 : 1)} 分钟`;
-  return `当前窗口 ${(minutes / 60).toFixed(1)} 小时`;
+  if (minutes < 60) return `${minutes.toFixed(minutes >= 10 ? 0 : 1)} 分钟`;
+  return `${(minutes / 60).toFixed(1)} 小时`;
+});
+const trendIsLive = computed(() => Math.abs(trendCenterOffsetMs.value) < 1000);
+const trendConnectionLabel = computed(() => {
+  trendRevision.value;
+  if (!selectedDevice.value) return "等待设备";
+  if (!selectedDevice.value.online || connectionText.value !== "已连接") {
+    const buffer = trendHistory.get(selectedDeviceId.value);
+    return buffer && buffer.startIndex < buffer.samples.length ? "历史数据" : "设备离线";
+  }
+  return "设备已连接";
 });
 const runtimeDisplay = computed(() => {
   const device = selectedDevice.value || {};
@@ -1811,6 +1840,12 @@ function runStateIcon(state) {
 
 function formatNumber(value) {
   return Number(value ?? 0).toFixed(1);
+}
+
+function formatTrendReading(value) {
+  if (value == null || value === "") return "--";
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue.toFixed(1) : "--";
 }
 
 function formatCalibrationValue(value) {
@@ -3648,52 +3683,89 @@ function connectSocket() {
 
 function pushTrendSamples(deviceList, writtenAt) {
   const nowMs = Number(writtenAt ? writtenAt * 1000 : Date.now());
-  const nextHistory = { ...trendHistory.value };
-
+  let changed = false;
   deviceList.forEach(device => {
     const deviceId = device.device_id;
-    const samples = nextHistory[deviceId] ? [...nextHistory[deviceId]] : [];
-    samples.push({
+    if (!deviceId) return;
+    const tempRaw = device.current_temperature;
+    const humRaw = device.current_humidity;
+    const tempValue = tempRaw == null || tempRaw === "" ? Number.NaN : Number(tempRaw);
+    const humValue = humRaw == null || humRaw === "" ? Number.NaN : Number(humRaw);
+    const sample = {
       time: nowMs,
-      temp: Number(device.current_temperature ?? 0),
-      hum: Number(device.current_humidity ?? 0)
-    });
-    nextHistory[deviceId] = samples.filter(sample => sample.time >= nowMs - TREND_HISTORY_RETENTION_MS);
-  });
+      temp: Number.isFinite(tempValue) ? tempValue : null,
+      hum: Number.isFinite(humValue) ? humValue : null
+    };
+    if (sample.temp === null && sample.hum === null) return;
 
-  trendHistory.value = nextHistory;
+    const buffer = trendHistory.get(deviceId) || { samples: [], startIndex: 0 };
+    const { samples } = buffer;
+    const last = samples[samples.length - 1];
+    if (last && nowMs < last.time) return;
+    if (last && nowMs === last.time) samples[samples.length - 1] = sample;
+    else samples.push(sample);
+
+    const cutoff = nowMs - TREND_HISTORY_RETENTION_MS;
+    while (buffer.startIndex < samples.length && samples[buffer.startIndex].time < cutoff) buffer.startIndex += 1;
+    if (buffer.startIndex > 512 && buffer.startIndex > samples.length / 2) {
+      samples.splice(0, buffer.startIndex);
+      buffer.startIndex = 0;
+    }
+    trendHistory.set(deviceId, buffer);
+    changed = true;
+  });
+  if (changed) trendRevision.value += 1;
 }
 
 function drawSelectedTrend() {
-  if (deviceTransitionInProgress.value) return;
+  if (deviceTransitionInProgress.value || trendDrawPending || trendDrawFrame || trendDrawTimer) return;
+  trendDrawPending = true;
   nextTick(() => {
-    if (deviceTransitionInProgress.value) return;
+    trendDrawPending = false;
+    if (deviceTransitionInProgress.value || document.hidden) return;
     const canvas = selectedTrendCanvas.value;
     if (!canvas) return;
+    const wait = Math.max(0, TREND_RENDER_INTERVAL_MS - (performance.now() - lastTrendDrawAt));
+    const queueFrame = () => {
+      trendDrawTimer = 0;
+      if (!selectedTrendCanvas.value || document.hidden || trendDrawFrame) return;
+      trendDrawFrame = requestAnimationFrame(() => {
+        trendDrawFrame = 0;
+        if (document.hidden || !selectedTrendCanvas.value) return;
+        renderSelectedTrend(selectedTrendCanvas.value);
+        lastTrendDrawAt = performance.now();
+      });
+    };
+    if (wait > 0) trendDrawTimer = window.setTimeout(queueFrame, wait);
+    else queueFrame();
+  });
+}
 
+function renderSelectedTrend(canvas) {
+    trendRevision.value;
     const metrics = prepareTrendCanvas(canvas);
     const ctx = metrics.ctx;
     const width = metrics.width;
     const height = metrics.height;
-    const padLeft = 72;
-    const padRight = 72;
+    const padLeft = Math.max(58, Math.min(76, width * 0.075));
+    const padRight = Math.max(64, Math.min(80, width * 0.08));
     const padTop = 24;
-    const padBottom = 54;
+    const padBottom = 36;
     const plotWidth = width - padLeft - padRight;
     const plotHeight = height - padTop - padBottom;
     const nowMs = Date.now();
     const { startMs, endMs } = getTrendTimeRange(nowMs);
     const yRanges = getTrendYRanges();
-    const samples = trendHistory.value[selectedDeviceId.value] || [];
+    const buffer = trendHistory.get(selectedDeviceId.value) || { samples: [], startIndex: 0 };
 
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "#f8fbfc";
+    ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
 
-    ctx.strokeStyle = "#d8e2e8";
+    ctx.strokeStyle = "#e3e8eb";
     ctx.lineWidth = 1;
-    ctx.font = "12px Microsoft YaHei";
-    ctx.fillStyle = "#1f2933";
+    ctx.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+    ctx.fillStyle = "#59646b";
 
     for (let index = 0; index <= 5; index += 1) {
       const y = padTop + index * (plotHeight / 5);
@@ -3706,8 +3778,8 @@ function drawSelectedTrend() {
 
     drawValueAxis(ctx, yRanges.temp, yRanges.hum, padLeft, width - padRight, padTop, plotHeight);
 
-    for (let index = 0; index <= 10; index += 1) {
-      const x = padLeft + index * (plotWidth / 10);
+    for (let index = 0; index <= 4; index += 1) {
+      const x = padLeft + index * (plotWidth / 4);
       ctx.beginPath();
       ctx.setLineDash([4, 4]);
       ctx.moveTo(x, padTop);
@@ -3715,31 +3787,40 @@ function drawSelectedTrend() {
       ctx.stroke();
     }
 
-    const nowX = timeToX(nowMs, startMs, endMs, padLeft, plotWidth);
-    ctx.setLineDash([]);
-    ctx.strokeStyle = "#f59e0b";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(nowX, padTop);
-    ctx.lineTo(nowX, height - padBottom);
-    ctx.stroke();
+    drawTimeAxis(ctx, startMs, endMs, padLeft, plotWidth, height - 10);
 
-    drawTimeAxis(ctx, startMs, endMs, padLeft, plotWidth, height - 26);
+    const tempCount = trendVisibleSeries.value.temperature
+      ? drawTimeSeries(ctx, buffer, "temp", "#3182ce", yRanges.temp.min, yRanges.temp.max, startMs, endMs, padLeft, padTop, plotWidth, plotHeight)
+      : 0;
+    const humCount = trendVisibleSeries.value.humidity
+      ? drawTimeSeries(ctx, buffer, "hum", "#299474", yRanges.hum.min, yRanges.hum.max, startMs, endMs, padLeft, padTop, plotWidth, plotHeight)
+      : 0;
 
-    drawTimeSeries(ctx, samples, "temp", "#3b82f6", yRanges.temp.min, yRanges.temp.max, startMs, endMs, padLeft, padTop, plotWidth, plotHeight);
-    drawTimeSeries(ctx, samples, "hum", "#22c55e", yRanges.hum.min, yRanges.hum.max, startMs, endMs, padLeft, padTop, plotWidth, plotHeight);
-
-    if (samples.length === 0) {
-      ctx.fillStyle = "#35596d";
-      ctx.font = "14px Microsoft YaHei";
-      ctx.fillText("等待实时数据写入曲线", padLeft + 18, padTop + 34);
+    if (trendHoverRatio.value !== null) {
+      const hoverTime = startMs + trendHoverRatio.value * (endMs - startMs);
+      const sample = nearestTrendSample(buffer, hoverTime);
+      if (sample && sample.time >= startMs && sample.time <= endMs) {
+        drawTrendCursor(ctx, sample, trendHoverRatio.value, padLeft, padTop, padRight, plotWidth, plotHeight, width);
+      }
     }
-  });
+
+    if (tempCount === 0 && humCount === 0) {
+      ctx.fillStyle = "#657078";
+      ctx.font = "14px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+      ctx.textAlign = "left";
+      const hasHistory = buffer.startIndex < buffer.samples.length;
+      const message = hasHistory
+        ? "当前时间段没有采样数据，拖动曲线查看历史"
+        : selectedDevice.value?.online && connectionText.value === "已连接"
+          ? "等待设备采样数据"
+          : "设备离线，暂无实时采样数据";
+      ctx.fillText(message, padLeft + 18, padTop + 32);
+    }
 }
 
 function prepareTrendCanvas(canvas) {
   const rect = canvas.getBoundingClientRect();
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
   const width = Math.max(320, Math.round(rect.width || canvas.clientWidth || 1080));
   const height = Math.max(220, Math.round(rect.height || canvas.clientHeight || 320));
   const pixelWidth = Math.round(width * dpr);
@@ -3757,8 +3838,8 @@ function prepareTrendCanvas(canvas) {
 
 function drawTimeAxis(ctx, startMs, endMs, padLeft, plotWidth, y) {
   ctx.setLineDash([]);
-  ctx.fillStyle = "#1f2933";
-  ctx.font = "12px Microsoft YaHei";
+  ctx.fillStyle = "#59646b";
+  ctx.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
   ctx.textAlign = "center";
 
   [0, 0.25, 0.5, 0.75, 1].forEach(ratio => {
@@ -3772,7 +3853,7 @@ function drawTimeAxis(ctx, startMs, endMs, padLeft, plotWidth, y) {
 
 function drawValueAxis(ctx, tempRange, humRange, padLeft, axisRight, padTop, plotHeight) {
   ctx.setLineDash([]);
-  ctx.font = "11px Microsoft YaHei";
+  ctx.font = "11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
 
   for (let index = 0; index <= 5; index += 1) {
     const ratio = index / 5;
@@ -3780,46 +3861,160 @@ function drawValueAxis(ctx, tempRange, humRange, padLeft, axisRight, padTop, plo
     const tempValue = tempRange.max - (tempRange.max - tempRange.min) * ratio;
     const humValue = humRange.max - (humRange.max - humRange.min) * ratio;
 
-    ctx.fillStyle = "#1f2933";
+    ctx.fillStyle = "#3182ce";
     ctx.textAlign = "right";
-    ctx.fillText(`${tempValue.toFixed(1)}C`, padLeft - 8, y + 4);
+    ctx.fillText(`${tempValue.toFixed(1)} °C`, padLeft - 8, y + 4);
 
-    ctx.fillStyle = "#1f2933";
+    ctx.fillStyle = "#299474";
     ctx.textAlign = "left";
-    ctx.fillText(`${humValue.toFixed(1)}%`, axisRight + 8, y + 4);
+    ctx.fillText(`${humValue.toFixed(1)} %RH`, axisRight + 8, y + 4);
   }
 
   ctx.textAlign = "left";
 }
 
-function drawTimeSeries(ctx, samples, key, color, min, max, startMs, endMs, padLeft, padTop, plotWidth, plotHeight) {
-  const visibleSamples = samples.filter(sample => sample.time >= startMs && sample.time <= endMs);
-  if (visibleSamples.length === 0) return;
+function drawTimeSeries(ctx, buffer, key, color, min, max, startMs, endMs, padLeft, padTop, plotWidth, plotHeight) {
+  const { samples, startIndex } = buffer;
+  let index = lowerBoundTrendSample(samples, startIndex, startMs);
+  const bucketCount = Math.max(1, Math.ceil(plotWidth));
+  const buckets = new Array(bucketCount);
+  const representatives = [];
+  let segment = 0;
+  let previousTime = null;
+  for (; index < samples.length && samples[index].time <= endMs; index += 1) {
+    const sample = samples[index];
+    const value = sample[key];
+    if (previousTime !== null && sample.time - previousTime > TREND_GAP_THRESHOLD_MS) segment += 1;
+    previousTime = sample.time;
+    if (!Number.isFinite(value)) {
+      segment += 1;
+      continue;
+    }
+    const x = timeToX(sample.time, startMs, endMs, padLeft, plotWidth);
+    const bucketIndex = Math.min(bucketCount - 1, Math.max(0, Math.floor(x - padLeft)));
+    let bucket = buckets[bucketIndex];
+    if (!bucket) {
+      bucket = new Map();
+      buckets[bucketIndex] = bucket;
+    }
+    let group = bucket.get(segment);
+    if (!group) {
+      bucket.set(segment, { first: index, last: index, min: index, max: index });
+      continue;
+    }
+    group.last = index;
+    if (value < samples[group.min][key]) group.min = index;
+    if (value > samples[group.max][key]) group.max = index;
+  }
+  buckets.forEach(bucket => bucket?.forEach((group, groupSegment) => {
+    const indexes = [group.first, group.min, group.max, group.last].sort((a, b) => a - b);
+    let previousIndex = -1;
+    indexes.forEach(sampleIndex => {
+      if (sampleIndex === previousIndex) return;
+      previousIndex = sampleIndex;
+      representatives.push({ index: sampleIndex, segment: groupSegment });
+    });
+  }));
+  representatives.sort((a, b) => a.index - b.index);
 
+  let pointCount = 0;
+  let previousSegment = -1;
+  const segmentStarts = [];
   ctx.strokeStyle = color;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
   ctx.beginPath();
-
-  visibleSamples.forEach((sample, index) => {
+  representatives.forEach(({ index: sampleIndex, segment: sampleSegment }) => {
+    const sample = samples[sampleIndex];
     const value = sample[key];
     const x = timeToX(sample.time, startMs, endMs, padLeft, plotWidth);
     const y = padTop + plotHeight - ((value - min) / (max - min)) * plotHeight;
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    if (pointCount === 0 || sampleSegment !== previousSegment) {
+      ctx.moveTo(x, y);
+      segmentStarts.push({ x, y });
+    } else ctx.lineTo(x, y);
+    previousSegment = sampleSegment;
+    pointCount += 1;
   });
+  ctx.stroke();
+  if (segmentStarts.length) {
+    ctx.fillStyle = color;
+    segmentStarts.forEach(({ x, y }) => {
+      ctx.beginPath();
+      ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+  return pointCount;
+}
 
+function lowerBoundTrendSample(samples, startIndex, time) {
+  let low = startIndex;
+  let high = samples.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (samples[middle].time < time) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
+function nearestTrendSample(buffer, time) {
+  const { samples, startIndex } = buffer;
+  const index = lowerBoundTrendSample(samples, startIndex, time);
+  const before = samples[index - 1];
+  const after = samples[index];
+  if (!before) return after;
+  if (!after) return before;
+  return time - before.time <= after.time - time ? before : after;
+}
+
+function drawTrendCursor(ctx, sample, ratio, padLeft, padTop, padRight, plotWidth, plotHeight, width) {
+  const x = padLeft + ratio * plotWidth;
+  ctx.save();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = "#7b858c";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, padTop);
+  ctx.lineTo(x, padTop + plotHeight);
   ctx.stroke();
 
-  if (visibleSamples.length === 1) {
-    const sample = visibleSamples[0];
-    const value = sample[key];
-    const x = timeToX(sample.time, startMs, endMs, padLeft, plotWidth);
-    const y = padTop + plotHeight - ((value - min) / (max - min)) * plotHeight;
+  const yRanges = getTrendYRanges();
+  const values = [
+    { key: "temp", series: "temperature", range: yRanges.temp, color: "#3182ce" },
+    { key: "hum", series: "humidity", range: yRanges.hum, color: "#299474" }
+  ];
+  values.forEach(({ key, series, range, color }) => {
+    if (!trendVisibleSeries.value[series] || !Number.isFinite(sample[key])) return;
+    const y = padTop + plotHeight - ((sample[key] - range.min) / (range.max - range.min)) * plotHeight;
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
     ctx.fill();
-  }
+  });
+
+  const boxWidth = 184;
+  const boxHeight = 74;
+  const preferredBoxX = x + boxWidth + padRight < width ? x + 10 : x - boxWidth - 10;
+  const boxX = Math.max(8, Math.min(width - boxWidth - 8, preferredBoxX));
+  const boxY = padTop + 8;
+  ctx.fillStyle = "rgba(255, 255, 255, 0.97)";
+  ctx.strokeStyle = "#d7dfe3";
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.textAlign = "left";
+  ctx.font = "11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  ctx.fillStyle = "#59646b";
+  ctx.fillText(formatTimeLabel(sample.time), boxX + 10, boxY + 17);
+  ctx.fillStyle = "#3182ce";
+  ctx.fillText(`温度  ${Number.isFinite(sample.temp) ? `${sample.temp.toFixed(1)} °C` : "--"}`, boxX + 10, boxY + 38);
+  ctx.fillStyle = "#299474";
+  ctx.fillText(`湿度  ${Number.isFinite(sample.hum) ? `${sample.hum.toFixed(1)} %RH` : "--"}`, boxX + 10, boxY + 59);
+  ctx.restore();
 }
 
 function timeToX(time, startMs, endMs, padLeft, plotWidth) {
@@ -3827,11 +4022,10 @@ function timeToX(time, startMs, endMs, padLeft, plotWidth) {
 }
 
 function getTrendTimeRange(baseMs = Date.now()) {
-  const centerMs = baseMs + trendCenterOffsetMs.value;
-  const halfWindow = trendWindowMs.value / 2;
+  const endMs = baseMs + trendCenterOffsetMs.value;
   return {
-    startMs: centerMs - halfWindow,
-    endMs: centerMs + halfWindow
+    startMs: endMs - trendWindowMs.value,
+    endMs
   };
 }
 
@@ -3865,22 +4059,46 @@ function getTrendCanvasRatio(event) {
   const canvas = selectedTrendCanvas.value;
   if (!canvas) return 0.5;
   const rect = canvas.getBoundingClientRect();
-  const x = Math.min(Math.max(event.clientX - rect.left, 0), rect.width);
-  return rect.width ? x / rect.width : 0.5;
+  const padLeft = Math.max(58, Math.min(76, rect.width * 0.075));
+  const padRight = Math.max(64, Math.min(80, rect.width * 0.08));
+  const plotWidth = Math.max(1, rect.width - padLeft - padRight);
+  const x = Math.min(Math.max(event.clientX - rect.left - padLeft, 0), plotWidth);
+  return x / plotWidth;
 }
 
-function zoomTrend(factor, anchorRatio = 0.5) {
+function zoomTrend(factor, anchorRatio = trendIsLive.value ? 1 : 0.5) {
   const oldWindow = trendWindowMs.value;
   const nextWindow = Math.min(Math.max(oldWindow * factor, TREND_MIN_WINDOW_MS), TREND_MAX_WINDOW_MS);
   const nowMs = Date.now();
   const range = getTrendTimeRange(nowMs);
   const anchorTime = range.startMs + oldWindow * anchorRatio;
   const nextStart = anchorTime - nextWindow * anchorRatio;
-  const nextCenter = nextStart + nextWindow / 2;
+  const nextEnd = nextStart + nextWindow;
 
   trendWindowMs.value = nextWindow;
-  trendCenterOffsetMs.value = nextCenter - nowMs;
+  trendCenterOffsetMs.value = nextEnd - nowMs;
   trendClockMs.value = nowMs;
+  drawSelectedTrend();
+}
+
+function selectTrendWindow(windowMs) {
+  trendWindowMs.value = windowMs;
+  trendCenterOffsetMs.value = 0;
+  trendHoverRatio.value = null;
+  trendClockMs.value = Date.now();
+  drawSelectedTrend();
+}
+
+function returnTrendToLive() {
+  trendCenterOffsetMs.value = 0;
+  trendHoverRatio.value = null;
+  trendClockMs.value = Date.now();
+  drawSelectedTrend();
+}
+
+function toggleTrendSeries(series) {
+  if (trendVisibleSeries.value[series] && !trendVisibleSeries.value[series === "temperature" ? "humidity" : "temperature"]) return;
+  trendVisibleSeries.value = { ...trendVisibleSeries.value, [series]: !trendVisibleSeries.value[series] };
   drawSelectedTrend();
 }
 
@@ -3909,18 +4127,27 @@ function resetTrendY(shouldDraw = true) {
 }
 
 function handleTrendPointerDown(event) {
+  event.currentTarget.setPointerCapture?.(event.pointerId);
   isTrendDragging.value = true;
+  trendHoverRatio.value = null;
   lastTrendDragX = event.clientX;
 }
 
 function handleTrendPointerMove(event) {
-  if (!isTrendDragging.value) return;
+  if (!isTrendDragging.value) {
+    trendHoverRatio.value = getTrendCanvasRatio(event);
+    drawSelectedTrend();
+    return;
+  }
   const canvas = selectedTrendCanvas.value;
   const rect = canvas?.getBoundingClientRect();
-  const width = rect?.width || 1;
+  const padLeft = Math.max(58, Math.min(76, (rect?.width || 0) * 0.075));
+  const padRight = Math.max(64, Math.min(80, (rect?.width || 0) * 0.08));
+  const width = Math.max(1, (rect?.width || 1) - padLeft - padRight);
   const deltaX = event.clientX - lastTrendDragX;
   lastTrendDragX = event.clientX;
-  trendCenterOffsetMs.value -= (deltaX / width) * trendWindowMs.value;
+  trendCenterOffsetMs.value = Math.min(0, trendCenterOffsetMs.value - (deltaX / width) * trendWindowMs.value);
+  trendHoverRatio.value = null;
   trendClockMs.value = Date.now();
   drawSelectedTrend();
 }
@@ -3929,8 +4156,18 @@ function handleTrendPointerUp() {
   isTrendDragging.value = false;
 }
 
+function handleTrendPointerLeave() {
+  handleTrendPointerUp();
+  trendHoverRatio.value = null;
+  drawSelectedTrend();
+}
+
 function handleTrendResize() {
   drawSelectedTrend();
+}
+
+function handleTrendVisibilityChange() {
+  if (!document.hidden) drawSelectedTrend();
 }
 
 onMounted(() => {
@@ -3940,6 +4177,7 @@ onMounted(() => {
   refreshWorkspace();
   syncCorrectionRefresh();
   window.addEventListener("resize", handleTrendResize);
+  document.addEventListener("visibilitychange", handleTrendVisibilityChange);
   clockTimer = window.setInterval(() => {
     currentTimeText.value = new Date().toLocaleTimeString();
     trendClockMs.value = Date.now();
@@ -3954,10 +4192,13 @@ onBeforeUnmount(() => {
   }
   if (reconnectTimer) window.clearTimeout(reconnectTimer);
   if (clockTimer) window.clearInterval(clockTimer);
+  if (trendDrawTimer) window.clearTimeout(trendDrawTimer);
+  if (trendDrawFrame) cancelAnimationFrame(trendDrawFrame);
   if (correctionRefreshTimer) window.clearInterval(correctionRefreshTimer);
   correctionController?.abort();
   window.clearTimeout(feedbackTimer);
   window.removeEventListener("resize", handleTrendResize);
+  document.removeEventListener("visibilitychange", handleTrendVisibilityChange);
 });
 
 watch([activeView, selectedDeviceId, selectedDeviceSection, visibleMonitorCards], () => nextTick(drawSelectedTrend));
