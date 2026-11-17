@@ -124,6 +124,12 @@ async function createWindow() {
       sandbox: true,
     },
   });
+  mainWindow.on("enter-full-screen", () => {
+    mainWindow?.webContents.send("window:fullscreen-changed", true);
+  });
+  mainWindow.on("leave-full-screen", () => {
+    mainWindow?.webContents.send("window:fullscreen-changed", false);
+  });
   const readyToShow = new Promise((resolve) => mainWindow.once("ready-to-show", resolve));
   await mainWindow.loadURL(`http://${HOST}:${port}/`);
   await mainWindow.webContents.insertCSS(DESKTOP_WINDOW_CSS);
@@ -134,9 +140,17 @@ async function createWindow() {
 ipcMain.handle("window:minimize", (event) => {
   BrowserWindow.fromWebContents(event.sender)?.minimize();
 });
-ipcMain.handle("window:toggle-fullscreen", (event) => {
+ipcMain.handle("window:enter-fullscreen", (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);
-  if (window) window.setFullScreen(!window.isFullScreen());
+  if (window) window.setFullScreen(true);
+});
+ipcMain.handle("window:restore", (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  // Electron restores the saved bounds for transparent frameless windows.
+  if (window) window.setFullScreen(false);
+});
+ipcMain.handle("window:is-fullscreen", (event) => {
+  return BrowserWindow.fromWebContents(event.sender)?.isFullScreen() ?? false;
 });
 ipcMain.handle("window:close", (event) => {
   BrowserWindow.fromWebContents(event.sender)?.close();

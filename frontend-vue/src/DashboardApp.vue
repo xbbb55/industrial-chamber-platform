@@ -1420,7 +1420,7 @@ const programFeedback = ref("");
 const programDraft = ref(createProgramDraft());
 const pendingSaveTarget = ref(null);
 const deviceStartTimes = ref({});
-const visibleMonitorCards = ref(["trend"]);
+const visibleMonitorCards = ref([]);
 const draftMonitorCards = ref([]);
 const deviceNotifications = ref([]);
 const operationLogs = ref([]);
@@ -1471,7 +1471,7 @@ const eventMonitorCards = Array.from({ length: 16 }, (_, index) => ({
   key: `event-${index + 1}`,
   number: index + 1
 }));
-const defaultMonitorCardKeys = ["trend"];
+const defaultMonitorCardKeys = [];
 const operationTabs = [
   { key: "protection", label: "保护设定", description: "安全联锁与阈值", icon: "shield" },
   { key: "setpoint", label: "定值模式", description: "温湿度目标控制", icon: "sliders" },
@@ -2304,9 +2304,11 @@ async function openDeviceDetail(deviceId) {
   deviceTransitionInProgress.value = true;
   try {
     showDeviceDetail(deviceId);
+    refreshWorkspace();
     await nextTick();
     const targetImage = document.querySelector(".monitor-product-image img");
     if (!targetImage) return;
+    drawSelectedTrend(true);
 
     const target = visibleProductRect(targetImage);
     const sourceCenterX = source.left + source.width / 2;
@@ -2334,7 +2336,6 @@ async function openDeviceDetail(deviceId) {
   } finally {
     document.documentElement.classList.remove("device-product-transition");
     overlay.remove();
-    if (activeView.value === "device-detail") refreshWorkspace();
     deviceTransitionInProgress.value = false;
     drawSelectedTrend();
   }
@@ -3727,21 +3728,21 @@ function pushTrendSamples(deviceList, writtenAt) {
   if (changed) trendRevision.value += 1;
 }
 
-function drawSelectedTrend() {
-  if (deviceTransitionInProgress.value || trendDrawPending || trendDrawFrame || trendDrawTimer) return;
+function drawSelectedTrend(allowDuringTransition = false) {
+  if ((deviceTransitionInProgress.value && !allowDuringTransition) || trendDrawPending || trendDrawFrame || trendDrawTimer) return;
   trendDrawPending = true;
   nextTick(() => {
     trendDrawPending = false;
-    if (deviceTransitionInProgress.value || document.hidden) return;
+    if ((deviceTransitionInProgress.value && !allowDuringTransition) || document.hidden) return;
     const canvas = selectedTrendCanvas.value;
     if (!canvas) return;
     const wait = Math.max(0, TREND_RENDER_INTERVAL_MS - (performance.now() - lastTrendDrawAt));
     const queueFrame = () => {
       trendDrawTimer = 0;
-      if (!selectedTrendCanvas.value || document.hidden || trendDrawFrame) return;
+      if ((deviceTransitionInProgress.value && !allowDuringTransition) || !selectedTrendCanvas.value || document.hidden || trendDrawFrame) return;
       trendDrawFrame = requestAnimationFrame(() => {
         trendDrawFrame = 0;
-        if (document.hidden || !selectedTrendCanvas.value) return;
+        if ((deviceTransitionInProgress.value && !allowDuringTransition) || document.hidden || !selectedTrendCanvas.value) return;
         renderSelectedTrend(selectedTrendCanvas.value);
         lastTrendDrawAt = performance.now();
       });
