@@ -2,8 +2,8 @@
   <section class="hmi-dashboard" aria-label="环境试验箱实时监控仪表盘">
     <header class="hmi-header">
       <div>
-        <span class="hmi-eyebrow">LIVE ENVIRONMENT</span>
-        <h3>实时环境数据</h3>
+        <span class="hmi-eyebrow">HARDY TEST CONTROL</span>
+        <h3>试验过程监控</h3>
       </div>
       <span class="hmi-live"><i></i>实时采集</span>
     </header>
@@ -104,8 +104,8 @@ const statusItems = computed(() => [
 
 <style scoped>
 .hmi-dashboard {
-  --metric-temp: #267fa5;
-  --metric-humidity: #258a78;
+  --metric-temp: var(--brand-blue, #263a9b);
+  --metric-humidity: var(--brand-green, #08734a);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 18px;
@@ -130,7 +130,7 @@ const statusItems = computed(() => [
 .hmi-eyebrow {
   display: block;
   margin-bottom: 3px;
-  color: #879198;
+  color: var(--brand-blue, #263a9b);
   font-size: 10px;
   font-weight: 700;
   line-height: 1.2;

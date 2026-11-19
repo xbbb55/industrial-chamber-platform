@@ -16,7 +16,9 @@
   --system-ink-muted: #7a838b;
   --system-shadow: 0 18px 44px rgba(47, 55, 63, .1);
   --system-shadow-soft: 0 8px 24px rgba(47, 55, 63, .07);
-  --system-radius: 14px;
+  --system-radius: 8px;
+  --system-radius-button: 6px;
+  --system-radius-data: 4px;
 }
 
 body {
@@ -322,14 +324,14 @@ body {
   gap: 3px;
   padding: 4px;
   border: 1px solid var(--system-line);
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(215, 220, 224, .64);
 }
 
 .app-shell:not(:has(.monitor-layout)) .view-toggle button,
 .app-shell:not(:has(.monitor-layout)) .profile-tabs button {
   min-height: 30px;
-  border-radius: 999px;
+  border-radius: var(--system-radius-button);
   padding: 6px 13px;
   color: var(--system-ink-muted);
   font-size: 12px;
@@ -351,7 +353,7 @@ body {
 
 .app-shell:not(:has(.monitor-layout)) .view-toggle .motion-selection,
 .app-shell:not(:has(.monitor-layout)) .profile-tabs .motion-selection {
-  border-radius: 999px;
+  border-radius: var(--system-radius-button);
   background: #202326;
   box-shadow: 0 3px 8px rgba(32, 35, 38, .16);
 }
@@ -374,21 +376,23 @@ body {
 }
 
 .app-shell:not(:has(.monitor-layout)) .overview-list-head {
-  min-height: 46px;
+  min-height: 44px;
   padding: 0 16px;
   border-bottom: 1px solid var(--system-line-strong);
+  background: #f8f9fa;
   color: var(--system-ink-muted);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .app-shell:not(:has(.monitor-layout)) .overview-row {
   position: relative;
   width: 100%;
   min-height: 108px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   border: 0;
-  border-bottom: 1px solid var(--system-line);
+  border-bottom: 1px solid var(--system-line-strong);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -423,7 +427,8 @@ body {
   flex: 0 0 72px;
   width: 72px;
   height: 76px;
-  border-radius: 8px;
+  border: 1px solid rgba(58, 67, 76, .08);
+  border-radius: 6px;
   background: var(--system-surface-soft);
 }
 
@@ -499,7 +504,7 @@ body {
   max-width: 100%;
   padding: 5px 9px;
   border: 1px solid var(--system-line);
-  border-radius: 6px;
+  border-radius: 5px;
   background: var(--system-surface-soft);
   white-space: nowrap;
 }
@@ -614,7 +619,8 @@ body {
   position: relative;
   min-width: 0;
   height: 280px;
-  border-radius: 12px;
+  border: 1px solid rgba(58, 67, 76, .08);
+  border-radius: 8px;
   background: var(--system-surface-soft);
 }
 
@@ -707,7 +713,7 @@ body {
 
 .app-shell:not(:has(.monitor-layout)) .mini-box {
   border: 1px solid var(--system-line);
-  border-radius: 10px;
+  border-radius: var(--system-radius-data);
   background: rgba(230, 234, 237, .7);
 }
 
@@ -750,7 +756,7 @@ body {
   gap: 4px;
   padding: 5px;
   border: 1px solid var(--system-line);
-  border-radius: 14px;
+  border-radius: 10px;
   background: rgba(222, 227, 231, .72);
   clip-path: none;
   box-shadow: none;
@@ -759,7 +765,7 @@ body {
 .app-shell:not(:has(.monitor-layout)) .operation-nav button {
   min-height: 48px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--system-radius-button);
   padding: 8px 13px;
   color: var(--system-ink-muted);
 }
@@ -797,7 +803,7 @@ body {
 
 .app-shell:not(:has(.monitor-layout)) .operation-nav .motion-selection {
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--system-radius-button);
   background: #202326;
   box-shadow: 0 4px 10px rgba(32, 35, 38, .15);
 }
@@ -831,7 +837,7 @@ body {
 .app-shell:not(:has(.monitor-layout)) .program-detail-card,
 .app-shell:not(:has(.monitor-layout)) .program-empty-state {
   border: 1px solid var(--system-line);
-  border-radius: 12px;
+  border-radius: var(--system-radius);
   background: rgba(250, 251, 252, .72);
   color: var(--system-ink-soft);
   box-shadow: 0 5px 15px rgba(47, 55, 63, .05);
@@ -901,7 +907,7 @@ body {
   min-height: 34px;
   padding: 0 12px;
   border: 1px solid var(--system-line);
-  border-radius: 10px;
+  border-radius: var(--system-radius-button);
   background: var(--system-surface-strong);
   color: var(--system-ink-muted);
   white-space: nowrap;
@@ -1010,7 +1016,7 @@ body {
   width: min(100%, 580px);
   padding: 4px;
   border: 1px solid var(--system-line);
-  border-radius: 11px;
+  border-radius: 8px;
   background: var(--system-surface-soft);
 }
 
@@ -1018,7 +1024,7 @@ body {
   min-height: 32px;
   padding: 4px 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 5px;
   background: transparent;
   color: var(--system-ink-soft);
   font-size: 12px;
@@ -1056,7 +1062,7 @@ body {
 
 .app-shell:not(:has(.monitor-layout)):has(.history-page) .content .history-page .history-query-row input[type="datetime-local"] {
   border: 1px solid var(--system-line-strong);
-  border-radius: 9px;
+  border-radius: 6px;
   background: var(--system-surface-strong);
   color: var(--system-ink-soft);
   color-scheme: light;
@@ -1108,7 +1114,7 @@ body {
 .app-shell:not(:has(.monitor-layout)) select,
 .app-shell:not(:has(.monitor-layout)) textarea {
   border-color: var(--system-line);
-  border-radius: 9px;
+  border-radius: 6px;
   background: rgba(231, 235, 238, .78);
   color: var(--system-ink);
   box-shadow: none;
@@ -1161,8 +1167,8 @@ body {
 
 .app-shell:not(:has(.monitor-layout)) .history-chart-scroll {
   overflow-x: auto;
-  border: 1px solid var(--system-line);
-  border-radius: 11px;
+  border: 1px solid var(--system-line-strong);
+  border-radius: var(--system-radius-data);
   background: rgba(242, 245, 247, .68);
 }
 
@@ -1239,8 +1245,8 @@ body {
   align-content: center;
   justify-items: center;
   gap: 8px;
-  border: 1px solid var(--system-line);
-  border-radius: 11px;
+  border: 1px solid var(--system-line-strong);
+  border-radius: var(--system-radius-data);
   background: rgba(242, 245, 247, .68);
   color: var(--system-ink-muted);
   text-align: center;
@@ -1282,8 +1288,8 @@ body {
 .app-shell:not(:has(.monitor-layout)) .operation-log-table-wrap,
 .app-shell:not(:has(.monitor-layout)) .user-list {
   overflow: auto;
-  border: 1px solid var(--system-line);
-  border-radius: 10px;
+  border: 1px solid var(--system-line-strong);
+  border-radius: var(--system-radius-data);
   background: rgba(255, 255, 255, .38);
 }
 
@@ -1302,16 +1308,18 @@ body {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 12px 14px;
+  padding: 10px 12px;
+  background: #f8f9fa;
   text-align: left;
   white-space: nowrap;
   font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .app-shell:not(:has(.monitor-layout)) .history-table td {
-  padding: 11px 14px;
-  border-top: 1px solid var(--system-line);
+  padding: 10px 12px;
+  border-top: 1px solid var(--system-line-strong);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -1335,7 +1343,7 @@ body {
   align-items: center;
   min-height: 24px;
   padding: 0 8px;
-  border-radius: 7px;
+  border-radius: 4px;
   background: var(--system-surface-soft);
   color: var(--system-ink-soft);
   font-size: 11px;
@@ -1417,7 +1425,10 @@ body {
 .app-shell:not(:has(.monitor-layout)) .operation-log-head,
 .app-shell:not(:has(.monitor-layout)) .user-list-head {
   color: var(--system-ink-muted);
-  background: rgba(222, 227, 231, .55);
+  background: #f8f9fa;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .app-shell:not(:has(.monitor-layout)) table td,
@@ -1442,7 +1453,7 @@ body {
 .app-shell:not(:has(.monitor-layout)) .user-save-button {
   min-height: 34px;
   border: 1px solid var(--system-line-strong);
-  border-radius: 9px;
+  border-radius: var(--system-radius-button);
   background: rgba(255, 255, 255, .52);
   color: var(--system-ink-soft);
   font-size: 12px;
@@ -1555,7 +1566,7 @@ body {
 
 .app-shell:not(:has(.monitor-layout)) .profile-logout-button {
   border-color: rgba(179, 73, 73, .3);
-  border-radius: 9px;
+  border-radius: var(--system-radius-button);
   background: rgba(255, 246, 246, .72);
   color: #a44848;
 }
@@ -1570,7 +1581,7 @@ body {
 .app-shell:not(:has(.monitor-layout)) .secondary-action,
 .app-shell:not(:has(.monitor-layout)) .ghost-action {
   min-height: 36px;
-  border-radius: 9px;
+  border-radius: var(--system-radius-button);
   padding: 8px 14px;
   font-size: 12px;
   font-weight: 700;
@@ -1677,7 +1688,7 @@ body {
 .app-shell:not(:has(.monitor-layout)) .run-mode-option,
 .app-shell:not(:has(.monitor-layout)) .run-mode-preview {
   border-color: var(--system-line);
-  border-radius: 10px;
+  border-radius: var(--system-radius);
   background: rgba(233, 237, 240, .72);
   color: var(--system-ink-soft);
 }
@@ -2383,8 +2394,8 @@ body {
   grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  min-height: 47px;
-  padding: 9px 0;
+  min-height: 44px;
+  padding: 8px 0;
   border: 0;
   border-bottom: 1px solid var(--system-line);
   border-radius: 0;
@@ -2447,7 +2458,7 @@ body {
   color: var(--system-ink-muted);
   font-size: 11px;
 }
-.app-shell:not(:has(.monitor-layout)) .user-list { max-width: 100%; margin-top: 16px; border: 1px solid var(--system-line); border-radius: 8px; }
+.app-shell:not(:has(.monitor-layout)) .user-list { max-width: 100%; margin-top: 16px; border: 1px solid var(--system-line); border-radius: var(--system-radius-data); }
 .app-shell:not(:has(.monitor-layout)) .user-list-head { background: var(--system-surface-soft); }
 .app-shell:not(:has(.monitor-layout)) .profile-logout-row {
   justify-content: flex-start;
@@ -2697,7 +2708,7 @@ body {
   margin: 0;
   padding: 0 8px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 4px;
   appearance: none;
   background: linear-gradient(90deg, var(--range-start) 0%, var(--range-end) var(--range-progress), #d8dee2 var(--range-progress), #d8dee2 100%);
   box-shadow: inset 0 1px 3px rgba(31, 42, 50, .18);

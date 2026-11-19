@@ -120,10 +120,16 @@
 
       <main ref="workspaceContent" class="content">
         <Transition name="workspace" :mode="deviceTransitionInProgress ? 'default' : 'out-in'" :css="!deviceTransitionInProgress" @before-leave="prepareWorkspaceLeave" @after-enter="finishWorkspaceEnter">
-        <section v-if="activeView === 'dashboard'" key="dashboard" class="page-stack">
+        <section v-if="activeView === 'dashboard'" key="dashboard" class="page-stack dashboard-page-stack">
+          <WorkspaceIdentity
+            :total="devices.length"
+            :online="onlineCount"
+            :running="runningCount"
+            :alarms="alarmCount"
+          />
           <section class="panel overview-panel">
             <div class="panel-title">
-              <h3>试验箱实时列表</h3>
+              <h3>设备状态与环境数据</h3>
               <div class="panel-actions">
                 <span class="live-pill"><i></i>实时数据流</span>
                 <div ref="displayModeNav" class="view-toggle motion-nav" :class="{ 'motion-ready': displayModeIndicator }" aria-label="切换设备展示形式">
@@ -1147,6 +1153,7 @@ import ProfileCenter from "./components/ProfileCenter.vue";
 import MotionDialog from "./components/MotionDialog.vue";
 import NumericSlider from "./components/NumericSlider.vue";
 import WorkspaceRefresh from "./components/WorkspaceRefresh.vue";
+import WorkspaceIdentity from "./components/WorkspaceIdentity.vue";
 import WindowControls from "./components/WindowControls.vue";
 import { useRefreshTask } from "./composables/useRefreshTask";
 import { useSelectionIndicator } from "./composables/useSelectionIndicator";
@@ -4221,3 +4228,9 @@ watch([activeView, selectedDeviceId, selectedDeviceSection, operationTab, parame
 });
 watch([activeView, selectedDeviceSection, parameterTab], syncCorrectionRefresh);
 </script>
+
+<style>
+.dashboard-page-stack {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+</style>
