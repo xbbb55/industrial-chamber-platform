@@ -3,12 +3,16 @@
     <LoginView v-if="!authenticated" key="login" @authenticated="handleAuthenticated" />
     <DashboardApp v-else key="dashboard" :initial-user="currentUser" @logout="handleLogout" />
   </Transition>
+  <VirtualKeyboard v-if="isDesktop" :key="authenticated" />
 </template>
 
 <script setup>
 import { ref } from "vue";
 import DashboardApp from "./DashboardApp.vue";
 import LoginView from "./LoginView.vue";
+import VirtualKeyboard from "./components/VirtualKeyboard.vue";
+
+const isDesktop = Boolean(window.desktopWindow);
 
 const fallbackUser = { username: "admin", display_name: "Admin User", role: "ADMIN", role_label: "管理员" };
 
